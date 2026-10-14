@@ -4,6 +4,7 @@ from unittest.mock import patch
 from app_captacao.app import app
 from app_captacao.catalogo import operacao_relatorios, operacoes
 from app_captacao.core.database import sql
+from app_captacao.core.persistence import usuarios
 from app_captacao.web import auditoria
 from tests.fakes import FakeConnection
 
@@ -19,9 +20,8 @@ class OperationCreationTests(unittest.TestCase):
 
     def _request_patches(self):
         # Banco indisponivel para carregar o usuario: a sessao assinada vale como fallback.
-        return patch.multiple(
-            "app_captacao.core.database.sql",
-            safe_db_call=lambda loader, default: default,
+        return patch.object(
+            usuarios, "load_user_by_id", side_effect=RuntimeError("banco indisponivel")
         ), patch.object(auditoria, "log_config", lambda *args, **kwargs: None)
 
     def test_rejects_operation_without_reports(self):

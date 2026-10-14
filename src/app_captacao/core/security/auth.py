@@ -20,21 +20,16 @@ def verify_password(raw_password: str, stored_password: str) -> bool:
     return stored_password == raw_password
 
 
-def bootstrap_admin_user(login: str, senha: str) -> dict | None:
+def bootstrap_admin_profile() -> dict | None:
+    """Admin local de desenvolvimento; so existe quando habilitado e com hash de senha definido."""
     enabled = os.getenv("DEV_BOOTSTRAP_ADMIN_ENABLED", "false").strip().lower() == "true"
-    if not enabled:
-        return None
-
-    expected_login = os.getenv("DEV_BOOTSTRAP_ADMIN_LOGIN", "admin")
-    password_hash = os.getenv("DEV_BOOTSTRAP_ADMIN_PASSWORD_HASH", "")
-    if login != expected_login:
-        return None
-    if password_hash and not check_password_hash(password_hash, senha):
+    password_hash = os.getenv("DEV_BOOTSTRAP_ADMIN_PASSWORD_HASH", "").strip()
+    if not enabled or not password_hash:
         return None
 
     return {
         "id": int(os.getenv("DEV_BOOTSTRAP_ADMIN_ID", "999999")),
-        "login": expected_login,
+        "login": os.getenv("DEV_BOOTSTRAP_ADMIN_LOGIN", "admin"),
         "email": os.getenv("DEV_BOOTSTRAP_ADMIN_EMAIL", "admin@local.test"),
         "area": os.getenv("DEV_BOOTSTRAP_ADMIN_AREA", "performance"),
         "access_id": int(os.getenv("DEV_BOOTSTRAP_ADMIN_ACCESS_ID", "1")),
@@ -44,6 +39,19 @@ def bootstrap_admin_user(login: str, senha: str) -> dict | None:
         "data_criacao": "-",
         "_bootstrap": True,
     }
+
+
+def bootstrap_admin_user(login: str, senha: str) -> dict | None:
+    profile = bootstrap_admin_profile()
+    if not profile or login != profile["login"]:
+        return None
+    password_hash = os.getenv("DEV_BOOTSTRAP_ADMIN_PASSWORD_HASH", "").strip()
+    try:
+        if not check_password_hash(password_hash, senha):
+            return None
+    except ValueError:
+        return None
+    return profile
 
 
 def login_required(view):
