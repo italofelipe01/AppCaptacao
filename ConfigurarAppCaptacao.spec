@@ -5,12 +5,13 @@ from pathlib import Path
 
 project_root = Path.cwd()
 
+
 a = Analysis(
-    ["setup_local_config.py"],
+    ["app_core/config_installer.py"],
     pathex=[str(project_root)],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=["customtkinter"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -26,14 +27,14 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="InstalarConfiguracaoAppCaptacao",
+    name="ConfigurarAppCaptacao",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

@@ -1,6 +1,5 @@
 param(
-    [switch]$Clean,
-    [switch]$WithConfigInstaller
+    [switch]$Clean
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,7 +14,4 @@ if ($Clean) {
 }
 
 pyinstaller --noconfirm AppCaptacao.spec
-
-if ($WithConfigInstaller) {
-    pyinstaller --noconfirm InstalarConfiguracao.spec
-}
+pyinstaller --noconfirm ConfigurarAppCaptacao.spec

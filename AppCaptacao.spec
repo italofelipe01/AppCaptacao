@@ -12,11 +12,15 @@ hiddenimports = [
     "customtkinter",
     "waitress",
     "pyodbc",
+    "win32security",
+    "win32api",
+    "win32con",
+    "pywintypes",
 ]
 
 
 a = Analysis(
-    ["desktop_app.py"],
+    ["app_core/desktop_app.py"],
     pathex=[str(project_root)],
     binaries=[],
     datas=datas,

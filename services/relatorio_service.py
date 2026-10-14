@@ -47,6 +47,31 @@ RELATORIO_COM_FILTROS_QUERY = f"""
     ORDER BY f.IdFiltro
 """
 
+UNIDADES_SELECAO_CAMPO = "filter.selecao"
+UNIDADES_SELECAO_VALOR = "por Empreendimento"
+
+
+def aplicar_filtros_fixos_relatorio(relatorio):
+    if not relatorio:
+        return relatorio
+
+    nome_relatorio = " ".join(str(relatorio.get("nome") or "").strip().lower().split())
+    if "unidades" not in nome_relatorio:
+        return relatorio
+
+    for filtro in relatorio.get("filtros", []):
+        campo = str(filtro.get("campo_identificador") or "").strip().lower()
+        if campo != UNIDADES_SELECAO_CAMPO:
+            continue
+
+        filtro["valor_fixo"] = UNIDADES_SELECAO_VALOR
+        filtro["valor"] = UNIDADES_SELECAO_VALOR
+        filtro["opcional"] = True
+        filtro["automatico"] = True
+        filtro["tipo_campo_valor"] = "CLICK"
+
+    return relatorio
+
 
 def buscar_relatorio_com_filtros(relatorio_id):
     """
@@ -98,7 +123,7 @@ def buscar_relatorio_com_filtros(relatorio_id):
             }
         )
 
-    return anexar_botoes_automaticos(relatorio)
+    return aplicar_filtros_fixos_relatorio(anexar_botoes_automaticos(relatorio))
 
 
 def montar_payload_execucao(relatorio_id, valores_filtros):
@@ -115,8 +140,15 @@ def montar_payload_execucao(relatorio_id, valores_filtros):
             valor = valores_filtros.get(filtro["nome"])
 
         filtro_execucao = dict(filtro)
-        filtro_execucao["valor"] = valor
+        if str(filtro_execucao.get("campo_identificador") or "").strip().lower() == UNIDADES_SELECAO_CAMPO:
+            filtro_execucao["valor"] = UNIDADES_SELECAO_VALOR
+            filtro_execucao["valor_fixo"] = UNIDADES_SELECAO_VALOR
+            filtro_execucao["opcional"] = True
+            filtro_execucao["automatico"] = True
+            filtro_execucao["tipo_campo_valor"] = "CLICK"
+        else:
+            filtro_execucao["valor"] = valor
         filtros_execucao.append(filtro_execucao)
 
     relatorio["filtros"] = filtros_execucao
-    return anexar_botoes_automaticos(relatorio)
+    return aplicar_filtros_fixos_relatorio(anexar_botoes_automaticos(relatorio))

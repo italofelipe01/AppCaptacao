@@ -9,9 +9,10 @@ from selenium.webdriver.support.ui import Select
 
 
 SELECAO_CAMPO = "filter.selecao"
-SELECAO_VALOR = "Por Empreendimento"
+SELECAO_VALOR = "por Empreendimento"
 TIPO_RELATORIO_CAMPO = "filter.tpRelatorio"
 TIPO_RELATORIO_VALOR = "Consolidado"
+GRUPO_EMPRESA_CAMPO = "filter.grupoEmpresa.grupoEmpresaPK.cdGrupoEmpresa"
 
 
 def executar(driver, wait, relatorio_config, contexto):
@@ -25,6 +26,12 @@ def executar(driver, wait, relatorio_config, contexto):
 
     dt_inicio = _obter_filtro_por_campo(filtros, "filter.dtInicioStr")
     dt_fim = _obter_filtro_por_campo(filtros, "filter.dtFimStr")
+    grupo_empresa = _obter_filtro_por_campo(
+        filtros,
+        GRUPO_EMPRESA_CAMPO,
+        "cdGrupoEmpresa",
+        "grupoEmpresaPK.cdGrupoEmpresa",
+    )
     empresa = _obter_filtro_por_campo(filtros, "cdEmpresaView", "filter.empresa.cdEmpresaView")
     empreendimento = _obter_filtro_por_campo(
         filtros,
@@ -34,7 +41,20 @@ def executar(driver, wait, relatorio_config, contexto):
 
     logger.info("Executor unidades aplicando selects padrao do backend.")
     _selecionar_select(driver, wait, SELECAO_CAMPO, SELECAO_VALOR, logger)
-    _selecionar_select(driver, wait, TIPO_RELATORIO_CAMPO, TIPO_RELATORIO_VALOR, logger)
+    _selecionar_select(driver, wait, TIPO_RELATORIO_CAMPO, TIPO_RELATORIO_VALOR, logger, obrigatorio=False)
+    _aguardar_campos_dependentes(
+        driver,
+        wait,
+        (
+            GRUPO_EMPRESA_CAMPO,
+            "cdGrupoEmpresa",
+            "cdEmpresaView",
+            "filter.empresa.cdEmpresaView",
+            "cdEmpreendView",
+            "filter.empreend.cdEmpreendView",
+        ),
+        logger,
+    )
 
     if dt_inicio:
         _preencher_campo(
@@ -54,13 +74,27 @@ def executar(driver, wait, relatorio_config, contexto):
             logger,
         )
 
+    grupos_empresa = _extrair_valores(grupo_empresa)
     empresas = _extrair_valores(empresa)
     empreendimentos = _extrair_valores(empreendimento)
-    total = _calcular_total_iteracoes(empresas, empreendimentos)
+    total = _calcular_total_iteracoes(grupos_empresa, empresas, empreendimentos)
 
     logger.info("Executor unidades iniciando com %s iteracao(oes).", total)
 
     for index in range(total):
+        if grupo_empresa:
+            _preencher_campo(
+                driver,
+                wait,
+                _identificadores_lookup(
+                    grupo_empresa,
+                    "cdGrupoEmpresa",
+                    GRUPO_EMPRESA_CAMPO,
+                ),
+                _obter_valor_iteracao(grupos_empresa, index),
+                logger,
+            )
+
         if empresa:
             _preencher_campo(
                 driver,
@@ -131,12 +165,23 @@ def _montar_identificadores(filtro, *fallbacks):
     return identificadores
 
 
-def _selecionar_select(driver, wait, identificador, valor, logger):
-    elemento = _localizar_no_primeiro_iframe(driver, wait, identificador)
+def _selecionar_select(driver, wait, identificador, valor, logger, obrigatorio=True):
+    try:
+        elemento = _localizar_no_primeiro_iframe(driver, wait, identificador)
+    except (NoSuchElementException, TimeoutException):
+        if obrigatorio:
+            raise
+        logger.info("Select opcional %s nao encontrado; seguindo fluxo.", identificador)
+        driver.switch_to.default_content()
+        return
+
     select = Select(elemento)
 
     try:
-        select.select_by_value(valor)
+        if identificador == SELECAO_CAMPO and len(select.options) >= 2:
+            select.select_by_index(1)
+        else:
+            select.select_by_value(valor)
     except NoSuchElementException:
         try:
             select.select_by_visible_text(valor)
@@ -160,9 +205,42 @@ def _selecionar_select(driver, wait, identificador, valor, logger):
             valor,
         )
 
+    _disparar_eventos_select(driver, elemento)
     logger.info("Select %s definido como %s.", identificador, valor)
     driver.switch_to.default_content()
-    time.sleep(1)
+    time.sleep(1.5)
+
+
+def _disparar_eventos_select(driver, elemento):
+    driver.execute_script(
+        """
+        const select = arguments[0];
+        select.dispatchEvent(new Event('input', { bubbles: true }));
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        if (typeof window.verificaSelecao === 'function') {
+            window.verificaSelecao();
+        }
+        """,
+        elemento,
+    )
+
+
+def _aguardar_campos_dependentes(driver, wait, identificadores, logger):
+    ultimo_erro = None
+    for identificador in identificadores:
+        try:
+            _localizar_no_primeiro_iframe(driver, wait, identificador)
+            logger.info("Campo dependente %s ficou disponivel apos a selecao padrao.", identificador)
+            driver.switch_to.default_content()
+            return
+        except (NoSuchElementException, TimeoutException) as exc:
+            ultimo_erro = exc
+            driver.switch_to.default_content()
+
+    if ultimo_erro:
+        logger.warning(
+            "Os campos dependentes do relatorio de unidades nao ficaram disponiveis apos a selecao padrao."
+        )
 
 
 def _selecionar_opcao_por_texto_normalizado(select, valor):
@@ -233,8 +311,8 @@ def _extrair_valores(filtro):
     return [parte.strip() for parte in str(valor or "").split(",") if parte.strip()]
 
 
-def _calcular_total_iteracoes(empresas, empreendimentos):
-    totais = [len(valores) for valores in (empresas, empreendimentos) if valores]
+def _calcular_total_iteracoes(*listas_valores):
+    totais = [len(valores) for valores in listas_valores if valores]
     if not totais:
         return 1
 

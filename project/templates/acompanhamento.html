@@ -172,7 +172,7 @@
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300">Cadastro</p>
                     <h2 class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Nova operacao</h2>
-                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Primeiro passo: gravar a operacao na tabela principal.</p>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Informe o nome e escolha os relatorios na ordem em que devem ser executados.</p>
                 </div>
                 <button type="button" onclick="fecharModal('modal-operacao')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -187,6 +187,23 @@
                 <label for="modal-nome-operacao" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operacao</label>
                 <input id="modal-nome-operacao" name="nome_operacao" type="text" placeholder="Digite o nome da operacao" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
             </div>
+            <fieldset class="space-y-3">
+                <legend class="text-sm font-medium text-slate-700 dark:text-slate-200">Relatorios da operacao</legend>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Selecione ao menos um. Use as setas para definir a sequencia.</p>
+                <div id="nova-operacao-relatorios" class="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                    {% for relatorio in relatorios_disponiveis %}
+                    <div data-relatorio-item class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 dark:border-slate-700 dark:bg-slate-900">
+                        <input id="novo-relatorio-{{ relatorio.id }}" type="checkbox" name="id_relatorio" value="{{ relatorio.id }}" class="h-4 w-4 rounded border-slate-300">
+                        <label for="novo-relatorio-{{ relatorio.id }}" class="min-w-0 flex-1 text-sm font-medium text-slate-700 dark:text-slate-100">{{ relatorio.nome }}</label>
+                        <span data-ordem class="hidden rounded-full bg-cyan-50 px-2 py-1 text-xs font-bold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300"></span>
+                        <button type="button" data-mover="cima" class="rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-slate-700" aria-label="Mover para cima">↑</button>
+                        <button type="button" data-mover="baixo" class="rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-slate-700" aria-label="Mover para baixo">↓</button>
+                    </div>
+                    {% else %}
+                    <p class="px-3 py-5 text-center text-sm text-rose-600">Nenhum relatorio ativo esta disponivel.</p>
+                    {% endfor %}
+                </div>
+            </fieldset>
             <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-slate-800">
                 <button type="button" onclick="fecharModal('modal-operacao')" class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Cancelar</button>
                 <button type="submit" class="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">Salvar operacao</button>
@@ -512,16 +529,28 @@
             const relatorioNome = escapeHtml(relatorio.nome_relatorio);
             const relatorioNomeAttr = escapeAttr(relatorio.nome_relatorio);
             tr.innerHTML = `
-                <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">${relatorioNome}</td>
+                <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200"><span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-bold dark:bg-slate-800">${relatorio.ordem_execucao || "-"}</span>${relatorioNome}</td>
                 <td class="px-6 py-4">
-                    <button
-                        type="button"
-                        class="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20"
-                        data-relatorio-id="${relatorio.id_relatorio}"
-                        data-filtros-target="${filtrosRowId}"
-                    >
-                        Adicionar filtro
-                    </button>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            class="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20"
+                            data-relatorio-id="${relatorio.id_relatorio}"
+                            data-filtros-target="${filtrosRowId}"
+                        >
+                            Adicionar filtro
+                        </button>
+                        <form method="POST" action="/acompanhamento/operacoes/${modalState.operacaoId}/relatorios/remover" onsubmit="return confirm('Excluir o vinculo do relatorio &quot;${relatorioNomeAttr}&quot; desta operacao?');">
+                            <input type="hidden" name="operacao_nome" value="${escapeAttr(modalState.operacaoNome)}">
+                            <input type="hidden" name="id_relatorio" value="${relatorio.id_relatorio}">
+                            <button
+                                type="submit"
+                                class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
+                            >
+                                Excluir vinculo
+                            </button>
+                        </form>
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -635,6 +664,35 @@
         });
 
         inicializarCombobox("combobox-relatorio", "Selecione");
+
+        const listaNovaOperacao = document.getElementById("nova-operacao-relatorios");
+        const atualizarOrdemNovaOperacao = () => {
+            let ordem = 0;
+            listaNovaOperacao?.querySelectorAll("[data-relatorio-item]").forEach((item) => {
+                const checkbox = item.querySelector("input[type='checkbox']");
+                const indicador = item.querySelector("[data-ordem]");
+                if (checkbox.checked) {
+                    ordem += 1;
+                    indicador.textContent = ordem;
+                    indicador.classList.remove("hidden");
+                } else {
+                    indicador.classList.add("hidden");
+                }
+            });
+        };
+        listaNovaOperacao?.addEventListener("change", atualizarOrdemNovaOperacao);
+        listaNovaOperacao?.addEventListener("click", (event) => {
+            const botao = event.target.closest("[data-mover]");
+            if (!botao) return;
+            const item = botao.closest("[data-relatorio-item]");
+            const direcao = botao.dataset.mover;
+            if (direcao === "cima" && item.previousElementSibling) {
+                listaNovaOperacao.insertBefore(item, item.previousElementSibling);
+            } else if (direcao === "baixo" && item.nextElementSibling) {
+                listaNovaOperacao.insertBefore(item.nextElementSibling, item);
+            }
+            atualizarOrdemNovaOperacao();
+        });
         if (modalTipo === "criar") {
             abrirModalOperacao();
         }

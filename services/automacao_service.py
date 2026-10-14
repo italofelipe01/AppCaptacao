@@ -45,6 +45,12 @@ from services.relatorio_action_service import (
     obter_executor_botao,
     obter_executor_relatorio,
 )
+from app_core.app_config import (
+    decrypt_bytes_for_current_user,
+    encrypt_bytes_for_current_user,
+    ensure_config_dir,
+    get_sienge_session_store_dir,
+)
 
 # ============================================================
 # CONFIGURAÇÕES DE CONEXÃO E TIMEOUTS
@@ -88,7 +94,7 @@ CHROME_DEBUG_HOST = os.getenv("SELENIUM_CHROME_DEBUG_HOST", "127.0.0.1").strip()
 CHROME_DEBUG_PORT = int(os.getenv("SELENIUM_CHROME_DEBUG_PORT", "9222"))
 CHROME_USER_DATA_DIR = os.getenv("CHROME_USER_DATA_DIR", "").strip()
 CHROME_PROFILE_DIRECTORY = os.getenv("CHROME_PROFILE_DIRECTORY", "").strip()
-FORCAR_LOGIN_INTERATIVO = os.getenv("SIENGE_FORCE_INTERACTIVE_LOGIN", "true").strip().lower() == "true"
+FORCAR_LOGIN_INTERATIVO = os.getenv("SIENGE_FORCE_INTERACTIVE_LOGIN", "false").strip().lower() == "true"
 
 # Reutilizacao opcional do perfil real do Edge para fluxos de SSO/Microsoft.
 EDGE_USE_PROFILE = os.getenv("EDGE_USE_PROFILE", "true").strip().lower() == "true"
@@ -168,6 +174,12 @@ ACOES_QUE_EXIGEM_VALOR = {
 }
 
 
+class DownloadProcessingError(RuntimeError):
+    def __init__(self, etapa, mensagem):
+        super().__init__(mensagem)
+        self.etapa = etapa
+
+
 def acao_exige_valor(acao):
     """
     Verifica se uma ação requer valor para execução.
@@ -186,15 +198,15 @@ def acao_exige_valor(acao):
 
 def executar_relatorio(email, senha, relatorio_config, driver=None, sessao_autenticada=False):
     driver_gerenciado = driver is None
-    driver = driver or _criar_driver()
 
     try:
+        driver = driver or _criar_driver()
         wait = WebDriverWait(driver, DEFAULT_TIMEOUT)
         if not sessao_autenticada:
             _fazer_login(driver, wait, email, senha)
             time.sleep(POST_LOGIN_WAIT)
 
-        _executar_relatorio_no_driver(driver, wait, relatorio_config)
+        arquivos = _executar_relatorio_no_driver(driver, wait, relatorio_config)
         stable = _aguardar_pasta_download_estabilizar()
         if not stable:
             logger.warning(
@@ -204,9 +216,38 @@ def executar_relatorio(email, senha, relatorio_config, driver=None, sessao_auten
             )
             time.sleep(DEFAULT_REPORT_WAIT)
             _aguardar_pasta_download_estabilizar()
-        return driver
+        item = _montar_item_resultado(relatorio_config, "baixado", arquivos=arquivos)
+        return {
+            "tipo_execucao": "relatorio",
+            "itens": [item],
+            "sucessos": [item],
+            "falhas": [],
+            "quantidade_relatorios": 1,
+            "quantidade_baixados": 1,
+            "quantidade_nao_baixados": 0,
+            "resumo": "1 relatorio baixado; 0 nao baixados.",
+        }
+    except Exception as exc:
+        logger.exception("Falha ao executar o relatorio %s.", relatorio_config.get("nome", ""))
+        item = _montar_item_resultado(
+            relatorio_config,
+            "nao_baixado",
+            mensagem=str(exc) or "Falha durante a execucao do relatorio.",
+            etapa=getattr(exc, "etapa", "execucao"),
+        )
+        return {
+            "tipo_execucao": "relatorio",
+            "itens": [item],
+            "sucessos": [],
+            "falhas": [item],
+            "quantidade_relatorios": 1,
+            "quantidade_baixados": 0,
+            "quantidade_nao_baixados": 1,
+            "mensagem": item["mensagem"],
+            "resumo": "0 relatorios baixados; 1 nao baixado.",
+        }
     finally:
-        if driver_gerenciado and os.getenv("SELENIUM_KEEP_BROWSER_OPEN", "true").strip().lower() != "true":
+        if driver_gerenciado and driver and os.getenv("SELENIUM_KEEP_BROWSER_OPEN", "true").strip().lower() != "true":
             driver.quit()
 
 
@@ -214,19 +255,44 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
     if not relatorios_config:
         return {
             "quantidade_relatorios": 0,
+            "quantidade_baixados": 0,
+            "quantidade_nao_baixados": 0,
+            "itens": [],
             "sucessos": [],
             "falhas": [],
+            "resumo": "Nenhum relatorio para executar.",
         }
 
-    driver = _criar_driver()
+    driver = None
     resultado_execucao = {
         "quantidade_relatorios": len(relatorios_config),
+        "quantidade_baixados": 0,
+        "quantidade_nao_baixados": 0,
+        "itens": [],
         "sucessos": [],
         "falhas": [],
     }
     try:
-        wait = WebDriverWait(driver, DEFAULT_TIMEOUT)
-        _fazer_login(driver, wait, email, senha)
+        try:
+            driver = _criar_driver()
+            wait = WebDriverWait(driver, DEFAULT_TIMEOUT)
+            _fazer_login(driver, wait, email, senha)
+        except Exception as exc:
+            logger.exception("O navegador ou a autenticacao nao foi concluido; os relatorios serao ignorados.")
+            for relatorio_config in relatorios_config:
+                item = _montar_item_resultado(
+                    relatorio_config,
+                    "ignorado",
+                    mensagem=f"Navegador ou autenticacao nao concluido: {exc}",
+                    etapa="autenticacao",
+                )
+                resultado_execucao["itens"].append(item)
+                resultado_execucao["falhas"].append(item)
+            resultado_execucao["quantidade_nao_baixados"] = len(relatorios_config)
+            resultado_execucao["resumo"] = (
+                f"0 relatorios baixados; {len(relatorios_config)} nao baixados."
+            )
+            return resultado_execucao
         time.sleep(POST_LOGIN_WAIT)
 
         total = len(relatorios_config)
@@ -248,17 +314,18 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                             "total": total,
                         },
                     )
-                _executar_relatorio_no_driver(driver, wait, relatorio_config)
+                arquivos = _executar_relatorio_no_driver(driver, wait, relatorio_config)
                 eh_ultimo = indice == total
-                resultado_execucao["sucessos"].append(
-                    {
-                        "indice": indice,
-                        "total": total,
-                        "relatorio_id": relatorio_config.get("id"),
-                        "relatorio_nome": relatorio_config.get("nome", ""),
-                        "eh_ultimo": eh_ultimo,
-                    }
+                item = _montar_item_resultado(
+                    relatorio_config,
+                    "baixado",
+                    arquivos=arquivos,
+                    indice=indice,
+                    total=total,
                 )
+                item["eh_ultimo"] = eh_ultimo
+                resultado_execucao["itens"].append(item)
+                resultado_execucao["sucessos"].append(item)
                 if on_report_event:
                     on_report_event(
                         "sucesso",
@@ -286,15 +353,16 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                     time.sleep(DEFAULT_REPORT_WAIT)
                 else:
                     logger.info("Ultimo relatorio da sequencia. Nao aguarda finalizacao.")
-            except Exception:
-                detalhe_erro = {
-                    "indice": indice,
-                    "total": total,
-                    "relatorio_id": relatorio_config.get("id"),
-                    "relatorio_nome": relatorio_config.get("nome", ""),
-                    "mensagem": "Erro na execucao da automacao da operacao para o relatorio.",
-                    "traceback": traceback.format_exc(),
-                }
+            except Exception as exc:
+                detalhe_erro = _montar_item_resultado(
+                    relatorio_config,
+                    "nao_baixado",
+                    mensagem=str(exc) or "Erro na execucao da automacao para o relatorio.",
+                    etapa=getattr(exc, "etapa", "execucao"),
+                    indice=indice,
+                    total=total,
+                )
+                resultado_execucao["itens"].append(detalhe_erro)
                 resultado_execucao["falhas"].append(detalhe_erro)
                 logger.exception(
                     "Erro na execucao da automacao da operacao para o relatorio %s.",
@@ -303,9 +371,39 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                 if on_report_event:
                     on_report_event("erro", relatorio_config, detalhe_erro)
     finally:
-        if os.getenv("SELENIUM_KEEP_BROWSER_OPEN", "true").strip().lower() != "true":
+        if driver and os.getenv("SELENIUM_KEEP_BROWSER_OPEN", "true").strip().lower() != "true":
             driver.quit()
+    resultado_execucao["quantidade_baixados"] = len(resultado_execucao["sucessos"])
+    resultado_execucao["quantidade_nao_baixados"] = len(resultado_execucao["falhas"])
+    resultado_execucao["resumo"] = (
+        f"{resultado_execucao['quantidade_baixados']} relatorio(s) baixado(s); "
+        f"{resultado_execucao['quantidade_nao_baixados']} nao baixado(s)."
+    )
     return resultado_execucao
+
+
+def _montar_item_resultado(
+    relatorio_config,
+    estado,
+    arquivos=None,
+    mensagem="",
+    etapa="",
+    indice=None,
+    total=None,
+):
+    arquivos = [str(item) for item in (arquivos or []) if str(item or "").strip()]
+    return {
+        "indice": indice,
+        "total": total,
+        "relatorio_id": relatorio_config.get("id") or relatorio_config.get("id_relatorio"),
+        "relatorio_nome": relatorio_config.get("nome", ""),
+        "operacao_nome": relatorio_config.get("operacao_nome", ""),
+        "estado": estado,
+        "mensagem": mensagem,
+        "etapa": etapa,
+        "caminho_final": arquivos[-1] if arquivos else "",
+        "arquivos": arquivos,
+    }
 
 
 def autenticar_sienge(email, senha):
@@ -337,6 +435,7 @@ def autenticar_sienge(email, senha):
 
 
 def _executar_relatorio_no_driver(driver, wait, relatorio_config):
+    relatorio_config["_arquivos_finais"] = []
     relatorio_url = (relatorio_config.get("url") or "").strip()
     if not relatorio_url:
         raise ValueError(
@@ -377,6 +476,13 @@ def _executar_relatorio_no_driver(driver, wait, relatorio_config):
 
     _executar_relatorio_dedicado(driver, wait, relatorio_config, executor_relatorio)
     _aguardar_carregamento_da_pagina(driver, wait)
+    arquivos = list(dict.fromkeys(relatorio_config.get("_arquivos_finais", [])))
+    if not arquivos:
+        raise DownloadProcessingError(
+            "download",
+            "O executor terminou, mas nenhum arquivo novo foi confirmado no destino.",
+        )
+    return arquivos
 
 
 def _configurar_browser_options(options):
@@ -670,6 +776,11 @@ def _fazer_login(driver, wait, email, senha):
         time.sleep(6)
     except NoSuchElementException:
         pass
+
+    if not _sessao_sienge_ativa(driver):
+        raise RuntimeError(
+            "A autenticacao interativa nao foi concluida. Conclua o MFA na janela do navegador e tente novamente."
+        )
 
     if SESSION_REUSE_ENABLED:
         _salvar_sessao_sienge(driver, email)
@@ -1676,6 +1787,8 @@ def _normalizar_valor_automacao(filtro):
 def _obter_caminho_sessao(email):
     email_normalizado = str(email or "").strip().lower()
     hash_email = md5(email_normalizado.encode("utf-8")).hexdigest()
+    if os.name == "nt":
+        return str(ensure_config_dir(get_sienge_session_store_dir()) / f"sienge_session_{hash_email}.bin")
     return os.path.join(tempfile.gettempdir(), f"sienge_session_{hash_email}.pkl")
 
 
@@ -1704,15 +1817,18 @@ def _salvar_sessao_sienge(driver, email):
             """
         )
 
+        payload_sessao = pickle.dumps(
+            {
+                "cookies": cookies,
+                "local_storage": local_storage,
+                "session_storage": session_storage,
+            }
+        )
+        if os.name == "nt":
+            payload_sessao = encrypt_bytes_for_current_user(payload_sessao)
+
         with open(caminho_sessao, "wb") as arquivo_sessao:
-            pickle.dump(
-                {
-                    "cookies": cookies,
-                    "local_storage": local_storage,
-                    "session_storage": session_storage,
-                },
-                arquivo_sessao,
-            )
+            arquivo_sessao.write(payload_sessao)
 
         logger.info(
             "Sessao Sienge salva para %s em %s com %s cookies.",
@@ -1733,7 +1849,10 @@ def _restaurar_sessao_sienge(driver, email):
 
     try:
         with open(caminho_sessao, "rb") as arquivo_sessao:
-            sessao = pickle.load(arquivo_sessao)
+            payload_sessao = arquivo_sessao.read()
+        if os.name == "nt":
+            payload_sessao = decrypt_bytes_for_current_user(payload_sessao)
+        sessao = pickle.loads(payload_sessao)
 
         driver.get(LOGIN_URL)
         time.sleep(3)
@@ -1809,11 +1928,22 @@ def _fechar_janelas_extras(driver):
 
 
 def _marcar_inicio_download():
-    return time.time()
+    pasta = Path(DOWNLOAD_DIR)
+    pasta.mkdir(parents=True, exist_ok=True)
+    arquivos_antes = {}
+    for arquivo in pasta.iterdir():
+        if not arquivo.is_file():
+            continue
+        try:
+            stat = arquivo.stat()
+            arquivos_antes[str(arquivo.resolve())] = (stat.st_size, stat.st_mtime_ns)
+        except OSError:
+            continue
+    return {"inicio_ns": time.time_ns(), "arquivos_antes": arquivos_antes}
 
 
 def _renomear_download_relatorio(relatorio_config, empresa_id="", inicio_download=None):
-    inicio_download = inicio_download or (time.time() - DOWNLOAD_WAIT_TIMEOUT)
+    inicio_download = inicio_download or _marcar_inicio_download()
     arquivo = _aguardar_arquivo_download(inicio_download)
     if not arquivo:
         logger.warning(
@@ -1822,7 +1952,10 @@ def _renomear_download_relatorio(relatorio_config, empresa_id="", inicio_downloa
             empresa_id,
             DOWNLOAD_DIR,
         )
-        return ""
+        raise DownloadProcessingError(
+            "download",
+            f"Nenhum arquivo novo foi concluido em '{DOWNLOAD_DIR}'.",
+        )
 
     nome_relatorio = _sanitizar_nome_arquivo(relatorio_config.get("nome") or "relatorio")
     empresa = _sanitizar_nome_arquivo(str(empresa_id or "sem_empresa"))
@@ -1835,34 +1968,59 @@ def _renomear_download_relatorio(relatorio_config, empresa_id="", inicio_downloa
 
     try:
         arquivo.rename(destino)
+        if not destino.exists() or destino.stat().st_size <= 0:
+            raise OSError("O arquivo renomeado nao foi confirmado no disco.")
         logger.info("Download renomeado | origem=%s | destino=%s", arquivo, destino)
-        _copiar_download_para_sharepoint(relatorio_config, destino)
-        return str(destino)
-    except OSError:
+    except OSError as exc:
         logger.exception("Nao foi possivel renomear o download %s.", arquivo)
-        return ""
+        raise DownloadProcessingError("renomeacao", f"Falha ao renomear o arquivo: {exc}") from exc
+
+    caminho_final = str(destino)
+    if str(relatorio_config.get("sharepoint_link", "") or "").strip():
+        caminho_final = _copiar_download_para_sharepoint(
+            relatorio_config,
+            destino,
+            registrar_resultado=False,
+        )
+    relatorio_config.setdefault("_arquivos_finais", []).append(caminho_final)
+    return caminho_final
 
 
 def _aguardar_arquivo_download(inicio_download):
     pasta = Path(DOWNLOAD_DIR)
+    pasta.mkdir(parents=True, exist_ok=True)
     prazo = time.time() + DOWNLOAD_WAIT_TIMEOUT
     estabilidade_por_arquivo = {}
 
+    if isinstance(inicio_download, dict):
+        inicio_ns = int(inicio_download.get("inicio_ns") or 0)
+        arquivos_antes = inicio_download.get("arquivos_antes") or {}
+    else:
+        inicio_ns = int(float(inicio_download or 0) * 1_000_000_000)
+        arquivos_antes = {}
+
+    def arquivo_novo_ou_alterado(arquivo, stat):
+        assinatura_anterior = arquivos_antes.get(str(arquivo.resolve()))
+        if assinatura_anterior is None:
+            return stat.st_mtime_ns >= inicio_ns
+        return (stat.st_size, stat.st_mtime_ns) != tuple(assinatura_anterior) and stat.st_mtime_ns >= inicio_ns
+
     while time.time() <= prazo:
-        downloads_em_andamento = [
-            arquivo
-            for arquivo in pasta.iterdir()
-            if arquivo.is_file()
-            and arquivo.suffix.lower() in DOWNLOAD_TEMP_EXTENSIONS
-            and arquivo.stat().st_mtime >= inicio_download - 1
-        ]
-        candidatos = [
-            arquivo
-            for arquivo in pasta.iterdir()
-            if arquivo.is_file()
-            and arquivo.suffix.lower() not in DOWNLOAD_TEMP_EXTENSIONS
-            and arquivo.stat().st_mtime >= inicio_download - 1
-        ]
+        downloads_em_andamento = []
+        candidatos = []
+        for arquivo in pasta.iterdir():
+            if not arquivo.is_file():
+                continue
+            try:
+                stat = arquivo.stat()
+            except OSError:
+                continue
+            if not arquivo_novo_ou_alterado(arquivo, stat):
+                continue
+            if arquivo.suffix.lower() in DOWNLOAD_TEMP_EXTENSIONS:
+                downloads_em_andamento.append(arquivo)
+            else:
+                candidatos.append(arquivo)
 
         if candidatos and not downloads_em_andamento:
             candidato = max(candidatos, key=lambda item: item.stat().st_mtime)
@@ -1967,10 +2125,21 @@ def _sanitizar_nome_arquivo(valor):
     return valor or "sem_nome"
 
 
-def _copiar_download_para_sharepoint(relatorio_config, arquivo_origem):
+def _copiar_download_para_sharepoint(relatorio_config, arquivo_origem, registrar_resultado=True):
+    arquivo_origem = Path(arquivo_origem)
+    destino_informado = str(relatorio_config.get("sharepoint_link", "") or "").strip()
+    if not destino_informado:
+        caminho_final = str(arquivo_origem)
+        if registrar_resultado:
+            relatorio_config.setdefault("_arquivos_finais", []).append(caminho_final)
+        return caminho_final
+
     destino_base = _resolver_destino_sharepoint(relatorio_config.get("sharepoint_link", ""))
     if not destino_base:
-        return ""
+        raise DownloadProcessingError(
+            "copia",
+            "O destino informado nao e uma pasta local sincronizada ou caminho UNC valido.",
+        )
 
     try:
         destino_base.mkdir(parents=True, exist_ok=True)
@@ -1980,15 +2149,20 @@ def _copiar_download_para_sharepoint(relatorio_config, arquivo_origem):
             arquivo_origem.suffix,
         )
         shutil.copy2(arquivo_origem, destino_arquivo)
+        if not destino_arquivo.exists() or destino_arquivo.stat().st_size != arquivo_origem.stat().st_size:
+            raise OSError("A copia no destino nao foi confirmada ou ficou incompleta.")
         logger.info("Download copiado para SharePoint/local | origem=%s | destino=%s", arquivo_origem, destino_arquivo)
-        return str(destino_arquivo)
-    except OSError:
+        caminho_final = str(destino_arquivo)
+        if registrar_resultado:
+            relatorio_config.setdefault("_arquivos_finais", []).append(caminho_final)
+        return caminho_final
+    except OSError as exc:
         logger.exception(
             "Nao foi possivel copiar o arquivo %s para o destino SharePoint/local '%s'.",
             arquivo_origem,
             destino_base,
         )
-        return ""
+        raise DownloadProcessingError("copia", f"Falha ao copiar o arquivo para o destino: {exc}") from exc
 
 
 def _resolver_destino_sharepoint(sharepoint_link):

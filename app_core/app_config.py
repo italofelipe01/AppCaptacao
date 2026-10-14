@@ -16,6 +16,8 @@ from dotenv import load_dotenv
 APP_NAME = "AppCaptacao"
 APP_ENV_FILENAME = "app_captacao.env"
 APP_ENV_ENCRYPTED_FILENAME = "app_captacao.env.enc"
+APP_RUNTIME_PLAINTEXT_FLAG = "APP_CAPTACAO_ALLOW_PLAINTEXT_ENV"
+APP_STATE_DIRNAME = "state"
 FILE_ATTRIBUTE_HIDDEN = 0x02
 FILE_ATTRIBUTE_NORMAL = 0x80
 INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF
@@ -33,13 +35,13 @@ class DATA_BLOB(ctypes.Structure):
 def get_runtime_base_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parent
+    return Path(__file__).resolve().parent.parent
 
 
 def get_bundle_base_dir() -> Path:
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         return Path(sys._MEIPASS).resolve()
-    return Path(__file__).resolve().parent
+    return Path(__file__).resolve().parent.parent
 
 
 def get_windows_appdata_dir() -> Path:
@@ -89,6 +91,14 @@ def get_runtime_portable_encrypted_config_path() -> Path:
     return get_runtime_base_dir() / APP_ENV_ENCRYPTED_FILENAME
 
 
+def is_frozen_runtime() -> bool:
+    return bool(getattr(sys, "frozen", False))
+
+
+def allow_plaintext_config_in_frozen() -> bool:
+    return os.getenv(APP_RUNTIME_PLAINTEXT_FLAG, "").strip().lower() in {"1", "true", "yes"}
+
+
 def get_config_dir_candidates() -> list[Path]:
     custom_config_dir = os.getenv("APP_CAPTACAO_CONFIG_DIR", "").strip()
     if custom_config_dir:
@@ -117,11 +127,19 @@ def get_fallback_encrypted_config_path() -> Path:
 
 
 def get_local_dev_env_path() -> Path:
-    return Path(__file__).resolve().parent / ".env"
+    return Path(__file__).resolve().parent.parent / ".env"
 
 
 def get_local_dev_encrypted_env_path() -> Path:
-    return Path(__file__).resolve().parent / ".env.enc"
+    return Path(__file__).resolve().parent.parent / ".env.enc"
+
+
+def get_state_dir() -> Path:
+    return get_hidden_config_dir() / APP_STATE_DIRNAME
+
+
+def get_sienge_session_store_dir() -> Path:
+    return get_state_dir() / "sienge_sessions"
 
 
 def mark_path_hidden(path: Path) -> None:
@@ -166,14 +184,8 @@ def get_existing_config_path() -> Path | None:
     return None
 
 
-def get_config_path_candidates() -> list[Path]:
-    # In the current test flow, prefer plain-text config files next to the app.
+def _encrypted_config_path_candidates() -> list[Path]:
     candidates = [
-        get_runtime_config_path(),
-        get_runtime_portable_config_path(),
-        get_runtime_env_path(),
-        get_hidden_config_path(),
-        get_fallback_config_path(),
         get_hidden_encrypted_config_path(),
         get_fallback_encrypted_config_path(),
         get_runtime_encrypted_config_path(),
@@ -185,14 +197,35 @@ def get_config_path_candidates() -> list[Path]:
         candidates.append(config_dir / APP_ENV_ENCRYPTED_FILENAME)
         candidates.append(config_dir / ".env.enc")
 
+    if not is_frozen_runtime():
+        candidates.append(get_local_dev_encrypted_env_path())
+
+    return candidates
+
+
+def _plaintext_config_path_candidates() -> list[Path]:
+    candidates = [
+        get_runtime_config_path(),
+        get_runtime_portable_config_path(),
+        get_runtime_env_path(),
+        get_hidden_config_path(),
+        get_fallback_config_path(),
+    ]
+
     for config_dir in get_config_dir_candidates():
         candidates.append(config_dir / APP_ENV_FILENAME)
         candidates.append(config_dir / ".env")
 
-    if not getattr(sys, "frozen", False):
-        candidates.append(get_local_dev_encrypted_env_path())
+    if not is_frozen_runtime():
         candidates.append(get_local_dev_env_path())
 
+    return candidates
+
+
+def get_config_path_candidates() -> list[Path]:
+    candidates = _encrypted_config_path_candidates()
+    if not is_frozen_runtime() or allow_plaintext_config_in_frozen():
+        candidates.extend(_plaintext_config_path_candidates())
     return list(dict.fromkeys(candidates))
 
 
@@ -250,10 +283,70 @@ def encrypt_text_for_current_user(plaintext: str) -> str:
     return base64.b64encode(raw).decode("ascii")
 
 
+def encrypt_bytes_for_current_user(payload: bytes) -> bytes:
+    return _protect_bytes_for_current_user(payload)
+
+
 def decrypt_text_for_current_user(encoded_payload: str) -> str:
     raw = base64.b64decode(encoded_payload.encode("ascii"))
     decrypted = _unprotect_bytes_for_current_user(raw)
     return decrypted.decode("utf-8")
+
+
+def decrypt_bytes_for_current_user(payload: bytes) -> bytes:
+    return _unprotect_bytes_for_current_user(payload)
+
+
+def install_encrypted_config_text(plaintext: str, target: Path | None = None) -> Path:
+    config_dir = ensure_config_dir(get_hidden_config_dir())
+    target_path = Path(target).resolve() if target else config_dir / APP_ENV_ENCRYPTED_FILENAME
+    temp_target = target_path.with_suffix(target_path.suffix + ".tmp")
+    temp_target.write_text(encrypt_text_for_current_user(plaintext), encoding="utf-8")
+    mark_path_normal(target_path)
+    os.replace(temp_target, target_path)
+    mark_path_hidden(target_path)
+    return target_path
+
+
+def list_cleanup_targets() -> list[Path]:
+    targets = [
+        get_hidden_encrypted_config_path(),
+        get_hidden_config_path(),
+        get_fallback_encrypted_config_path(),
+        get_fallback_config_path(),
+        get_runtime_encrypted_config_path(),
+        get_runtime_config_path(),
+        get_runtime_portable_encrypted_config_path(),
+        get_runtime_portable_config_path(),
+        get_runtime_env_path(),
+        get_runtime_base_dir() / ".env.enc",
+        get_runtime_base_dir() / ".env",
+        get_state_dir(),
+    ]
+    if not is_frozen_runtime():
+        targets.extend([get_local_dev_encrypted_env_path(), get_local_dev_env_path()])
+    return list(dict.fromkeys(targets))
+
+
+def remove_path_if_exists(path: Path) -> bool:
+    if not path.exists():
+        return False
+    mark_path_normal(path)
+    if path.is_dir():
+        for child in sorted(path.iterdir(), reverse=True):
+            remove_path_if_exists(child)
+        path.rmdir()
+        return True
+    path.unlink()
+    return True
+
+
+def remove_local_configuration() -> list[Path]:
+    removed: list[Path] = []
+    for target in list_cleanup_targets():
+        if remove_path_if_exists(target):
+            removed.append(target)
+    return removed
 
 
 def _protect_bytes_for_current_user(data: bytes) -> bytes:

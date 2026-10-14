@@ -19,11 +19,17 @@ from services.report_modules.extrato_conciliado import (
 from services.report_modules.extrato_saldo_devedor_presente import (
     executar as executar_extrato_saldo_devedor_presente,
 )
+from services.report_modules.mapa_venda import (
+    executar as executar_mapa_venda,
+)
 from services.report_modules.posicao_saldos import (
     executar as executar_posicao_saldos,
 )
 from services.report_modules.preco_total_vendas import (
     executar as executar_preco_total_vendas,
+)
+from services.report_modules.quadro_espelho import (
+    executar as executar_quadro_espelho,
 )
 from services.report_modules.relatorio_reparcelamento import (
     executar as executar_relatorio_reparcelamento,
@@ -53,8 +59,10 @@ EXECUTORES_RELATORIO = {
     "contas_recebidas": executar_contas_recebidas,
     "extrato_conciliado": executar_extrato_conciliado,
     "extrato_saldo_devedor_presente": executar_extrato_saldo_devedor_presente,
+    "mapa_venda": executar_mapa_venda,
     "posicao_saldos": executar_posicao_saldos,
     "preco_total_vendas": executar_preco_total_vendas,
+    "quadro_espelho": executar_quadro_espelho,
     "relatorio_reparcelamento": executar_relatorio_reparcelamento,
     "retencao": executar_retencao,
     "titulos_quitados": executar_titulos_quitados,
