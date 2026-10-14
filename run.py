@@ -1,4 +1,4 @@
-"""Ponto de entrada do AppCaptacao em desenvolvimento (python run_app.py)."""
+"""Ponto de entrada do AppCaptacao em desenvolvimento (python run.py)."""
 
 import os
 import socket

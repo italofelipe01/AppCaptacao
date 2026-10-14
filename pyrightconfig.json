@@ -2,7 +2,7 @@
   "include": [
     "src",
     "tests",
-    "run_app.py"
+    "run.py"
   ],
   "exclude": [
     "**/__pycache__",

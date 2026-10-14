@@ -11,7 +11,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-python ".\run_app.py"
+python ".\run.py"
 if errorlevel 1 (
     echo.
     echo O AppCaptacao foi encerrado com erro.
