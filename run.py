@@ -1,5 +1,12 @@
-"""Ponto de entrada do AppCaptacao em desenvolvimento (python run.py)."""
+"""Ponto de entrada do AppCaptacao em desenvolvimento (python run.py).
 
+Antes de abrir o app, confere Python, bibliotecas, configuracao, navegador,
+pasta de downloads e banco. Opcoes:
+  --somente-verificar   roda o checklist e sai, sem abrir o app
+  --sem-verificacao     abre direto, sem checklist
+"""
+
+import argparse
 import os
 import socket
 import sys
@@ -12,11 +19,7 @@ SRC_DIR = Path(__file__).resolve().parent / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from app_captacao.core.config.environment import initialize_environment  # noqa: E402
-
-initialize_environment()
-
-from app_captacao.app import run_application  # noqa: E402
+from app_captacao import inicializacao  # noqa: E402  (so biblioteca padrao)
 
 
 def _browser_url() -> str:
@@ -57,14 +60,51 @@ def _open_browser_when_ready() -> None:
     print(f"Nao foi possivel abrir automaticamente. Acesse manualmente: {url}")
 
 
-if __name__ == "__main__":
+def _argumentos(argv: list[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Inicia o AppCaptacao.")
+    parser.add_argument("--somente-verificar", action="store_true", help="roda o checklist e sai")
+    parser.add_argument("--sem-verificacao", action="store_true", help="abre o app sem o checklist")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    # Mantem a ordem das mensagens quando o pip escreve no mesmo console.
+    reconfigurar = getattr(sys.stdout, "reconfigure", None)
+    if reconfigurar:
+        reconfigurar(line_buffering=True)
+    args = _argumentos(argv)
+    verificar = not args.sem_verificacao
+
+    if verificar:
+        print("Verificando o ambiente do AppCaptacao...")
+        if not (inicializacao.verificar_python() and inicializacao.garantir_dependencias()):
+            return 1
+
+    from app_captacao.core.config.environment import initialize_environment
+
+    initialize_environment()
     url = _browser_url()
-    if _app_already_running():
+    if _app_already_running() and not args.somente_verificar:
         print(f"AppCaptacao ja esta em execucao em {url}")
         _open_browser(url)
-        raise SystemExit(0)
+        return 0
+
+    if verificar and not inicializacao.verificar_configuracao_e_servicos():
+        return 1
+    if args.somente_verificar:
+        return 0
+
+    from app_captacao.app import run_application
 
     print(f"AppCaptacao iniciando em {url}")
     print("Mantenha esta janela aberta enquanto estiver usando o aplicativo.")
     threading.Thread(target=_open_browser_when_ready, daemon=True).start()
-    run_application(use_waitress=True, open_browser=False)
+    try:
+        run_application(use_waitress=True, open_browser=False)
+    except KeyboardInterrupt:
+        print("AppCaptacao encerrado.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

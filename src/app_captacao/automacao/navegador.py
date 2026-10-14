@@ -287,3 +287,12 @@ def fechar_janelas_extras(driver):
         driver.switch_to.window(handle)
         driver.close()
     driver.switch_to.window(main)
+
+
+def caminho_navegador(navegador: str = SELENIUM_BROWSER) -> str | None:
+    """Executavel do navegador configurado em SELENIUM_BROWSER, se estiver instalado."""
+    if navegador == "chrome":
+        return _get_chrome_path()
+    if navegador == "edge":
+        return _get_edge_path()
+    return None
