@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import traceback
 from copy import deepcopy
@@ -15,10 +16,12 @@ from app_captacao.catalogo import relatorios as relatorios_repo
 from app_captacao.core.database import sql
 from app_captacao.core.persistence import logs as logs_repo
 from app_captacao.core.security.auth import login_required
-from app_captacao.core.shared.texto import normalize_text
+from app_captacao.core.shared.texto import normalize_text, parse_int
 from app_captacao.execucao import jobs, runner
+from app_captacao.web.erros import mensagem_para_usuario
 from app_captacao.web.registro import RegistroRotas
 
+logger = logging.getLogger(__name__)
 rotas = RegistroRotas()
 
 
@@ -77,7 +80,7 @@ def processar():
 
     try:
         if modo == "completo":
-            relatorio_id = int(request.form.get("relatorio") or 0)
+            relatorio_id = parse_int(request.form.get("relatorio"))
             payload = relatorios_repo.montar_payload_execucao(relatorio_id, request.form)
             if not payload:
                 flash("Relatorio nao encontrado.", "error")
@@ -100,7 +103,7 @@ def processar():
             return redirect(url_for("main"))
 
         if modo == "parceiros":
-            operacao_id = int(request.form.get("operacao") or 0)
+            operacao_id = parse_int(request.form.get("operacao"))
             operacao = operacoes_repo.buscar_operacao_ativa(operacao_id)
             if not operacao:
                 flash("Selecione uma operacao ativa.", "error")
@@ -151,7 +154,7 @@ def processar():
                 "traceback": traceback.format_exc(),
             },
         )
-        flash(f"Falha ao executar a automacao: {exc}", "error")
+        flash(f"Falha ao executar a automacao: {mensagem_para_usuario(exc, 'Falha ao iniciar a execucao.')}", "error")
 
     return redirect(url_for("main"))
 
@@ -183,5 +186,6 @@ def relatorio_filtros_dados(relatorio_id: int):
                 "filtros": filtros,
             }
         )
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        logger.exception("Falha ao carregar os filtros do relatorio %s.", relatorio_id)
+        return jsonify({"error": "Nao foi possivel carregar os filtros."}), 500

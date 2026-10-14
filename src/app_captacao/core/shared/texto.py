@@ -22,3 +22,11 @@ def format_datetime(value: object) -> str:
         return datetime.fromisoformat(str(value)).strftime("%d/%m/%Y %H:%M")
     except Exception:
         return str(value)
+
+
+def parse_int(value: object, default: int = 0) -> int:
+    """Converte valor de formulario em inteiro; texto invalido vira o padrao."""
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return default

@@ -141,7 +141,12 @@ def atualizar_minha_senha():
         flash("A nova senha e a confirmacao precisam coincidir.", "error")
         return redirect(url_for("perfil"))
 
-    sql.safe_db_call(lambda: usuarios_repo.atualizar_senha(g.current_user["id"], nova_senha), None)
+    try:
+        usuarios_repo.atualizar_senha(g.current_user["id"], nova_senha)
+    except Exception:
+        logger.exception("Falha ao atualizar a senha do usuario %s.", g.current_user["login"])
+        flash("Nao foi possivel atualizar a senha no banco. Tente novamente.", "error")
+        return redirect(url_for("perfil"))
     auditoria.log_config("senha_atualizacao", "Usuario atualizou a propria senha.")
     flash("Senha atualizada com sucesso.", "success")
     return redirect(url_for("perfil"))

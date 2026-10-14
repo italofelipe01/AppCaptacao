@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from flask import flash, g, jsonify, redirect, render_template, request, url_for
 
 from app_captacao.catalogo import operacao_relatorios as vinculos_repo
@@ -9,10 +11,12 @@ from app_captacao.catalogo import operacoes as operacoes_repo
 from app_captacao.catalogo import relatorios as relatorios_repo
 from app_captacao.core.database import sql
 from app_captacao.core.security.auth import access_required, login_required
-from app_captacao.core.shared.texto import normalize_text
+from app_captacao.core.shared.texto import normalize_text, parse_int
 from app_captacao.web import auditoria
+from app_captacao.web.erros import mensagem_para_usuario
 from app_captacao.web.registro import RegistroRotas
 
+logger = logging.getLogger(__name__)
 rotas = RegistroRotas()
 
 
@@ -79,7 +83,7 @@ def criar_operacao_route():
         )
         flash("Operacao criada com sucesso e ja esta disponivel para execucao.", "success")
     except Exception as exc:
-        flash(f"Nao foi possivel criar a operacao: {exc}", "error")
+        flash(f"Nao foi possivel criar a operacao: {mensagem_para_usuario(exc, 'Falha ao criar a operacao.')}", "error")
         return redirect(url_for("acompanhamento", modal_tipo="criar"))
     return redirect(url_for("acompanhamento"))
 
@@ -97,7 +101,7 @@ def editar_operacao_route(operacao_id: int):
         auditoria.log_config("operacao_edicao", f"Operacao {operacao_id} atualizada.", {"nome_operacao": nome_operacao})
         flash("Operacao atualizada com sucesso.", "success")
     except Exception as exc:
-        flash(f"Nao foi possivel atualizar a operacao: {exc}", "error")
+        flash(f"Nao foi possivel atualizar a operacao: {mensagem_para_usuario(exc, 'Falha ao atualizar a operacao.')}", "error")
     return redirect(url_for("acompanhamento"))
 
 
@@ -110,7 +114,7 @@ def inativar_operacao_route(operacao_id: int):
         auditoria.log_config("operacao_inativacao", f"Operacao {operacao_id} inativada.")
         flash("Operacao inativada com sucesso.", "success")
     except Exception as exc:
-        flash(f"Nao foi possivel inativar a operacao: {exc}", "error")
+        flash(f"Nao foi possivel inativar a operacao: {mensagem_para_usuario(exc, 'Falha ao inativar a operacao.')}", "error")
     return redirect(url_for("acompanhamento"))
 
 
@@ -125,15 +129,16 @@ def relatorios_operacao_dados(operacao_id: int):
                 "relatorios_operacao": vinculos_repo.load_relatorios_operacao(operacao_id),
             }
         )
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        logger.exception("Falha ao carregar os relatorios da operacao %s.", operacao_id)
+        return jsonify({"error": "Falha ao carregar relatorios."}), 500
 
 
 @rotas.post("/acompanhamento/operacoes/<int:operacao_id>/relatorios")
 @login_required
 @access_required(1, 2)
 def adicionar_relatorio_operacao(operacao_id: int):
-    relatorio_id = int(request.form.get("id_relatorio") or 0)
+    relatorio_id = parse_int(request.form.get("id_relatorio"))
     if not relatorio_id:
         flash("Selecione um relatorio.", "error")
         return _redirecionar_modal_relatorios(operacao_id)
@@ -142,7 +147,7 @@ def adicionar_relatorio_operacao(operacao_id: int):
         auditoria.log_config("operacao_relatorio_vinculo", f"Relatorio {relatorio_id} vinculado a operacao {operacao_id}.")
         flash("Relatorio vinculado com sucesso.", "success")
     except Exception as exc:
-        flash(f"Nao foi possivel vincular o relatorio: {exc}", "error")
+        flash(f"Nao foi possivel vincular o relatorio: {mensagem_para_usuario(exc, 'Falha ao vincular o relatorio.')}", "error")
 
     return _redirecionar_modal_relatorios(operacao_id)
 
@@ -151,7 +156,7 @@ def adicionar_relatorio_operacao(operacao_id: int):
 @login_required
 @access_required(1, 2)
 def atualizar_filtros_operacao(operacao_id: int):
-    relatorio_id = int(request.form.get("id_relatorio") or 0)
+    relatorio_id = parse_int(request.form.get("id_relatorio"))
     ids_filtro = request.form.getlist("id_filtro")
     valores = request.form.getlist("valor")
     try:
@@ -159,7 +164,7 @@ def atualizar_filtros_operacao(operacao_id: int):
         auditoria.log_config("operacao_filtros_atualizacao", f"Filtros atualizados para operacao {operacao_id}.")
         flash("Filtros atualizados com sucesso.", "success")
     except Exception as exc:
-        flash(f"Nao foi possivel atualizar os filtros: {exc}", "error")
+        flash(f"Nao foi possivel atualizar os filtros: {mensagem_para_usuario(exc, 'Falha ao atualizar os filtros.')}", "error")
 
     return _redirecionar_modal_relatorios(operacao_id)
 
@@ -168,7 +173,7 @@ def atualizar_filtros_operacao(operacao_id: int):
 @login_required
 @access_required(1, 2)
 def remover_relatorio_operacao(operacao_id: int):
-    relatorio_id = int(request.form.get("id_relatorio") or 0)
+    relatorio_id = parse_int(request.form.get("id_relatorio"))
     if not relatorio_id:
         flash("Relatorio invalido para exclusao do vinculo.", "error")
         return _redirecionar_modal_relatorios(operacao_id)
@@ -183,6 +188,6 @@ def remover_relatorio_operacao(operacao_id: int):
     except vinculos_repo.OperacaoSemRelatorioError as exc:
         flash(str(exc), "error")
     except Exception as exc:
-        flash(f"Nao foi possivel desvincular o relatorio: {exc}", "error")
+        flash(f"Nao foi possivel desvincular o relatorio: {mensagem_para_usuario(exc, 'Falha ao desvincular o relatorio.')}", "error")
 
     return _redirecionar_modal_relatorios(operacao_id)
