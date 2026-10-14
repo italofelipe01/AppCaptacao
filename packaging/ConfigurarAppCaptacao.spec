@@ -8,7 +8,7 @@ project_root = Path(SPECPATH).resolve().parent  # noqa: F821
 
 
 a = Analysis(
-    ["src/app_captacao/desktop/config_installer.py"],
+    [str(project_root / "src" / "app_captacao" / "desktop" / "config_installer.py")],
     pathex=[str(project_root / "src")],
     binaries=[],
     datas=[],

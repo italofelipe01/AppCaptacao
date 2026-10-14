@@ -22,7 +22,7 @@ hiddenimports = [
 
 
 a = Analysis(
-    ["src/app_captacao/desktop/desktop_app.py"],
+    [str(project_root / "src" / "app_captacao" / "desktop" / "desktop_app.py")],
     pathex=[str(project_root / "src")],
     binaries=[],
     datas=datas,

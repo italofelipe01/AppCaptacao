@@ -1,4 +1,4 @@
-"""Log tecnico em arquivo rotativo, para diagnosticar falhas da automacao.
+r"""Log tecnico em arquivo rotativo, para diagnosticar falhas da automacao.
 
 Grava INFO ou mais grave de todos os modulos app_captacao.* em
 %LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log (5 arquivos de 5 MB). No
