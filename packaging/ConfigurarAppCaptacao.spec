@@ -3,7 +3,8 @@
 from pathlib import Path
 
 
-project_root = Path.cwd()
+# SPECPATH e definido pelo PyInstaller: pasta deste .spec (packaging/).
+project_root = Path(SPECPATH).resolve().parent  # noqa: F821
 
 
 a = Analysis(

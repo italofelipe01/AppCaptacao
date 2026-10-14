@@ -3,7 +3,8 @@
 from pathlib import Path
 
 
-project_root = Path.cwd()
+# SPECPATH e definido pelo PyInstaller: pasta deste .spec (packaging/).
+project_root = Path(SPECPATH).resolve().parent  # noqa: F821
 datas = [
     (str(project_root / "project"), "project"),
 ]
@@ -42,6 +43,7 @@ exe = EXE(
     a.datas,
     [],
     name="AppCaptacao",
+    icon=str(project_root / "packaging" / "appcaptacao.ico"),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
