@@ -43,7 +43,7 @@ def get_runtime_base_dir() -> Path:
 
 def get_bundle_base_dir() -> Path:
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        return Path(sys._MEIPASS).resolve()
+        return Path(getattr(sys, "_MEIPASS")).resolve()
     return PROJECT_ROOT
 
 

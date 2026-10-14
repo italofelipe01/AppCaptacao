@@ -126,16 +126,16 @@ RELATORIOS_EXECUTORES_URL = {
 }
 
 
-def obter_executor_relatorio(nome_relatorio, id_relatorio_operacao=None, id_relatorio=None, url_relatorio=""):
+def _inteiro_ou_none(valor):
     try:
-        id_relatorio_operacao = int(id_relatorio_operacao)
+        return int(valor)
     except (TypeError, ValueError):
-        id_relatorio_operacao = None
+        return None
 
-    try:
-        id_relatorio = int(id_relatorio)
-    except (TypeError, ValueError):
-        id_relatorio = None
+
+def obter_executor_relatorio(nome_relatorio, id_relatorio_operacao=None, id_relatorio=None, url_relatorio=""):
+    id_relatorio_operacao = _inteiro_ou_none(id_relatorio_operacao)
+    id_relatorio = _inteiro_ou_none(id_relatorio)
 
     if id_relatorio_operacao in RELATORIOS_EXECUTORES_OPERACAO:
         return RELATORIOS_EXECUTORES_OPERACAO[id_relatorio_operacao]

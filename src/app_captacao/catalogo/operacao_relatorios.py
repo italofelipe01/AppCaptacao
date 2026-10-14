@@ -8,8 +8,7 @@ para manter compatibilidade com schemas antigos.
 from __future__ import annotations
 
 from contextlib import closing
-
-import pyodbc
+from datetime import date
 
 from app_captacao.catalogo import relatorios as relatorios_repo
 from app_captacao.catalogo.relatorios import UNIDADES_SELECAO_CAMPO, UNIDADES_SELECAO_VALOR
@@ -20,10 +19,11 @@ from app_captacao.core.config.settings import (
     RELATORIO_X_OPERACAO_TABLE,
 )
 from app_captacao.core.database import sql
+from app_captacao.core.database.connection import DbConnection
 from app_captacao.core.shared.texto import normalize_text
 
 
-def get_filter_value_column(connection: pyodbc.Connection) -> str | None:
+def get_filter_value_column(connection: DbConnection) -> str | None:
     for column_name in ("Valor", "ValorPadrao", "ValorFiltro"):
         if sql.column_exists(connection, FILTRO_X_OPERACAO_TABLE, column_name):
             return column_name
@@ -35,7 +35,7 @@ def format_filter_value(value: object, tipo_campo_valor: str = "") -> str:
         return ""
     if str(tipo_campo_valor or "").strip().upper() == "CLICK":
         return ""
-    if hasattr(value, "strftime") and str(tipo_campo_valor or "").strip().upper() == "DATE":
+    if isinstance(value, date) and str(tipo_campo_valor or "").strip().upper() == "DATE":
         return value.strftime("%Y-%m-%d")
     return str(value)
 
@@ -205,7 +205,7 @@ def load_relatorio_operacao_payload(operacao_id: int) -> list[dict]:
 
 
 def insert_operation_report_link(
-    connection: pyodbc.Connection,
+    connection: DbConnection,
     operacao_id: int,
     relatorio_id: int,
     usuario_id: int | None = None,
@@ -221,7 +221,8 @@ def insert_operation_report_link(
         """,
         (operacao_id, relatorio_id),
     )
-    if cursor.fetchone().Total:
+    vinculo_existente = cursor.fetchone()
+    if vinculo_existente and vinculo_existente.Total:
         raise ValueError("Este relatorio ja esta vinculado a operacao.")
 
     relatorio = relatorios_repo.buscar_relatorio_com_filtros(relatorio_id)
@@ -285,7 +286,7 @@ def insert_operation_report_link(
 
 
 def inativar_relatorio_operacao(
-    connection: pyodbc.Connection,
+    connection: DbConnection,
     operacao_id: int,
     relatorio_id: int,
     usuario_id: int | None = None,

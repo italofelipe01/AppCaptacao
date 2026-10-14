@@ -8,7 +8,7 @@ import os
 import pyodbc
 
 try:
-    import pymssql
+    import pymssql  # pyright: ignore[reportMissingImports]
 except ImportError:  # pragma: no cover - fallback opcional em instalacoes antigas
     pymssql = None
 
@@ -22,6 +22,8 @@ _preferred_backend: str | None = None
 
 
 class _CompatibleRow(tuple):
+    _column_indexes: dict[str, int]
+
     def __new__(cls, values, columns):
         instance = super().__new__(cls, values)
         instance._column_indexes = {
@@ -93,6 +95,10 @@ class _PymssqlConnectionAdapter:
         return self._connection.close()
 
 
+# Conexao devolvida pelo ODBC ou pelo fallback pymssql; as duas expoem cursor/commit/close.
+DbConnection = pyodbc.Connection | _PymssqlConnectionAdapter
+
+
 def _get_odbc_connection(timeout: int):
     driver = os.getenv("DB_DRIVER", "SQL Server")
     extra_params = os.getenv("DB_EXTRA_PARAMS", "").strip()
@@ -133,7 +139,7 @@ def _get_pymssql_connection(timeout: int):
     return _PymssqlConnectionAdapter(connection)
 
 
-def get_db_connection():
+def get_db_connection() -> DbConnection:
     global _preferred_backend
     timeout = int(os.getenv("DB_TIMEOUT", "5"))
 

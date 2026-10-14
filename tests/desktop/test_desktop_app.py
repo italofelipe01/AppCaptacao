@@ -6,10 +6,11 @@ from unittest.mock import patch
 
 
 def _importar_desktop_sem_customtkinter():
-    falso = types.ModuleType("customtkinter")
-    falso.CTk = object
-    falso.set_appearance_mode = lambda *args, **kwargs: None
-    falso.set_default_color_theme = lambda *args, **kwargs: None
+    falso = types.SimpleNamespace(
+        CTk=object,
+        set_appearance_mode=lambda *args, **kwargs: None,
+        set_default_color_theme=lambda *args, **kwargs: None,
+    )
     with patch.dict(sys.modules, {"customtkinter": falso}):
         sys.modules.pop("app_captacao.desktop.desktop_app", None)
         return importlib.import_module("app_captacao.desktop.desktop_app")

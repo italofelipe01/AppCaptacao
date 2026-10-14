@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from contextlib import closing
 
-import pyodbc
-
 from app_captacao.catalogo import operacao_relatorios as vinculos_repo
 from app_captacao.core.config.settings import OPERACAO_TABLE, RELATORIO_TABLE, RELATORIO_X_OPERACAO_TABLE
 from app_captacao.core.database import sql
+from app_captacao.core.database.connection import DbConnection
 from app_captacao.core.shared.texto import format_datetime, normalize_text, to_bool
 
 
@@ -84,7 +83,7 @@ def load_operation_report_summaries() -> dict[int, list[dict]]:
     return summaries
 
 
-def operation_name_exists(connection: pyodbc.Connection, nome_operacao: str, exclude_id: int | None = None) -> bool:
+def operation_name_exists(connection: DbConnection, nome_operacao: str, exclude_id: int | None = None) -> bool:
     cursor = connection.cursor()
     params: list[object] = [nome_operacao]
     exclude_sql = ""

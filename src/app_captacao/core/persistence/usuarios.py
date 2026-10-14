@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from contextlib import closing
 
-import pyodbc
 from werkzeug.security import generate_password_hash
 
 from app_captacao.core.config.settings import USUARIO_TABLE
 from app_captacao.core.database import sql
+from app_captacao.core.database.connection import DbConnection
 from app_captacao.core.security.perfis import descricao_perfil
 from app_captacao.core.shared.texto import format_datetime, normalize_text, to_bool
 
@@ -101,13 +101,15 @@ def load_usuarios(filtro_busca: str, filtro_status: str) -> list[dict]:
     usuarios = []
     for row in rows:
         usuario = serialize_user(row)
+        if usuario is None:
+            continue
         usuario["id_acesso"] = int(row.get("access_id") or 0)
         usuarios.append(usuario)
     return usuarios
 
 
 def user_duplicate_field(
-    connection: pyodbc.Connection,
+    connection: DbConnection,
     login_usuario: str,
     email: str,
     exclude_id: int | None = None,

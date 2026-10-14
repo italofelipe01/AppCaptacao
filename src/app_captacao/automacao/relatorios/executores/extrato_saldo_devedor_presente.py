@@ -1379,7 +1379,7 @@ def _consolidar_planilhas(
     logger,
 ):
     workbook_destino = Workbook()
-    worksheet_destino = workbook_destino.active
+    worksheet_destino = workbook_destino.active or workbook_destino.create_sheet()
     worksheet_destino.title = "Consolidado"
 
     escreveu_linhas = False
@@ -1433,6 +1433,7 @@ def _iterar_linhas_planilha(arquivo):
         return
 
     workbook = load_workbook(arquivo, data_only=True)
-    worksheet = workbook.active
+    # active pode ser None (ex.: aba de grafico selecionada); cai na primeira planilha.
+    worksheet = workbook.active or workbook.worksheets[0]
     for linha in worksheet.iter_rows(values_only=True):
         yield linha

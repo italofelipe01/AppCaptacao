@@ -8,9 +8,7 @@ from __future__ import annotations
 import logging
 from contextlib import closing
 
-import pyodbc
-
-from app_captacao.core.database.connection import get_db_connection
+from app_captacao.core.database.connection import DbConnection, get_db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +46,7 @@ def split_table_name(table_name: str) -> tuple[str, str]:
     return "dbo", parts[0]
 
 
-def column_exists(connection: pyodbc.Connection, table_name: str, column_name: str) -> bool:
+def column_exists(connection: DbConnection, table_name: str, column_name: str) -> bool:
     schema, table = split_table_name(table_name)
     cursor = connection.cursor()
     cursor.execute(
@@ -65,7 +63,7 @@ def column_exists(connection: pyodbc.Connection, table_name: str, column_name: s
     return bool(row and row.Total)
 
 
-def column_is_identity(connection: pyodbc.Connection, table_name: str, column_name: str) -> bool:
+def column_is_identity(connection: DbConnection, table_name: str, column_name: str) -> bool:
     schema, table = split_table_name(table_name)
     cursor = connection.cursor()
     cursor.execute(
@@ -82,7 +80,7 @@ def column_is_identity(connection: pyodbc.Connection, table_name: str, column_na
     return bool(row and row.IsIdentity)
 
 
-def get_next_id(connection: pyodbc.Connection, table_name: str, id_column: str) -> int:
+def get_next_id(connection: DbConnection, table_name: str, id_column: str) -> int:
     cursor = connection.cursor()
     cursor.execute(
         f"SELECT ISNULL(MAX({id_column}), 0) + 1 AS ProximoId "
