@@ -44,12 +44,6 @@ INTERACTIVE_LOGIN_TIMEOUT = max(
     MICROSOFT_MFA_WAIT,
 )
 
-# Tempo de espera interação com campos (segundos)
-FIELD_INTERACTION_WAIT = float(os.getenv("SELENIUM_FIELD_INTERACTION_WAIT_SECONDS", "1.5"))
-
-# Número de tentativas para preencher campos
-FIELD_RETRY_COUNT = int(os.getenv("SELENIUM_FIELD_RETRY_COUNT", "3"))
-
 # Habilitar reutilização de sessão do navegador
 SESSION_REUSE_ENABLED = os.getenv("SIENGE_SESSION_REUSE_ENABLED", "true").strip().lower() == "true"
 

@@ -133,11 +133,6 @@ def get_local_dev_env_path() -> Path:
     return PROJECT_ROOT / ".env"
 
 
-def get_reference_env_path() -> Path:
-    """Usa a configuracao da versao funcional sem duplicar credenciais."""
-    return PROJECT_ROOT / "oldversion" / ".env"
-
-
 def get_local_dev_encrypted_env_path() -> Path:
     return PROJECT_ROOT / ".env.enc"
 
@@ -265,24 +260,44 @@ def _plaintext_config_path_candidates() -> list[Path]:
 def get_config_path_candidates() -> list[Path]:
     candidates = []
     if not is_frozen_runtime():
-        candidates.append(get_reference_env_path())
+        # Em desenvolvimento, o .env da raiz do repositorio tem prioridade.
+        candidates.append(get_local_dev_env_path())
     candidates.extend(_encrypted_config_path_candidates())
     if not is_frozen_runtime() or allow_plaintext_config_in_frozen():
         candidates.extend(_plaintext_config_path_candidates())
     return list(dict.fromkeys(candidates))
 
 
-def initialize_environment() -> Path | None:
+_environment_loaded = False
+_loaded_config_path: Path | None = None
+
+
+def initialize_environment(force: bool = False) -> Path | None:
+    """Carrega a primeira configuracao encontrada; chamadas seguintes reutilizam o resultado.
+
+    Variaveis ja definidas no processo nunca sao sobrescritas pelo arquivo.
+    """
+    global _environment_loaded, _loaded_config_path
+    if _environment_loaded and not force:
+        return _loaded_config_path
+
+    _loaded_config_path = None
     for existing_config_path in get_config_path_candidates():
         if not existing_config_path.exists():
             continue
         try:
             _load_environment_from_path(existing_config_path)
-            return existing_config_path
+            _loaded_config_path = existing_config_path
+            break
         except Exception:
             continue
 
-    return None
+    _environment_loaded = True
+    return _loaded_config_path
+
+
+def get_loaded_config_path() -> Path | None:
+    return _loaded_config_path
 
 
 def _load_environment_from_path(path: Path) -> None:
