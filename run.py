@@ -95,8 +95,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     from app_captacao.app import run_application
+    from app_captacao.core.shared.log_tecnico import configurar_log_tecnico
 
+    arquivo_de_log = configurar_log_tecnico()
     print(f"AppCaptacao iniciando em {url}")
+    print(f"Log tecnico: {arquivo_de_log}")
     print("Mantenha esta janela aberta enquanto estiver usando o aplicativo.")
     threading.Thread(target=_open_browser_when_ready, daemon=True).start()
     try:

@@ -29,6 +29,7 @@ except ImportError:  # pragma: no cover
 
 from app_captacao.app import run_application
 from app_captacao.core.config.environment import initialize_environment
+from app_captacao.core.shared.log_tecnico import configurar_log_tecnico
 
 
 ctk.set_appearance_mode("light")
@@ -236,6 +237,7 @@ class AppCaptacaoDesktop(ctk.CTk):
 
 def main() -> None:
     initialize_environment()
+    configurar_log_tecnico(console=False)
     app = AppCaptacaoDesktop()
     app.mainloop()
 
