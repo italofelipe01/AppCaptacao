@@ -19,6 +19,16 @@ _execution_results_cache: dict[str, dict] = {}
 _execution_jobs: dict[str, dict] = {}
 _execution_jobs_lock = threading.Lock()
 
+# Jobs concluidos alem deste limite sao descartados (os mais antigos primeiro),
+# para o processo nao acumular memoria em sessoes longas.
+MAX_JOBS_CONCLUIDOS = 200
+
+
+def _descartar_jobs_antigos() -> None:
+    concluidos = [job_id for job_id, job in _execution_jobs.items() if job.get("estado") == "concluida"]
+    for job_id in concluidos[: max(0, len(concluidos) - MAX_JOBS_CONCLUIDOS)]:
+        _execution_jobs.pop(job_id, None)
+
 
 def _get_execution_preferences_cache_key() -> str | None:
     user_id = session.get("user_id")
@@ -105,6 +115,7 @@ def create_execution_job(tipo: str, relatorios: list[dict], operacao_nome: str =
         for relatorio in relatorios
     ]
     with _execution_jobs_lock:
+        _descartar_jobs_antigos()
         _execution_jobs[job_id] = {
             "id": job_id,
             "tipo_execucao": tipo,
