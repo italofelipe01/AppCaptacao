@@ -32,6 +32,7 @@ from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
     TimeoutException,
+    WebDriverException,
 )
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
@@ -50,6 +51,7 @@ from app_core.app_config import (
     encrypt_bytes_for_current_user,
     ensure_config_dir,
     get_sienge_session_store_dir,
+    get_writable_state_dir,
 )
 
 # ============================================================
@@ -77,6 +79,10 @@ POST_LOGIN_WAIT = int(os.getenv("SELENIUM_POST_LOGIN_WAIT_SECONDS", "8"))
 
 # Tempo para concluir o desafio MFA/token da Microsoft (segundos)
 MICROSOFT_MFA_WAIT = int(os.getenv("SELENIUM_MICROSOFT_MFA_WAIT_SECONDS", "60"))
+INTERACTIVE_LOGIN_TIMEOUT = max(
+    int(os.getenv("SIENGE_INTERACTIVE_LOGIN_TIMEOUT_SECONDS", "180")),
+    MICROSOFT_MFA_WAIT,
+)
 
 # Tempo de espera interação com campos (segundos)
 FIELD_INTERACTION_WAIT = float(os.getenv("SELENIUM_FIELD_INTERACTION_WAIT_SECONDS", "1.5"))
@@ -89,20 +95,23 @@ SESSION_REUSE_ENABLED = os.getenv("SIENGE_SESSION_REUSE_ENABLED", "true").strip(
 
 # Navegador Selenium preferencial para a automação
 SELENIUM_BROWSER = os.getenv("SELENIUM_BROWSER", "edge").strip().lower()
+KEEP_BROWSER_OPEN = os.getenv("SELENIUM_KEEP_BROWSER_OPEN", "false").strip().lower() == "true"
 ATTACH_NORMAL_CHROME = os.getenv("SELENIUM_ATTACH_NORMAL_CHROME", "false").strip().lower() == "true"
+ATTACH_NORMAL_EDGE = os.getenv("SELENIUM_ATTACH_NORMAL_EDGE", "true").strip().lower() == "true"
 CHROME_DEBUG_HOST = os.getenv("SELENIUM_CHROME_DEBUG_HOST", "127.0.0.1").strip() or "127.0.0.1"
 CHROME_DEBUG_PORT = int(os.getenv("SELENIUM_CHROME_DEBUG_PORT", "9222"))
 CHROME_USER_DATA_DIR = os.getenv("CHROME_USER_DATA_DIR", "").strip()
 CHROME_PROFILE_DIRECTORY = os.getenv("CHROME_PROFILE_DIRECTORY", "").strip()
-FORCAR_LOGIN_INTERATIVO = os.getenv("SIENGE_FORCE_INTERACTIVE_LOGIN", "false").strip().lower() == "true"
-
-# Reutilizacao opcional do perfil real do Edge para fluxos de SSO/Microsoft.
+# Perfil persistente e exclusivo da automacao. Nao usa o perfil pessoal do Edge,
+# evitando bloqueio do diretorio e mistura de cookies entre navegadores.
 EDGE_USE_PROFILE = os.getenv("EDGE_USE_PROFILE", "true").strip().lower() == "true"
 EDGE_USER_DATA_DIR = (
     os.getenv("EDGE_USER_DATA_DIR")
-    or os.path.join(os.getenv("LOCALAPPDATA", ""), "Microsoft", "Edge", "User Data")
+    or str(get_writable_state_dir() / "edge_automation_profile")
 )
 EDGE_PROFILE_DIRECTORY = os.getenv("EDGE_PROFILE_DIRECTORY", "Default").strip() or "Default"
+EDGE_DEBUG_HOST = os.getenv("SELENIUM_EDGE_DEBUG_HOST", "127.0.0.1").strip() or "127.0.0.1"
+EDGE_DEBUG_PORT = int(os.getenv("SELENIUM_EDGE_DEBUG_PORT", "9223"))
 
 # Diretório para downloads (padrão: pasta Downloads do usuário)
 DOWNLOAD_DIR = (
@@ -180,6 +189,29 @@ class DownloadProcessingError(RuntimeError):
         self.etapa = etapa
 
 
+class InteractiveAuthenticationRequired(RuntimeError):
+    pass
+
+
+def _mensagem_erro_usuario(exc, fallback="Falha durante a execucao do relatorio."):
+    """Remove detalhes internos do WebDriver sem perder o diagnostico nos logs."""
+    mensagem = str(exc or "").strip()
+    mensagem = re.split(r"\s*Stacktrace:\s*", mensagem, maxsplit=1, flags=re.IGNORECASE)[0]
+    mensagem = re.sub(r"^(?:Message:\s*)+", "", mensagem, flags=re.IGNORECASE).strip()
+    mensagem = " ".join(mensagem.split())
+    if mensagem.lower() in {"none", "null"}:
+        mensagem = ""
+    if not mensagem:
+        if isinstance(exc, TimeoutException):
+            return "Tempo esgotado ao localizar ou preencher um campo do relatorio."
+        if isinstance(exc, WebDriverException):
+            return "O navegador interrompeu a automacao deste relatorio."
+        return fallback
+    if len(mensagem) > 280:
+        mensagem = mensagem[:277].rstrip() + "..."
+    return mensagem
+
+
 def acao_exige_valor(acao):
     """
     Verifica se uma ação requer valor para execução.
@@ -232,7 +264,7 @@ def executar_relatorio(email, senha, relatorio_config, driver=None, sessao_auten
         item = _montar_item_resultado(
             relatorio_config,
             "nao_baixado",
-            mensagem=str(exc) or "Falha durante a execucao do relatorio.",
+            mensagem=_mensagem_erro_usuario(exc),
             etapa=getattr(exc, "etapa", "execucao"),
         )
         return {
@@ -247,7 +279,7 @@ def executar_relatorio(email, senha, relatorio_config, driver=None, sessao_auten
             "resumo": "0 relatorios baixados; 1 nao baixado.",
         }
     finally:
-        if driver_gerenciado and driver and os.getenv("SELENIUM_KEEP_BROWSER_OPEN", "true").strip().lower() != "true":
+        if driver_gerenciado and driver and not KEEP_BROWSER_OPEN:
             driver.quit()
 
 
@@ -283,7 +315,10 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                 item = _montar_item_resultado(
                     relatorio_config,
                     "ignorado",
-                    mensagem=f"Navegador ou autenticacao nao concluido: {exc}",
+                    mensagem=(
+                        "Navegador ou autenticacao nao concluido: "
+                        f"{_mensagem_erro_usuario(exc, 'nao foi possivel iniciar a sessao.')}"
+                    ),
                     etapa="autenticacao",
                 )
                 resultado_execucao["itens"].append(item)
@@ -334,6 +369,8 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                             "indice": indice,
                             "total": total,
                             "eh_ultimo": eh_ultimo,
+                            "arquivos": arquivos,
+                            "caminho_final": arquivos[-1] if arquivos else "",
                         },
                     )
                 if not eh_ultimo:
@@ -357,7 +394,10 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                 detalhe_erro = _montar_item_resultado(
                     relatorio_config,
                     "nao_baixado",
-                    mensagem=str(exc) or "Erro na execucao da automacao para o relatorio.",
+                    mensagem=_mensagem_erro_usuario(
+                        exc,
+                        "Erro na execucao da automacao para o relatorio.",
+                    ),
                     etapa=getattr(exc, "etapa", "execucao"),
                     indice=indice,
                     total=total,
@@ -370,8 +410,29 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                 )
                 if on_report_event:
                     on_report_event("erro", relatorio_config, detalhe_erro)
+                if indice < total and not _aguardar_pasta_download_estabilizar():
+                    logger.error(
+                        "A pasta de downloads permaneceu instavel; os relatorios restantes serao ignorados para evitar associacao incorreta de arquivo."
+                    )
+                    for indice_restante, relatorio_restante in enumerate(
+                        relatorios_config[indice:],
+                        start=indice + 1,
+                    ):
+                        item_ignorado = _montar_item_resultado(
+                            relatorio_restante,
+                            "ignorado",
+                            mensagem="A pasta de downloads nao estabilizou apos a falha anterior.",
+                            etapa="download",
+                            indice=indice_restante,
+                            total=total,
+                        )
+                        resultado_execucao["itens"].append(item_ignorado)
+                        resultado_execucao["falhas"].append(item_ignorado)
+                        if on_report_event:
+                            on_report_event("erro", relatorio_restante, item_ignorado)
+                    break
     finally:
-        if driver and os.getenv("SELENIUM_KEEP_BROWSER_OPEN", "true").strip().lower() != "true":
+        if driver and not KEEP_BROWSER_OPEN:
             driver.quit()
     resultado_execucao["quantidade_baixados"] = len(resultado_execucao["sucessos"])
     resultado_execucao["quantidade_nao_baixados"] = len(resultado_execucao["falhas"])
@@ -496,7 +557,7 @@ def _configurar_browser_options(options):
             "safebrowsing.enabled": True,
         },
     )
-    options.add_experimental_option("detach", True)
+    options.add_experimental_option("detach", KEEP_BROWSER_OPEN)
     return options
 
 
@@ -522,6 +583,20 @@ def _get_chrome_path():
     ]
 
     for candidate in chrome_candidates:
+        if candidate and Path(candidate).exists():
+            return str(Path(candidate))
+    return None
+
+
+def _get_edge_path():
+    edge_candidates = [
+        shutil.which("msedge"),
+        shutil.which("msedge.exe"),
+        os.path.join(os.getenv("PROGRAMFILES(X86)", ""), "Microsoft", "Edge", "Application", "msedge.exe"),
+        os.path.join(os.getenv("PROGRAMFILES", ""), "Microsoft", "Edge", "Application", "msedge.exe"),
+        os.path.join(os.getenv("LOCALAPPDATA", ""), "Microsoft", "Edge", "Application", "msedge.exe"),
+    ]
+    for candidate in edge_candidates:
         if candidate and Path(candidate).exists():
             return str(Path(candidate))
     return None
@@ -593,13 +668,8 @@ def _configurar_edge_profile(options):
         logger.warning("EDGE_USER_DATA_DIR nao definido. Edge iniciara sem perfil local.")
         return options
 
-    caminho_perfil = Path(user_data_dir)
-    if not caminho_perfil.exists():
-        logger.warning(
-            "Diretorio do perfil do Edge nao encontrado: %s. Edge iniciara sem perfil local.",
-            caminho_perfil,
-        )
-        return options
+    caminho_perfil = Path(user_data_dir).expanduser().resolve()
+    caminho_perfil.mkdir(parents=True, exist_ok=True)
 
     options.add_argument(f"--user-data-dir={caminho_perfil}")
     if profile_directory:
@@ -613,7 +683,67 @@ def _configurar_edge_profile(options):
     return options
 
 
+def _anexar_ao_edge_normal():
+    edge_path = _get_edge_path()
+    if not edge_path:
+        raise FileNotFoundError("Microsoft Edge nao encontrado para anexar via depuracao remota.")
+
+    caminho_perfil = Path(EDGE_USER_DATA_DIR).expanduser().resolve()
+    caminho_perfil.mkdir(parents=True, exist_ok=True)
+
+    if not _aguardar_porta_debug(EDGE_DEBUG_HOST, EDGE_DEBUG_PORT, timeout_seconds=1):
+        comando = [
+            edge_path,
+            f"--remote-debugging-port={EDGE_DEBUG_PORT}",
+            f"--remote-debugging-address={EDGE_DEBUG_HOST}",
+            f"--user-data-dir={caminho_perfil}",
+            f"--profile-directory={EDGE_PROFILE_DIRECTORY}",
+            "--no-first-run",
+            "--no-default-browser-check",
+            LOGIN_URL,
+        ]
+        logger.info(
+            "Abrindo Edge normal para depuracao remota | host=%s | port=%s | profile=%s",
+            EDGE_DEBUG_HOST,
+            EDGE_DEBUG_PORT,
+            caminho_perfil,
+        )
+        subprocess.Popen(comando)
+
+    if not _aguardar_porta_debug(EDGE_DEBUG_HOST, EDGE_DEBUG_PORT, timeout_seconds=20):
+        raise RuntimeError("Edge nao abriu a porta de depuracao remota no tempo esperado.")
+
+    options = webdriver.EdgeOptions()
+    options.add_experimental_option(
+        "debuggerAddress",
+        f"{EDGE_DEBUG_HOST}:{EDGE_DEBUG_PORT}",
+    )
+    driver = webdriver.Edge(options=options)
+
+    try:
+        driver.execute_cdp_cmd(
+            "Browser.setDownloadBehavior",
+            {
+                "behavior": "allow",
+                "downloadPath": str(Path(DOWNLOAD_DIR).resolve()),
+                "eventsEnabled": True,
+            },
+        )
+    except Exception:
+        logger.warning("Nao foi possivel configurar downloads via CDP no Edge anexado.")
+
+    handles = list(driver.window_handles)
+    if handles:
+        driver.switch_to.window(handles[-1])
+    driver.maximize_window()
+    logger.info("Selenium anexado ao Edge normal existente na porta %s.", EDGE_DEBUG_PORT)
+    return driver
+
+
 def _criar_driver_edge():
+    if ATTACH_NORMAL_EDGE:
+        return _anexar_ao_edge_normal()
+
     options = _configurar_browser_options(webdriver.EdgeOptions())
     options = _configurar_edge_profile(options)
     return webdriver.Edge(options=options)
@@ -636,25 +766,13 @@ def _criar_driver():
         return _criar_driver_chrome()
 
     if browser == "edge":
-        try:
-            logger.info("Inicializando Selenium com Edge.")
-            return _criar_driver_edge()
-        except Exception as exc:
-            logger.warning(
-                "Falha ao inicializar Edge (%s). Tentando Chrome como fallback.",
-                type(exc).__name__,
-            )
-            return _criar_driver_chrome()
-
-    logger.warning(
-        "Navegador Selenium '%s' nao suportado. Usando Edge como padrao.",
-        browser,
-    )
-    try:
+        logger.info("Inicializando Selenium exclusivamente com Edge.")
         return _criar_driver_edge()
-    except Exception:
-        logger.warning("Falha no Edge padrao. Tentando Chrome como fallback.")
-        return _criar_driver_chrome()
+
+    raise ValueError(
+        "Navegador Selenium nao suportado. Configure SELENIUM_BROWSER como "
+        f"'edge' ou 'chrome'; valor recebido: {browser!r}."
+    )
 
 
 def _executar_relatorio_dedicado(driver, wait, relatorio_config, executor_relatorio):
@@ -699,91 +817,216 @@ def _aguardar_carregamento_da_pagina(driver, wait, timeout=DEFAULT_TIMEOUT):
 
 
 def _fazer_login(driver, wait, email, senha):
-    if not FORCAR_LOGIN_INTERATIVO and SESSION_REUSE_ENABLED and _restaurar_sessao_sienge(driver, email):
-        logger.info("Sessao reaproveitada com sucesso para %s.", email)
-        return
-
-    driver.get(LOGIN_URL)
-    time.sleep(5)
-
-    botao = _aguardar_primeiro_elemento(
-        driver,
-        wait,
-        [
-            (By.ID, "btnEntrarComSiengeID"),
-            (By.XPATH, "//*[@id='btnEntrarComSiengeID']"),
-        ],
-        descricao="botao Entrar com Sienge ID",
-    )
     try:
-        botao.click()
-    except Exception:
-        driver.execute_script("arguments[0].click();", botao)
-    time.sleep(5)
+        return _fazer_login_automatico(driver, wait, email, senha)
+    except (
+        WebDriverException,
+        TimeoutException,
+        NoSuchElementException,
+        InteractiveAuthenticationRequired,
+    ) as exc:
+        logger.warning(
+            "O redirecionamento do SSO interrompeu o preenchimento automatico (%s). "
+            "Aguardando autenticacao interativa na mesma janela do navegador por ate %s segundos.",
+            type(exc).__name__,
+            INTERACTIVE_LOGIN_TIMEOUT,
+        )
+        if _aguardar_autenticacao_interativa(driver, INTERACTIVE_LOGIN_TIMEOUT):
+            logger.info("Autenticacao interativa concluida e validada no Sienge.")
+            if SESSION_REUSE_ENABLED:
+                _salvar_sessao_sienge(driver, email)
+            return
+        raise RuntimeError(
+            "A autenticacao do Sienge nao foi concluida. "
+            "Conclua o login e o token na janela do Edge dentro do tempo informado."
+        ) from exc
+
+
+def _fazer_login_automatico(driver, wait, email, senha):
+    # Replica o fluxo comprovado pelo BaixaPDFs. A unica diferenca fica na
+    # criacao do driver, que neste sistema pode iniciar no Edge ou no Chrome.
+    driver.get(LOGIN_URL)
+    login_wait = WebDriverWait(driver, max(DEFAULT_TIMEOUT, 30))
+
+    botao = login_wait.until(
+        EC.element_to_be_clickable((By.ID, "btnEntrarComSiengeID"))
+    )
+    botao.click()
 
     campo_email = _aguardar_primeiro_elemento(
         driver,
-        wait,
+        login_wait,
         [
             (By.NAME, "email"),
             (By.NAME, "username"),
         ],
         descricao="campo inicial de email do Sienge ID",
     )
+    campo_email.clear()
     campo_email.send_keys(email)
-    time.sleep(5)
 
-    botao_continuar = _aguardar_primeiro_elemento(
+    botao_continuar_locator = (
+        By.XPATH,
+        "//button[@data-testid='sign-in-v2-submit-button'] | "
+        "//button[contains(normalize-space(.), 'Continuar') or "
+        "contains(normalize-space(.), 'CONTINUAR')] | "
+        "//button[@type='submit' and contains(normalize-space(.), 'Continuar')]",
+    )
+    login_wait.until(EC.presence_of_element_located(botao_continuar_locator))
+    _clicar_elemento_com_fallback(
         driver,
-        wait,
-        [
-            (By.CSS_SELECTOR, "[data-testid='sign-in-v2-submit-button']"),
-            (By.XPATH, "//button[contains(normalize-space(.), 'Continuar')]"),
-            (By.XPATH, "//button[contains(normalize-space(.), 'CONTINUAR')]"),
-            (By.XPATH, "//button[@type='submit' and contains(normalize-space(.), 'Continuar')]"),
-        ],
+        botao_continuar_locator,
         descricao="botao Continuar do Sienge ID",
     )
-    botao_continuar.click()
-    time.sleep(5)
 
     try:
-        campo_autenticador_email = wait.until(
+        botao_continuar = driver.find_element(*botao_continuar_locator)
+        login_wait.until(EC.staleness_of(botao_continuar))
+    except Exception:
+        logger.debug("Botao Continuar nao saiu da pagina antes de continuar.")
+
+    try:
+        campo_autenticador_email = login_wait.until(
             EC.presence_of_element_located((By.NAME, "loginfmt"))
         )
+        campo_autenticador_email.clear()
         campo_autenticador_email.send_keys(email)
-        time.sleep(5)
-        driver.find_element(By.ID, "idSIButton9").click()
-        time.sleep(5)
-    except (TimeoutException, NoSuchElementException):
-        pass
-
-    try:
-        campo_senha = wait.until(EC.presence_of_element_located((By.NAME, "passwd")))
-        campo_senha.send_keys(senha)
-        time.sleep(5)
-        driver.find_element(By.ID, "idSIButton9").click()
-        logger.info(
-            "Aguardando ate %s segundos para conclusao do token/autenticacao Microsoft.",
-            MICROSOFT_MFA_WAIT,
+        botao_microsoft_locator = (
+            By.XPATH,
+            "//input[@id='idSIButton9'] | "
+            "//button[contains(normalize-space(.), 'Entrar') or "
+            "contains(normalize-space(.), 'Continuar')]",
         )
-        time.sleep(MICROSOFT_MFA_WAIT)
+        login_wait.until(EC.presence_of_element_located(botao_microsoft_locator))
+        _clicar_elemento_com_fallback(
+            driver,
+            botao_microsoft_locator,
+            descricao="botao de avancar da Microsoft",
+        )
+        login_wait.until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//input[@type='password' or @name='passwd' or @name='password']")
+            )
+        )
     except (TimeoutException, NoSuchElementException):
-        pass
+        logger.info(
+            "Tela Microsoft de login nao apareceu; continuando para o campo de senha."
+        )
+
+    campo_senha = _aguardar_primeiro_elemento(
+        driver,
+        login_wait,
+        [
+            (By.NAME, "passwd"),
+            (By.NAME, "password"),
+            (By.XPATH, "//input[@type='password']"),
+        ],
+        descricao="campo senha do Sienge/Microsoft",
+    )
+    campo_senha.clear()
+    campo_senha.send_keys(senha)
 
     try:
-        driver.find_element(By.ID, "idBtn_Back").click()
-        time.sleep(6)
-    except NoSuchElementException:
+        botao_entrar_locator = (By.ID, "idSIButton9")
+        login_wait.until(EC.element_to_be_clickable(botao_entrar_locator))
+        _clicar_elemento_com_fallback(
+            driver,
+            botao_entrar_locator,
+            descricao="botao Entrar Microsoft",
+        )
+        logger.info("Botao Entrar Microsoft pressionado.")
+    except (TimeoutException, NoSuchElementException, StaleElementReferenceException):
+        logger.warning(
+            "Botao Entrar Microsoft nao encontrado ou nao clicavel; tentando botao alternativo."
+        )
+        try:
+            botao_login_locator = (
+                By.XPATH,
+                "//button[contains(normalize-space(.), 'Entrar') or "
+                "contains(normalize-space(.), 'Login') or "
+                "contains(normalize-space(.), 'Continuar')]",
+            )
+            login_wait.until(EC.presence_of_element_located(botao_login_locator))
+            _clicar_elemento_com_fallback(
+                driver,
+                botao_login_locator,
+                descricao="botao de login final alternativo",
+            )
+        except (TimeoutException, NoSuchElementException, StaleElementReferenceException):
+            logger.info(
+                "Botao de login final alternativo nao encontrado; enviando ENTER no campo de senha."
+            )
+            campo_senha.send_keys(Keys.ENTER)
+
+    logger.info(
+        "Aguardando ate %s segundos para conclusao do token/autenticacao Microsoft.",
+        MICROSOFT_MFA_WAIT,
+    )
+    time.sleep(MICROSOFT_MFA_WAIT)
+
+    try:
+        botao_voltar = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.ID, "idBtn_Back"))
+        )
+        botao_voltar.click()
+    except Exception:
         pass
 
-    if not _sessao_sienge_ativa(driver):
-        raise RuntimeError(
+    if not _aguardar_sessao_sienge_estavel(driver, timeout_seconds=15):
+        raise InteractiveAuthenticationRequired(
             "A autenticacao interativa nao foi concluida. Conclua o MFA na janela do navegador e tente novamente."
         )
 
-    if SESSION_REUSE_ENABLED:
-        _salvar_sessao_sienge(driver, email)
+
+def _aguardar_autenticacao_interativa(driver, timeout_seconds):
+    logger.info(
+        "Conclua o login e o token manualmente na janela do navegador. Tempo limite: %s segundos.",
+        timeout_seconds,
+    )
+    return _aguardar_sessao_sienge_estavel(driver, timeout_seconds)
+
+
+def _aguardar_sessao_sienge_estavel(driver, timeout_seconds, confirmacoes_necessarias=4):
+    deadline = time.time() + timeout_seconds
+    tentativas_sem_janela = 0
+    confirmacoes = 0
+    ultima_url = ""
+
+    while time.time() < deadline:
+        try:
+            handles = list(driver.window_handles)
+            if not handles:
+                tentativas_sem_janela += 1
+                if tentativas_sem_janela >= 3:
+                    return False
+            else:
+                tentativas_sem_janela = 0
+                try:
+                    if driver.current_window_handle not in handles:
+                        driver.switch_to.window(handles[-1])
+                except WebDriverException:
+                    driver.switch_to.window(handles[-1])
+
+                if _sessao_sienge_ativa(driver):
+                    url_atual = str(driver.current_url or "").strip().lower()
+                    confirmacoes = confirmacoes + 1 if url_atual == ultima_url else 1
+                    ultima_url = url_atual
+                    if confirmacoes >= confirmacoes_necessarias:
+                        return True
+                else:
+                    confirmacoes = 0
+                    ultima_url = ""
+        except WebDriverException:
+            # Trocas de renderer/frame sao esperadas durante o SSO Microsoft.
+            tentativas_sem_janela += 1
+            if tentativas_sem_janela >= 3:
+                return False
+            confirmacoes = 0
+            ultima_url = ""
+
+        time.sleep(2)
+
+    return False
 
 
 def _aguardar_primeiro_elemento(driver, wait, locators, descricao="elemento"):
@@ -800,6 +1043,52 @@ def _aguardar_primeiro_elemento(driver, wait, locators, descricao="elemento"):
         raise ultimo_erro
 
     raise TimeoutException(f"Nenhum locator informado para localizar {descricao}.")
+
+
+def _clicar_elemento_com_fallback(driver, locator, descricao="elemento"):
+    """Clica como o BaixaPDFs, tolerando rerenderizacao durante o SSO."""
+    ultimo_erro = None
+
+    for tentativa in range(1, 5):
+        try:
+            driver.find_element(*locator).click()
+            return
+        except Exception as exc:
+            ultimo_erro = exc
+            logger.warning(
+                "Tentativa %s de clique falhou para %s: %s",
+                tentativa,
+                descricao,
+                type(exc).__name__,
+            )
+
+        alternativas = (
+            lambda elemento: driver.execute_script(
+                "arguments[0].scrollIntoView(true); arguments[0].click();", elemento
+            ),
+            lambda elemento: elemento.send_keys(Keys.ENTER),
+            lambda elemento: driver.execute_script(
+                "var el = arguments[0]; var form = el.closest('form'); "
+                "if (form) { form.submit(); } else { "
+                "el.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true})); }",
+                elemento,
+            ),
+        )
+        for clicar in alternativas:
+            try:
+                clicar(driver.find_element(*locator))
+                return
+            except Exception as exc:
+                ultimo_erro = exc
+
+        time.sleep(0.5)
+
+    logger.error(
+        "Nao foi possivel clicar em %s apos varias tentativas: %s",
+        descricao,
+        ultimo_erro,
+    )
+    raise ultimo_erro
 
 
 def _montar_lotes_execucao(filtros):
@@ -1898,18 +2187,35 @@ def _restaurar_sessao_sienge(driver, email):
 
 def _sessao_sienge_ativa(driver):
     try:
+        if driver.current_window_handle not in driver.window_handles:
+            return False
         url_atual = str(driver.current_url or "").strip().lower()
+        estado_documento = driver.execute_script("return document.readyState")
     except Exception:
-        url_atual = ""
+        return False
 
     if not url_atual or url_atual in {"about:blank", "edge://newtab/", "chrome://newtab/"}:
         return False
 
-    try:
-        driver.find_element(By.ID, "btnEntrarComSiengeID")
+    if estado_documento != "complete":
         return False
-    except NoSuchElementException:
-        pass
+
+    if any(token in url_atual for token in ("login.microsoftonline.com", "/oauth", "/signin")):
+        return False
+
+    autenticacao_locators = (
+        (By.ID, "btnEntrarComSiengeID"),
+        (By.NAME, "loginfmt"),
+        (By.NAME, "passwd"),
+        (By.NAME, "email"),
+        (By.NAME, "username"),
+    )
+    for locator in autenticacao_locators:
+        try:
+            if driver.find_elements(*locator):
+                return False
+        except Exception:
+            return False
 
     if "sienge.com.br" not in url_atual:
         return False
@@ -1983,7 +2289,9 @@ def _renomear_download_relatorio(relatorio_config, empresa_id="", inicio_downloa
             registrar_resultado=False,
         )
     relatorio_config.setdefault("_arquivos_finais", []).append(caminho_final)
-    return caminho_final
+    # Os modulos de consolidacao continuam trabalhando com o arquivo local;
+    # o caminho copiado e registrado separadamente como resultado final.
+    return str(destino)
 
 
 def _aguardar_arquivo_download(inicio_download):

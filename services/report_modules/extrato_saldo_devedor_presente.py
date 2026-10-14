@@ -23,10 +23,28 @@ CAMPO_DATA_INICIO = "dtInicio"
 CAMPO_DATA_FIM = "dtFim"
 IDENTIFICADORES_DATA_INICIO = ("dataInicio", "dtInicio", "filter.dtInicioStr")
 IDENTIFICADORES_DATA_FIM = ("dataFim", "dtFim", "filter.dtFimStr")
+CAMPO_DATA_CORRECAO = "dtCorrecao"
+CAMPO_DATA_POSICAO = "dtPosicao"
+IDENTIFICADORES_DATA_CORRECAO = (
+    "dataCorrecao",
+    "dtCorrecao",
+    "filter.dtCorrecao",
+    "filter.dtCorrecaoStr",
+)
+IDENTIFICADORES_DATA_POSICAO = (
+    "dataPosicao",
+    "dtPosicao",
+    "filter.dtPosicao",
+    "filter.dtPosicaoStr",
+)
 XPATH_EMPRESA_PRINCIPAL = "/html/body/div[1]/div/div[4]/main/div[1]/div[2]/div[1]/div/div[2]/div/div/div/div/div/form/div/div/div[2]/div/div/div/input"
 XPATH_EMPRESA_ID_DINAMICO = "//*[@id='mui-58']"
 XPATH_DATA_INICIO_PRINCIPAL = "/html/body/div[1]/div/div[4]/main/div[1]/div[2]/div[1]/div/div[2]/div/div/div/div/div/form/div/div/div[9]/div[1]/div/div/input"
 XPATH_DATA_FIM_PRINCIPAL = "/html/body/div[1]/div/div[4]/main/div[1]/div[2]/div[1]/div/div[2]/div/div/div/div/div/form/div/div/div[9]/div[2]/div/div/input"
+XPATH_ABRIR_FILTROS_DATAS = "//*[@id='main']/div[1]/div[2]/div[1]/div/div[2]/div/div/div/div/div/form/div/div/div[9]/div[5]/span/button"
+XPATH_DATA_CORRECAO_MODAL = "/html/body/div[3]/div[3]/div/div[2]/div[2]/div[1]/div[1]/div/div/input"
+XPATH_DATA_POSICAO_MODAL = "/html/body/div[3]/div[3]/div/div[2]/div[2]/div[1]/div[2]/div/div/input"
+XPATH_APLICAR_FILTROS_MODAL = "/html/body/div[3]/div[3]/div/div[3]/button"
 XPATH_CONSULTAR_PRINCIPAL = "/html/body/div[1]/div/div[4]/main/div[1]/div[2]/div[1]/div/div[2]/div/div/div/div/div/form/div/div/div[9]/div[7]/button"
 XPATH_PAGINACAO_PRINCIPAL = "/html/body/div[1]/div/div[4]/main/div[1]/div[2]/div[2]/div/div[3]/div[2]/div/div[2]/div"
 XPATH_PAGINACAO_5000_PRINCIPAL = "/html/body/div[3]/div[3]/ul/li[4]"
@@ -36,6 +54,10 @@ XPATH_OPCAO_EXCEL_PRINCIPAL = "//*[@id='mui-92']/li[2]"
 XPATH_EXPORTAR_PRINCIPAL = "/html/body/div[4]/div[3]/div/div[3]/button[2]"
 XPATH_PROXIMA_PAGINA_PRINCIPAL = "//*[@id='main']/div[1]/div[2]/div[2]/div/div[3]/div[2]/div/div[3]/button[2]"
 XPATH_PROXIMA_PAGINA_ICONE = "//*[@id='main']/div[1]/div[2]/div[2]/div/div[3]/div[2]/div/div[3]/button[2]/svg"
+
+
+class ModalDatasError(RuntimeError):
+    etapa = "preenchimento_modal"
 
 
 def _log_etapa(logger, iteracao, etapa, mensagem):
@@ -124,6 +146,20 @@ def executar(driver, wait, relatorio_config, contexto):
     empresa = _obter_filtro_por_campo(filtros, CAMPO_EMPRESA, *IDENTIFICADORES_EMPRESA)
     data_inicio = _obter_filtro_por_campo(filtros, CAMPO_DATA_INICIO, *IDENTIFICADORES_DATA_INICIO)
     data_fim = _obter_filtro_por_campo(filtros, CAMPO_DATA_FIM, *IDENTIFICADORES_DATA_FIM)
+    data_correcao = _obter_filtro_por_campo(
+        filtros,
+        CAMPO_DATA_CORRECAO,
+        *IDENTIFICADORES_DATA_CORRECAO,
+    ) or _obter_filtro_por_nome(filtros, "data de correção") or _obter_filtro_por_nome(
+        filtros, "data de correcao"
+    ) or _obter_filtro_por_nome(filtros, "corre")
+    data_posicao = _obter_filtro_por_campo(
+        filtros,
+        CAMPO_DATA_POSICAO,
+        *IDENTIFICADORES_DATA_POSICAO,
+    ) or _obter_filtro_por_nome(filtros, "data de posição") or _obter_filtro_por_nome(
+        filtros, "data de posicao"
+    ) or _obter_filtro_por_nome(filtros, "posi")
 
     if not empresa:
         empresa = _obter_filtro_por_nome(filtros, "empresa")
@@ -138,15 +174,20 @@ def executar(driver, wait, relatorio_config, contexto):
     total = max(len(empresas), 1)
     valor_data_inicio = normalizar_valor(data_inicio) if data_inicio else ""
     valor_data_fim = normalizar_valor(data_fim) if data_fim else ""
+    valor_data_correcao = normalizar_valor(data_correcao) if data_correcao else ""
+    valor_data_posicao = normalizar_valor(data_posicao) if data_posicao else ""
 
     logger.info(
         (
             "Executor extrato_saldo_devedor_presente iniciando "
-            "com empresa=%s | data_inicio=%s | data_fim=%s | iteracoes=%s."
+            "com empresa=%s | data_inicio=%s | data_fim=%s | "
+            "data_correcao=%s | data_posicao=%s | iteracoes=%s."
         ),
         empresas or [""],
         valor_data_inicio,
         valor_data_fim,
+        valor_data_correcao,
+        valor_data_posicao,
         total,
     )
 
@@ -173,6 +214,8 @@ def executar(driver, wait, relatorio_config, contexto):
             valor_empresa,
             data_inicio,
             data_fim,
+            data_correcao,
+            data_posicao,
             logger,
             index,
             total,
@@ -222,7 +265,6 @@ def executar(driver, wait, relatorio_config, contexto):
                 _montar_sufixo_exportacao(valor_empresa, numero_pagina),
                 inicio_download,
             )
-            _fechar_janelas_extras(driver)
             if arquivo_baixado:
                 arquivos_baixados.append(Path(arquivo_baixado))
                 _log_etapa(
@@ -273,6 +315,8 @@ def _preparar_filtros_relatorio(
     valor_empresa,
     filtro_data_inicio,
     filtro_data_fim,
+    filtro_data_correcao,
+    filtro_data_posicao,
     logger,
     index,
     total,
@@ -369,16 +413,248 @@ def _preparar_filtros_relatorio(
         )
         capture_debug_snapshot(f"saldo_devedor_empresa_preenchida_iteracao_{iteracao}")
 
-    _log_etapa(logger, iteracao, "consultar", "clicando em Consultar com vencimento e empresa preenchidos")
-    logger.info(
-        "Executor extrato_saldo_devedor_presente clicando em Consultar com vencimento e empresa preenchidos na iteracao %s/%s.",
-        iteracao,
-        total,
+    primeira_iteracao_com_datas_modal = index == 0 and any(
+        normalizar_valor(filtro)
+        for filtro in (filtro_data_correcao, filtro_data_posicao)
+        if filtro
     )
-    _clicar_botao_consultar(driver, wait, logger)
+    if primeira_iteracao_com_datas_modal:
+        _log_etapa(
+            logger,
+            iteracao,
+            "datas_modal",
+            "abrindo modal para preencher as datas de correcao e de posicao por ultimo",
+        )
+        _aplicar_datas_modal(
+            driver,
+            wait,
+            normalizar_valor,
+            filtro_data_correcao,
+            filtro_data_posicao,
+            logger,
+        )
+        capture_debug_snapshot(f"saldo_devedor_datas_modal_aplicadas_iteracao_{iteracao}")
+        _log_etapa(
+            logger,
+            iteracao,
+            "datas_modal",
+            "filtros aplicados pela modal; primeira consulta disparada automaticamente",
+        )
+    else:
+        _log_etapa(logger, iteracao, "consultar", "clicando em Consultar com vencimento e empresa preenchidos")
+        logger.info(
+            "Executor extrato_saldo_devedor_presente clicando em Consultar com vencimento e empresa preenchidos na iteracao %s/%s.",
+            iteracao,
+            total,
+        )
+        _clicar_botao_consultar(driver, wait, logger)
+
     _aguardar_grade_pronta(driver, logger)
     capture_debug_snapshot(f"saldo_devedor_grade_carregada_iteracao_{iteracao}")
-    _log_etapa(logger, iteracao, "consultar", "grade carregada apos clicar em Consultar")
+    _log_etapa(logger, iteracao, "consultar", "grade carregada apos executar a pesquisa")
+
+
+def _aplicar_datas_modal(
+    driver,
+    wait,
+    normalizar_valor,
+    filtro_data_correcao,
+    filtro_data_posicao,
+    logger,
+):
+    driver.switch_to.default_content()
+    botao_abrir = wait.until(
+        EC.element_to_be_clickable((By.XPATH, XPATH_ABRIR_FILTROS_DATAS))
+    )
+    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", botao_abrir)
+    try:
+        botao_abrir.click()
+    except Exception:
+        driver.execute_script("arguments[0].click();", botao_abrir)
+
+    # Os Dialogs do Material UI sao montados em um portal. O indice do div no
+    # body muda conforme menus, tooltips e outros portais ja abertos, portanto
+    # os XPaths absolutos antigos deixavam de encontrar campos que estavam
+    # visiveis. Aguarde a modal pelo seu papel semantico.
+    try:
+        wait.until(
+            lambda d: any(
+                elemento.is_displayed()
+                for elemento in d.find_elements(
+                    By.CSS_SELECTOR,
+                    "[role='dialog'], [aria-modal='true'], .MuiDialog-root",
+                )
+            )
+        )
+    except TimeoutException as exc:
+        raise ModalDatasError("Modal de datas: a janela de filtros nao ficou disponivel.") from exc
+
+    if filtro_data_correcao:
+        valor = normalizar_valor(filtro_data_correcao)
+        _preencher_input_modal(
+            driver,
+            wait,
+            XPATH_DATA_CORRECAO_MODAL,
+            valor,
+            logger,
+            "data_correcao",
+            rotulo="Correcao ate",
+            indice_fallback=0,
+        )
+
+    if filtro_data_posicao:
+        valor = normalizar_valor(filtro_data_posicao)
+        _preencher_input_modal(
+            driver,
+            wait,
+            XPATH_DATA_POSICAO_MODAL,
+            valor,
+            logger,
+            "data_posicao",
+            rotulo="Posicao em",
+            indice_fallback=1,
+        )
+
+    try:
+        botao_aplicar = wait.until(_localizar_botao_aplicar_modal)
+    except TimeoutException as exc:
+        raise ModalDatasError("Modal de datas: o botao 'Aplicar filtros' nao foi localizado.") from exc
+    try:
+        botao_aplicar.click()
+    except Exception:
+        driver.execute_script("arguments[0].click();", botao_aplicar)
+    logger.info("Botao 'Aplicar filtros' da modal clicado; consulta inicial disparada.")
+
+
+def _elemento_interagivel(elemento):
+    try:
+        return elemento.is_displayed() and elemento.is_enabled()
+    except Exception:
+        return False
+
+
+def _inputs_visiveis_modal(driver):
+    seletores = (
+        "[role='dialog'] input",
+        "[aria-modal='true'] input",
+        ".MuiDialog-root input",
+    )
+    encontrados = []
+    ids = set()
+    for seletor in seletores:
+        for elemento in driver.find_elements(By.CSS_SELECTOR, seletor):
+            identidade = getattr(elemento, "id", None) or id(elemento)
+            if identidade not in ids and _elemento_interagivel(elemento):
+                ids.add(identidade)
+                encontrados.append(elemento)
+    return encontrados
+
+
+def _localizar_input_modal(driver, nome_campo, xpath_legado, rotulo, indice_fallback):
+    termos = {
+        "data_correcao": ("Correcao ate", "Correção até", "correcao", "correção"),
+        "data_posicao": ("Posicao em", "Posição em", "posicao", "posição"),
+    }.get(nome_campo, (rotulo,))
+
+    raizes = ("//*[@role='dialog']", "//*[@aria-modal='true']", "//*[contains(@class,'MuiDialog-root')]")
+    for raiz in raizes:
+        for termo in termos:
+            localizadores = (
+                (
+                    By.XPATH,
+                    f"{raiz}//*[self::label or self::legend][contains(normalize-space(.), '{termo}')]/ancestor::div[contains(@class,'MuiFormControl-root')][1]//input",
+                ),
+                (
+                    By.XPATH,
+                    f"{raiz}//input[contains(@aria-label, '{termo}') or contains(@placeholder, '{termo}') or contains(@name, '{termo}') or contains(@id, '{termo}')]",
+                ),
+            )
+            for localizador in localizadores:
+                for elemento in driver.find_elements(*localizador):
+                    if _elemento_interagivel(elemento):
+                        return elemento
+
+    inputs = _inputs_visiveis_modal(driver)
+    if len(inputs) > indice_fallback:
+        return inputs[indice_fallback]
+
+    # Compatibilidade com uma eventual tela antiga que ainda use a estrutura
+    # fixa. Esse e apenas o ultimo recurso, nunca o seletor principal.
+    for elemento in driver.find_elements(By.XPATH, xpath_legado):
+        if _elemento_interagivel(elemento):
+            return elemento
+    return False
+
+
+def _localizar_botao_aplicar_modal(driver):
+    texto_minusculo = "translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')"
+    localizadores = (
+        (By.XPATH, f"//*[@role='dialog']//button[contains({texto_minusculo}, 'aplicar')]"),
+        (By.XPATH, f"//*[@aria-modal='true']//button[contains({texto_minusculo}, 'aplicar')]"),
+        (By.XPATH, f"//*[contains(@class,'MuiDialog-root')]//button[contains({texto_minusculo}, 'aplicar')]"),
+        (By.XPATH, XPATH_APLICAR_FILTROS_MODAL),
+    )
+    for localizador in localizadores:
+        for elemento in driver.find_elements(*localizador):
+            if _elemento_interagivel(elemento):
+                return elemento
+    return False
+
+
+def _apenas_digitos(valor):
+    return re.sub(r"\D", "", str(valor or ""))
+
+
+def _preencher_input_modal(
+    driver,
+    wait,
+    xpath,
+    valor,
+    logger,
+    nome_campo,
+    rotulo="",
+    indice_fallback=0,
+):
+    try:
+        campo = wait.until(
+            lambda d: _localizar_input_modal(
+                d,
+                nome_campo,
+                xpath,
+                rotulo,
+                indice_fallback,
+            )
+        )
+    except TimeoutException as exc:
+        nome_legivel = rotulo or nome_campo
+        raise ModalDatasError(f"Modal de datas: o campo '{nome_legivel}' nao foi localizado.") from exc
+    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", campo)
+    try:
+        campo.click()
+        campo.clear()
+        campo.send_keys(Keys.CONTROL, "a")
+        campo.send_keys(Keys.DELETE)
+        campo.send_keys(valor)
+        campo.send_keys(Keys.TAB)
+    except Exception:
+        _definir_valor_controlado(driver, campo, valor)
+
+    valor_final = (campo.get_attribute("value") or campo.text or "").strip()
+    if _apenas_digitos(valor_final) != _apenas_digitos(valor):
+        _definir_valor_controlado(driver, campo, valor)
+        valor_final = (campo.get_attribute("value") or campo.text or "").strip()
+    if _apenas_digitos(valor_final) != _apenas_digitos(valor):
+        nome_legivel = rotulo or nome_campo
+        raise ModalDatasError(
+            f"Modal de datas: o campo '{nome_legivel}' nao aceitou a data informada."
+        )
+    logger.info(
+        "Campo %s da modal preenchido | valor=%s | valor_final=%s",
+        nome_campo,
+        valor,
+        valor_final,
+    )
+    return valor_final
 
 
 def _preencher_input_manual(driver, wait, identificadores, valor, logger):
@@ -960,24 +1236,28 @@ def _ir_para_proxima_pagina(driver, logger):
         for localizador in localizadores:
             try:
                 botao = espera.until(EC.element_to_be_clickable(localizador))
-                if botao.tag_name.lower() == "svg":
-                    botao = botao.find_element(By.XPATH, "./ancestor::button[1]")
-                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", botao)
-                botao.click()
-                logger.info("Avancando para a proxima pagina da grade.")
-                print(
-                    f"[saldo_devedor][diagnostico][paginacao] proxima pagina acionada | locator={localizador}",
-                    flush=True,
-                )
-                _aguardar_grade_pronta(
-                    driver,
-                    logger,
-                    texto_anterior=texto_anterior,
-                    exigir_mudanca=True,
-                )
-                return
             except Exception as exc:
                 ultimo_erro = exc
+                continue
+
+            if botao.tag_name.lower() == "svg":
+                botao = botao.find_element(By.XPATH, "./ancestor::button[1]")
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", botao)
+            botao.click()
+            logger.info("Avancando para a proxima pagina da grade.")
+            print(
+                f"[saldo_devedor][diagnostico][paginacao] proxima pagina acionada | locator={localizador}",
+                flush=True,
+            )
+            # Depois do clique, uma falha na espera nao pode provocar outro clique:
+            # isso saltaria a pagina seguinte e poderia exportar a pagina errada.
+            _aguardar_grade_pronta(
+                driver,
+                logger,
+                texto_anterior=texto_anterior,
+                exigir_mudanca=True,
+            )
+            return
 
         if ultimo_erro:
             raise ultimo_erro

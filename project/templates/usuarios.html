@@ -174,9 +174,9 @@
     </div>
 </section>
 
-<div id="modal-usuario-criar" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 px-4 py-8">
-    <div class="w-full max-w-3xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
-        <div class="border-b border-slate-200 px-7 py-6 dark:border-slate-800">
+<div id="modal-usuario-criar" class="app-modal-overlay fixed inset-0 z-50 hidden bg-slate-950/55" role="dialog" aria-modal="true">
+    <div class="app-modal-panel max-w-3xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <div class="app-modal-header border-b border-slate-200 px-7 py-6 dark:border-slate-800">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300">Cadastro</p>
@@ -187,15 +187,15 @@
                 </button>
             </div>
         </div>
-        <form method="POST" action="{{ url_for('cadastrar_usuario') }}" class="space-y-7 px-7 py-7">
+        <form method="POST" action="{{ url_for('cadastrar_usuario') }}" class="app-modal-body space-y-7 px-7 py-7">
             <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div class="flex flex-col">
                     <label for="criar-email" class="text-sm font-medium text-slate-700 dark:text-slate-200">Email</label>
-                    <input id="criar-email" name="email" type="email" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                    <input id="criar-email" name="email" type="email" value="{{ modal_usuario_email or '' }}" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                 </div>
                 <div class="flex flex-col">
                     <label for="criar-login" class="text-sm font-medium text-slate-700 dark:text-slate-200">Login</label>
-                    <input id="criar-login" name="login_usuario" type="text" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                    <input id="criar-login" name="login_usuario" type="text" value="{{ modal_usuario_login or '' }}" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                 </div>
                 <div class="flex flex-col">
                     <label for="criar-area" class="text-sm font-medium text-slate-700 dark:text-slate-200">Area</label>
@@ -235,9 +235,9 @@
     </div>
 </div>
 
-<div id="modal-usuario-editar" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 px-4 py-8">
-    <div class="w-full max-w-3xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
-        <div class="border-b border-slate-200 px-7 py-6 dark:border-slate-800">
+<div id="modal-usuario-editar" class="app-modal-overlay fixed inset-0 z-50 hidden bg-slate-950/55" role="dialog" aria-modal="true">
+    <div class="app-modal-panel max-w-3xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <div class="app-modal-header border-b border-slate-200 px-7 py-6 dark:border-slate-800">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-300">Edicao</p>
@@ -248,7 +248,7 @@
                 </button>
             </div>
         </div>
-        <form id="form-editar-usuario" method="POST" class="space-y-7 px-7 py-7">
+        <form id="form-editar-usuario" method="POST" class="app-modal-body space-y-7 px-7 py-7">
             <input type="hidden" id="editar-usuario-login-hidden" name="usuario_login">
             <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div class="flex flex-col">
@@ -304,12 +304,16 @@
         const modal = document.getElementById(modalId);
         modal.classList.remove("hidden");
         modal.classList.add("flex");
+        document.body.classList.add("modal-open");
     }
 
     function fecharModal(modalId) {
         const modal = document.getElementById(modalId);
         modal.classList.add("hidden");
         modal.classList.remove("flex");
+        if (!document.querySelector(".app-modal-overlay.flex")) {
+            document.body.classList.remove("modal-open");
+        }
     }
 
     function abrirModalCriacao() {
@@ -352,6 +356,8 @@
         });
 
         if (modalTipo === "criar") {
+            document.getElementById("criar-area").value = modalUsuarioArea || "";
+            document.getElementById("criar-id-acesso").value = modalUsuarioIdAcesso || "";
             abrirModalCriacao();
         }
 

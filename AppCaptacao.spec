@@ -12,6 +12,7 @@ hiddenimports = [
     "customtkinter",
     "waitress",
     "pyodbc",
+    "pymssql",
     "win32security",
     "win32api",
     "win32con",

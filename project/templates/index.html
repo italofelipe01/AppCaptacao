@@ -3,112 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-
+    <title>AppCaptação</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-local.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='20260924-2') }}">
     <script>
         (() => {
             const savedTheme = localStorage.getItem("theme");
             const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-            const useDark = savedTheme ? savedTheme === "dark" : prefersDark;
-
-            if (useDark) {
-                document.documentElement.classList.add("dark");
-            }
+            if (savedTheme ? savedTheme === "dark" : prefersDark) document.documentElement.classList.add("dark");
         })();
-
         function toggleTheme() {
             const root = document.documentElement;
             const nextDark = !root.classList.contains("dark");
             root.classList.toggle("dark", nextDark);
             localStorage.setItem("theme", nextDark ? "dark" : "light");
-
             const label = document.getElementById("login-theme-label");
-            if (label) {
-                label.textContent = nextDark ? "Tema claro" : "Tema dark";
-            }
+            if (label) label.textContent = nextDark ? "Tema claro" : "Tema escuro";
         }
     </script>
 </head>
-
-<body class="min-h-screen bg-slate-100 text-gray-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
-    <div class="flex min-h-screen items-center justify-center px-6 py-10">
-        <div class="w-full max-w-md rounded-[28px] bg-white p-8 shadow-lg shadow-slate-900/10 transition-colors duration-300 dark:bg-slate-900 dark:shadow-black/30">
-            <div class="mb-6 flex justify-end">
-                <button
-                    type="button"
-                    onclick="toggleTheme()"
-                    class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 3v2.5"></path>
-                        <path d="M12 18.5V21"></path>
-                        <path d="M3 12h2.5"></path>
-                        <path d="M18.5 12H21"></path>
-                        <circle cx="12" cy="12" r="3.5"></circle>
-                    </svg>
-                    <span id="login-theme-label">Tema dark</span>
-                </button>
-            </div>
-            <div class="mb-8 flex flex-col items-center">
-                <img
-                    src="{{ url_for('static', filename='img/ebm.png') }}"
-                    class="mb-6 h-20 w-auto opacity-90"
-                    alt="Logo EBM"
-                >
-                <h1 class="text-center text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    Captação de Recurso - EBM
-                </h1>
-            </div>
-
-            {% with mensagens = get_flashed_messages(with_categories=true) %}
-                {% if mensagens %}
-                    <div class="mb-6 space-y-3">
-                        {% for categoria, mensagem in mensagens %}
-                            <div class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">
-                                {{ mensagem }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-
-            <form action="{{ url_for('login') }}" method="POST" class="space-y-6">
-                <div class="flex flex-col">
-                    <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Usuario</label>
-                    <input
-                        type="text"
-                        name="login"
-                        required
-                        class="mt-2 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
-                    >
+<body class="app-shell min-h-screen text-slate-900 transition-colors duration-300 dark:text-slate-100">
+    <div class="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10">
+        <div class="pointer-events-none absolute inset-0">
+            <div class="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10"></div>
+            <div class="absolute -bottom-28 right-0 h-96 w-96 rounded-full bg-sky-300/20 blur-3xl dark:bg-sky-600/10"></div>
+        </div>
+        <div class="login-shell-grid tech-panel relative grid w-full max-w-5xl overflow-hidden rounded-[36px] border border-white/60 bg-white/88 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-slate-800 dark:bg-slate-900/85 dark:shadow-black/30">
+            <section class="tech-hero hidden min-h-[650px] flex-col justify-between border-r border-slate-200 p-12 dark:border-slate-800 lg:flex">
+                <div>
+                    <div class="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300"><span class="status-pulse"></span> Automation control center</div>
+                    <h1 class="mt-10 max-w-md text-5xl font-extrabold leading-tight text-slate-950 dark:text-white">Relatórios Sienge, do início ao destino.</h1>
+                    <p class="mt-6 max-w-md text-base leading-7 text-slate-500 dark:text-slate-400">Operações sequenciais, sessão protegida e rastreamento individual de cada arquivo.</p>
                 </div>
-
-                <div class="flex flex-col">
-                    <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha</label>
-                    <input
-                        type="password"
-                        name="senha"
-                        required
-                        class="mt-2 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
-                    >
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"><span class="text-xs font-bold uppercase tracking-wider text-slate-400">01</span><p class="mt-2 text-sm font-semibold">Autenticar</p></div>
+                    <div class="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"><span class="text-xs font-bold uppercase tracking-wider text-slate-400">02</span><p class="mt-2 text-sm font-semibold">Executar</p></div>
+                    <div class="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"><span class="text-xs font-bold uppercase tracking-wider text-slate-400">03</span><p class="mt-2 text-sm font-semibold">Confirmar</p></div>
                 </div>
-
-                <button
-                    type="submit"
-                    class="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
-                >
-                    Entrar
-                </button>
-            </form>
+            </section>
+            <div class="w-full p-8 sm:p-12">
+                <div class="mb-7 flex justify-end">
+                    <button type="button" onclick="toggleTheme()" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v2.5"></path><path d="M12 18.5V21"></path><path d="M3 12h2.5"></path><path d="M18.5 12H21"></path><circle cx="12" cy="12" r="3.5"></circle></svg>
+                        <span id="login-theme-label">Tema escuro</span>
+                    </button>
+                </div>
+                <div class="mb-8">
+                    <img src="{{ url_for('static', filename='img/ebm.png') }}" class="mb-8 h-16 w-auto opacity-90" alt="Logo EBM">
+                    <p class="text-xs font-bold uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">Acesso seguro</p>
+                    <h2 class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-slate-100">Bem-vindo ao AppCaptação</h2>
+                    <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">Entre com sua conta corporativa para continuar.</p>
+                </div>
+                {% with mensagens = get_flashed_messages(with_categories=true) %}
+                    {% if mensagens %}<div class="mb-6 space-y-3">
+                        {% for categoria, mensagem in mensagens %}<div class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">{{ mensagem }}</div>{% endfor %}
+                    </div>{% endif %}
+                {% endwith %}
+                <form action="{{ url_for('login') }}" method="POST" class="space-y-6">
+                    <div class="flex flex-col"><label class="text-sm font-medium text-slate-700 dark:text-slate-200">Usuário</label><input type="text" name="login" required autocomplete="username" class="mt-2 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></div>
+                    <div class="flex flex-col"><label class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha</label><input type="password" name="senha" required autocomplete="current-password" class="mt-2 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></div>
+                    <button type="submit" class="tech-primary-button w-full rounded-xl bg-slate-950 px-4 py-4 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">Entrar</button>
+                </form>
+            </div>
         </div>
     </div>
-    <script>
-        const loginThemeLabel = document.getElementById("login-theme-label");
-        if (loginThemeLabel) {
-            loginThemeLabel.textContent = document.documentElement.classList.contains("dark") ? "Tema claro" : "Tema dark";
-        }
-    </script>
+    <script>const loginThemeLabel = document.getElementById("login-theme-label"); if (loginThemeLabel) loginThemeLabel.textContent = document.documentElement.classList.contains("dark") ? "Tema claro" : "Tema escuro";</script>
 </body>
 </html>

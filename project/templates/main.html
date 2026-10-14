@@ -3,21 +3,23 @@
 
 {% block content %}
 <section class="py-4">
-    <div class="mx-auto w-full max-w-5xl">
-        <div class="overflow-hidden rounded-[36px] border border-white/60 bg-white/88 shadow-soft backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/85">
-            <div class="border-b border-slate-200/80 px-8 py-7 dark:border-slate-800">
+    <div class="mx-auto w-full max-w-6xl">
+        <div class="tech-panel overflow-hidden rounded-[36px] border border-white/60 bg-white/88 shadow-soft backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/85">
+            <div class="tech-hero border-b border-slate-200/80 px-8 py-8 dark:border-slate-800">
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-300">
-                            Automacao
+                        <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.3em] text-cyan-700 dark:text-cyan-300">
+                            <span class="status-pulse"></span> Central de automacao
                         </p>
                         <h1 class="mt-2 text-3xl font-extrabold text-slate-950 dark:text-slate-100">
-                            Executar relatorios
+                            Nova execucao
                         </h1>
+                        <p class="mt-3 max-w-xl text-sm text-slate-500 dark:text-slate-400">Execute um relatório isolado ou uma sequência cadastrada. Cada arquivo será validado até o destino final.</p>
                     </div>
 
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        Escolha um relatorio avulso ou uma operacao cadastrada.
+                    <div class="rounded-2xl border border-cyan-200/70 bg-cyan-50/70 px-4 py-3 text-sm text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                        <span class="block text-xs font-bold uppercase tracking-[0.18em]">Sessão protegida</span>
+                        <span class="mt-1 block text-xs opacity-80">Reutilizada somente enquanto válida</span>
                     </div>
                 </div>
             </div>
@@ -35,11 +37,11 @@
                     {% endif %}
                 {% endwith %}
 
-                <section class="space-y-5">
+                <section class="tech-section space-y-5 rounded-[28px] border border-slate-200/80 p-6 dark:border-slate-700/80">
                     <div class="flex items-center justify-between gap-3">
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Informacoes de acesso</h2>
+                        <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">01 · Acesso</p><h2 class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">Credenciais da execução</h2></div>
                         <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                            Etapa 01
+                            Não armazenadas
                         </span>
                     </div>
 
@@ -95,47 +97,50 @@
 
                 <section class="space-y-5">
                     <div class="flex items-center justify-between gap-3">
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Tipo de execucao</h2>
+                        <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">02 · Escopo</p><h2 class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">O que deseja executar?</h2></div>
                         <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                            Etapa 02
+                            Escolha uma opção
                         </span>
                     </div>
 
-                    <select
-                        id="modo"
-                        name="modo"
-                        required
-                        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
-                    >
-                        <option value="">Selecionar...</option>
-                        <option value="completo">Relatorio avulso</option>
-                        <option value="parceiros">Operacao cadastrada</option>
-                    </select>
+                    <input id="modo" name="modo" type="hidden" value="">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <button type="button" data-mode-card="completo" aria-pressed="false" aria-controls="acc-completo" class="mode-card group rounded-[24px] border border-slate-200 bg-white p-5 text-left dark:border-slate-700 dark:bg-slate-900">
+                            <span class="mode-icon">R</span>
+                            <span class="mt-5 block text-base font-bold text-slate-900 dark:text-slate-100">Relatório avulso</span>
+                            <span class="mt-2 block text-sm text-slate-500 dark:text-slate-400">Escolha um relatório e informe seus filtros.</span>
+                        </button>
+                        <button type="button" data-mode-card="parceiros" aria-pressed="false" aria-controls="acc-parceiros" class="mode-card group rounded-[24px] border border-slate-200 bg-white p-5 text-left dark:border-slate-700 dark:bg-slate-900">
+                            <span class="mode-icon">OP</span>
+                            <span class="mt-5 block text-base font-bold text-slate-900 dark:text-slate-100">Operação cadastrada</span>
+                            <span class="mt-2 block text-sm text-slate-500 dark:text-slate-400">Execute vários relatórios na ordem definida.</span>
+                        </button>
+                    </div>
+                    <p id="modo-feedback" class="hidden text-sm font-medium text-rose-600 dark:text-rose-300" role="alert">
+                        Escolha uma das opções acima para continuar.
+                    </p>
                 </section>
 
                 <section id="acc-parceiros" class="hidden rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 dark:border-slate-700 dark:bg-slate-800/70">
-                    <button
-                        id="parceiros-toggle"
-                        type="button"
-                        class="flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-950"
-                    >
-                        <span>Operacoes cadastradas</span>
-                        <span class="text-slate-400">+</span>
-                    </button>
-
-                    <div id="parceiros-content" class="hidden px-1 pt-4">
+                    <div class="mb-4"><p class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">Operação</p><h3 class="mt-1 text-lg font-bold">Sequência cadastrada</h3></div>
+                    <div id="parceiros-content" class="px-1">
                         <div class="grid grid-cols-1 gap-4">
                             <div class="flex flex-col">
-                                <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Operacao</label>
-                                <select
-                                    name="operacao"
+                                <label for="operacao-busca" class="text-sm font-medium text-slate-700 dark:text-slate-200">Operação</label>
+                                <input
+                                    type="text"
+                                    id="operacao-busca"
+                                    list="operacoes-lista"
+                                    autocomplete="off"
+                                    placeholder="Digite para buscar uma operação"
                                     class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
                                 >
-                                    <option value="">Selecione</option>
+                                <input type="hidden" id="operacao" name="operacao" value="">
+                                <datalist id="operacoes-lista">
                                     {% for operacao in operacoes_disponiveis %}
-                                        <option value="{{ operacao.id }}">{{ operacao.nome }}</option>
+                                        <option value="{{ operacao.nome }}" data-id="{{ operacao.id }}"></option>
                                     {% endfor %}
-                                </select>
+                                </datalist>
                             </div>
                         </div>
 
@@ -146,16 +151,8 @@
                 </section>
 
                 <section id="acc-completo" class="hidden rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 dark:border-slate-700 dark:bg-slate-800/70">
-                    <button
-                        id="completo-toggle"
-                        type="button"
-                        class="flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-950"
-                    >
-                        <span>Relatorios avulsos</span>
-                        <span class="text-slate-400">+</span>
-                    </button>
-
-                    <div id="completo-content" class="hidden px-1 pt-4">
+                    <div class="mb-4"><p class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">Relatório</p><h3 class="mt-1 text-lg font-bold">Execução avulsa</h3></div>
+                    <div id="completo-content" class="px-1">
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div class="flex flex-col">
                                 <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Relatorio</label>
@@ -187,20 +184,29 @@
 
                     <button
                         type="submit"
-                        class="w-full rounded-2xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                        class="tech-primary-button w-full rounded-2xl bg-slate-950 px-5 py-4 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
                     >
                         Executar automacao
                     </button>
                 </div>
             </form>
 
-            <section id="execucao-andamento" class="hidden border-t border-slate-200 px-8 py-8 dark:border-slate-800" aria-live="polite">
+            <section id="execucao-andamento" class="{% if not execution_job or execution_job.estado == 'concluida' %}hidden {% endif %}border-t border-slate-200 px-8 py-8 dark:border-slate-800" aria-live="polite" data-job-state="{{ execution_job.estado if execution_job else 'inexistente' }}">
                 <div class="rounded-[28px] border border-cyan-200 bg-cyan-50/70 p-5 dark:border-cyan-500/30 dark:bg-cyan-500/10">
                     <div class="flex items-center gap-3">
                         <span class="h-3 w-3 animate-pulse rounded-full bg-cyan-500"></span>
                         <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Execucao em andamento</h2>
                     </div>
-                    <div id="execucao-pendentes" class="mt-4 space-y-2"></div>
+                    <p id="execucao-resumo" class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ execution_job.resumo if execution_job else 'Preparando execução.' }}</p>
+                    <div id="execucao-pendentes" class="mt-4 space-y-2">
+                        {% if execution_job %}
+                            {% for item in execution_job.itens %}
+                            <div class="rounded-xl border border-cyan-100 bg-white/80 px-4 py-3 text-sm dark:border-cyan-500/20 dark:bg-slate-900/70">
+                                <span class="font-semibold">{{ item.estado|replace('_', ' ')|capitalize }}:</span> {{ item.relatorio_nome }}{% if item.operacao_nome %} <span class="text-slate-500">({{ item.operacao_nome }})</span>{% endif %}
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
                 </div>
             </section>
 
@@ -257,6 +263,14 @@
         campoDataPeriodo.classList.toggle("hidden", !mostrarDataPeriodo);
         campoDataPeriodo.classList.toggle("flex", mostrarDataPeriodo);
         inputDataPeriodo.required = mostrarDataPeriodo;
+        if (modo.value !== "parceiros") {
+            document.getElementById("operacao-busca")?.setCustomValidity("");
+        }
+        document.querySelectorAll("[data-mode-card]").forEach((card) => {
+            const ativo = card.dataset.modeCard === modo.value;
+            card.classList.toggle("is-active", ativo);
+            card.setAttribute("aria-pressed", ativo ? "true" : "false");
+        });
     }
 
     function toggleAccordion(contentId, toggleId) {
@@ -272,8 +286,6 @@
     document.addEventListener("DOMContentLoaded", () => {
         const modo = document.getElementById("modo");
         const relatorio = document.getElementById("relatorio");
-        const parceirosToggle = document.getElementById("parceiros-toggle");
-        const completoToggle = document.getElementById("completo-toggle");
         const filtrosStatus = document.getElementById("relatorio-filtros-status");
         const filtrosDinamicos = document.getElementById("relatorio-filtros-dinamicos");
 
@@ -298,7 +310,15 @@
             return detalhes.join(" | ");
         }
 
-        function configurarCampoValor(input, filtro) {
+        function ehEmpresaSaldoDevedor(relatorio, filtro) {
+            const nomeRelatorio = (relatorio?.nome || "").trim().toLocaleLowerCase("pt-BR");
+            const nomeFiltro = (filtro.nome || "").trim().toLocaleLowerCase("pt-BR");
+            const campo = (filtro.campo_identificador || "").trim().toLowerCase();
+            return nomeRelatorio.includes("saldo devedor")
+                && (nomeFiltro.includes("empresa") || campo.endsWith("cdempresaview"));
+        }
+
+        function configurarCampoValor(input, filtro, relatorio) {
             const tipoCampoValor = (filtro.tipo_campo_valor || "").trim().toUpperCase();
 
             if (tipoCampoValor === "CLICK") {
@@ -311,6 +331,15 @@
             if (tipoCampoValor === "DATE") {
                 input.type = "date";
                 input.placeholder = "";
+                return;
+            }
+
+            if (ehEmpresaSaldoDevedor(relatorio, filtro)) {
+                input.type = "text";
+                input.placeholder = "Ex.: 236 - BRASIL INCORPORACAO 145 SPE LTDA";
+                input.inputMode = "text";
+                input.pattern = "[0-9]+ *- *[^ ].*";
+                input.title = "Informe o código, hífen e razão social completa. Exemplo: 236 - BRASIL INCORPORACAO 145 SPE LTDA";
                 return;
             }
 
@@ -327,7 +356,7 @@
             input.placeholder = filtro.campo_identificador || "Informe o valor";
         }
 
-        function criarCampoFiltro(filtro) {
+        function criarCampoFiltro(filtro, relatorio) {
             const container = document.createElement("div");
             container.className = "flex flex-col";
 
@@ -340,7 +369,7 @@
             input.id = `filtro_${filtro.id}`;
             input.name = `filtro_${filtro.id}`;
             input.required = !filtro.opcional;
-            configurarCampoValor(input, filtro);
+            configurarCampoValor(input, filtro, relatorio);
             input.className = "mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700";
 
             const tipoCampoValor = (filtro.tipo_campo_valor || "").trim().toUpperCase();
@@ -352,7 +381,9 @@
             ajuda.className = "mt-2 text-xs text-slate-500 dark:text-slate-400";
             ajuda.textContent = tipoCampoValor === "CLICK"
                 ? "Acao automatica; nenhum valor precisa ser informado."
-                : (filtro.opcional ? "Preenchimento opcional." : "Preenchimento obrigatorio.");
+                : (ehEmpresaSaldoDevedor(relatorio, filtro)
+                    ? "Digite o código, o hífen e a razão social completa, exatamente como aparecem no Sienge."
+                    : (filtro.opcional ? "Preenchimento opcional." : "Preenchimento obrigatorio."));
 
             container.appendChild(label);
             if (tipoCampoValor === "CLICK") {
@@ -394,41 +425,76 @@
 
                 filtrosStatus.textContent = `${filtros.length} filtro(s) carregado(s) a partir do cadastro do relatorio.`;
                 filtros.forEach((filtro) => {
-                    filtrosDinamicos.appendChild(criarCampoFiltro(filtro));
+                    filtrosDinamicos.appendChild(criarCampoFiltro(filtro, data.relatorio));
                 });
             } catch (error) {
                 filtrosStatus.textContent = error.message;
             }
         }
 
-        modo.addEventListener("change", trocarModo);
-
-        parceirosToggle.addEventListener("click", () => {
-            toggleAccordion("parceiros-content", "parceiros-toggle");
-        });
-
-        completoToggle.addEventListener("click", () => {
-            toggleAccordion("completo-content", "completo-toggle");
+        document.querySelectorAll("[data-mode-card]").forEach((card) => {
+            card.addEventListener("click", () => {
+                modo.value = card.dataset.modeCard || "";
+                document.getElementById("modo-feedback").classList.add("hidden");
+                trocarModo();
+                const destino = modo.value === "parceiros" ? document.getElementById("acc-parceiros") : document.getElementById("acc-completo");
+                destino?.scrollIntoView({behavior: "smooth", block: "center"});
+            });
         });
 
         relatorio.addEventListener("change", carregarFiltrosRelatorio);
 
         const operacaoRelatorios = {{ operacao_relatorios|tojson }};
+        const operacaoBusca = document.getElementById("operacao-busca");
+        const operacaoId = document.getElementById("operacao");
+        const operacoesLista = document.getElementById("operacoes-lista");
+
+        function sincronizarOperacao() {
+            const nomeDigitado = operacaoBusca.value.trim();
+            const opcao = Array.from(operacoesLista.options).find(
+                (item) => item.value.trim().toLocaleLowerCase("pt-BR") === nomeDigitado.toLocaleLowerCase("pt-BR")
+            );
+            operacaoId.value = opcao?.dataset.id || "";
+            operacaoBusca.setCustomValidity(
+                nomeDigitado && !opcao ? "Escolha uma operação válida entre as sugestões." : ""
+            );
+            return opcao;
+        }
+
+        operacaoBusca.addEventListener("input", sincronizarOperacao);
+        operacaoBusca.addEventListener("change", sincronizarOperacao);
+
         const formExecucao = document.getElementById("form-execucao");
         let envioIniciado = false;
         formExecucao.addEventListener("submit", (event) => {
             if (envioIniciado) return;
             event.preventDefault();
+
+            if (!modo.value) {
+                const feedback = document.getElementById("modo-feedback");
+                feedback.classList.remove("hidden");
+                document.querySelector("[data-mode-card]")?.focus();
+                return;
+            }
+
+            if (modo.value === "parceiros") {
+                sincronizarOperacao();
+                if (!operacaoId.value) {
+                    operacaoBusca.setCustomValidity("Digite e escolha uma operação válida entre as sugestões.");
+                    operacaoBusca.reportValidity();
+                    operacaoBusca.focus();
+                    return;
+                }
+            }
+
             envioIniciado = true;
             const andamento = document.getElementById("execucao-andamento");
             const pendentes = document.getElementById("execucao-pendentes");
             let itens = [];
             let operacaoNome = "";
             if (modo.value === "parceiros") {
-                const selectOperacao = formExecucao.querySelector("select[name='operacao']");
-                const selecionada = selectOperacao.options[selectOperacao.selectedIndex];
-                operacaoNome = selecionada?.textContent?.trim() || "";
-                itens = operacaoRelatorios[selectOperacao.value] || [];
+                operacaoNome = operacaoBusca.value.trim();
+                itens = operacaoRelatorios[operacaoId.value] || [];
             } else {
                 const selecionada = relatorio.options[relatorio.selectedIndex];
                 if (relatorio.value) itens = [{nome: selecionada.textContent.trim()}];
@@ -444,6 +510,52 @@
             andamento.scrollIntoView({behavior: "smooth", block: "start"});
             requestAnimationFrame(() => window.setTimeout(() => formExecucao.submit(), 50));
         });
+
+        const andamentoAtual = document.getElementById("execucao-andamento");
+        const rotulosEstado = {
+            pendente: "Pendente",
+            em_execucao: "Em execução",
+            baixado: "Baixado",
+            nao_baixado: "Não baixado",
+            ignorado: "Ignorado",
+        };
+
+        function renderizarJob(job) {
+            const pendentes = document.getElementById("execucao-pendentes");
+            const resumo = document.getElementById("execucao-resumo");
+            resumo.textContent = job.resumo || "Execução em andamento.";
+            pendentes.innerHTML = "";
+            (job.itens || []).forEach((item) => {
+                const linha = document.createElement("div");
+                linha.className = "rounded-xl border border-cyan-100 bg-white/80 px-4 py-3 text-sm dark:border-cyan-500/20 dark:bg-slate-900/70";
+                const estado = rotulosEstado[item.estado] || item.estado || "Pendente";
+                const operacao = item.operacao_nome ? ` (${item.operacao_nome})` : "";
+                const detalhe = item.mensagem && item.estado !== "pendente" ? ` — ${item.mensagem}` : "";
+                linha.textContent = `${estado}: ${item.relatorio_nome}${operacao}${detalhe}`;
+                pendentes.appendChild(linha);
+            });
+        }
+
+        async function acompanharExecucao() {
+            try {
+                const response = await fetch("{{ url_for('execucao_atual') }}", {cache: "no-store"});
+                const job = await response.json();
+                if (!response.ok || job.estado === "inexistente") return;
+                renderizarJob(job);
+                andamentoAtual.classList.remove("hidden");
+                if (job.estado === "concluida") {
+                    window.location.reload();
+                    return;
+                }
+                window.setTimeout(acompanharExecucao, 1200);
+            } catch (error) {
+                window.setTimeout(acompanharExecucao, 2500);
+            }
+        }
+
+        if (["pendente", "em_execucao"].includes(andamentoAtual.dataset.jobState)) {
+            acompanharExecucao();
+        }
 
         trocarModo();
         limparFiltrosRelatorio();

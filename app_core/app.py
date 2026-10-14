@@ -13,6 +13,8 @@ import subprocess
 import threading
 import time
 import traceback
+import uuid
+from copy import deepcopy
 import webbrowser
 from contextlib import closing
 from datetime import datetime
@@ -37,6 +39,7 @@ from services.automacao_service import (
     executar_relatorio,
     executar_relatorios_em_sequencia,
 )
+from services.database_service import get_db_connection
 from services.relatorio_action_service import eh_filtro_opcional_relatorio
 from services.relatorio_service import (
     UNIDADES_SELECAO_CAMPO,
@@ -57,6 +60,8 @@ FILTRO_CATALOGO_TABLE = os.getenv("FILTRO_CATALOGO_TABLE", "dbo.CapRecursoFiltro
 FILTRO_X_OPERACAO_TABLE = os.getenv("FILTRO_X_OPERACAO_TABLE", "dbo.CapRecursoFiltro_X_Operacao")
 LOG_CONFIG_TABLE = os.getenv("LOG_CONFIG_TABLE", "dbo.CapRecursoLogConfiguracao")
 LOG_OPERACAO_TABLE = os.getenv("LOG_OPERACAO_TABLE", "dbo.CapRecursoLogOperacao")
+# Pausa temporaria da persistencia de logs. Defina APP_SAVE_LOGS=true para reativar.
+SAVE_LOGS = os.getenv("APP_SAVE_LOGS", "false").strip().lower() == "true"
 
 app = Flask(
     __name__,
@@ -70,6 +75,8 @@ app.config["SESSION_COOKIE_SECURE"] = False
 
 _execution_preferences_cache: dict[str, dict[str, str]] = {}
 _execution_results_cache: dict[str, dict] = {}
+_execution_jobs: dict[str, dict] = {}
+_execution_jobs_lock = threading.Lock()
 
 
 def _get_execution_preferences_cache_key() -> str | None:
@@ -130,6 +137,82 @@ def set_last_execution_result_for_current_session(result: dict) -> None:
     cache_key = _get_execution_preferences_cache_key()
     if cache_key:
         _execution_results_cache[cache_key] = result
+
+
+def _get_current_execution_job() -> dict | None:
+    job_id = session.get("execution_job_id")
+    if not job_id:
+        return None
+    with _execution_jobs_lock:
+        job = _execution_jobs.get(job_id)
+        return deepcopy(job) if job else None
+
+
+def _create_execution_job(tipo: str, relatorios: list[dict], operacao_nome: str = "") -> str:
+    job_id = uuid.uuid4().hex
+    itens = [
+        {
+            "relatorio_id": relatorio.get("id") or relatorio.get("id_relatorio"),
+            "relatorio_nome": relatorio.get("nome", ""),
+            "operacao_nome": operacao_nome,
+            "estado": "pendente",
+            "mensagem": "Aguardando inicio.",
+            "etapa": "",
+            "caminho_final": "",
+            "arquivos": [],
+        }
+        for relatorio in relatorios
+    ]
+    with _execution_jobs_lock:
+        _execution_jobs[job_id] = {
+            "id": job_id,
+            "tipo_execucao": tipo,
+            "operacao_nome": operacao_nome,
+            "estado": "pendente",
+            "itens": itens,
+            "quantidade_relatorios": len(itens),
+            "quantidade_baixados": 0,
+            "quantidade_nao_baixados": 0,
+            "resumo": f"Preparando {len(itens)} relatorio(s).",
+            "resultado": None,
+        }
+    session["execution_job_id"] = job_id
+    return job_id
+
+
+def _update_execution_job(job_id: str, **updates) -> None:
+    with _execution_jobs_lock:
+        job = _execution_jobs.get(job_id)
+        if job:
+            job.update(updates)
+
+
+def _update_execution_job_item(job_id: str, relatorio_id, **updates) -> None:
+    with _execution_jobs_lock:
+        job = _execution_jobs.get(job_id)
+        if not job:
+            return
+        for item in job["itens"]:
+            if str(item.get("relatorio_id")) == str(relatorio_id):
+                item.update(updates)
+                break
+
+
+def _finish_execution_job(job_id: str, resultado: dict) -> None:
+    with _execution_jobs_lock:
+        job = _execution_jobs.get(job_id)
+        if not job:
+            return
+        job.update(
+            {
+                "estado": "concluida",
+                "itens": deepcopy(resultado.get("itens", [])),
+                "quantidade_baixados": int(resultado.get("quantidade_baixados") or 0),
+                "quantidade_nao_baixados": int(resultado.get("quantidade_nao_baixados") or 0),
+                "resumo": resultado.get("resumo", "Execucao concluida."),
+                "resultado": deepcopy(resultado),
+            }
+        )
 
 
 def _wait_for_server(host: str, port: int, timeout_seconds: int = 15) -> bool:
@@ -219,21 +302,7 @@ def start_browser_thread(host: str, port: int) -> threading.Thread:
 
 
 def _db_connection() -> pyodbc.Connection:
-    driver = os.getenv("DB_DRIVER", "SQL Server")
-    extra_params = os.getenv("DB_EXTRA_PARAMS", "").strip()
-    parts = [
-        f"DRIVER={{{driver}}}",
-        f"SERVER={os.getenv('DB_HOST', '')}",
-        f"DATABASE={os.getenv('DB_DATABASE', os.getenv('DB_SCHEMA', ''))}",
-        f"UID={os.getenv('DB_USER', '')}",
-        f"PWD={os.getenv('DB_PASSWORD', '')}",
-    ]
-    if not extra_params and driver.lower() != "sql server":
-        extra_params = "TrustServerCertificate=yes"
-    if extra_params:
-        parts.extend([part.strip() for part in extra_params.split(";") if part.strip()])
-    timeout = int(os.getenv("DB_TIMEOUT", "5"))
-    return pyodbc.connect(";".join(parts) + ";", timeout=timeout)
+    return get_db_connection()
 
 
 def _execute(query: str, params: tuple = (), fetch: bool = False, commit: bool = False) -> list[dict]:
@@ -280,6 +349,23 @@ def _column_exists(connection: pyodbc.Connection, table_name: str, column_name: 
     )
     row = cursor.fetchone()
     return bool(row and row.Total)
+
+
+def _column_is_identity(connection: pyodbc.Connection, table_name: str, column_name: str) -> bool:
+    schema, table = _split_table_name(table_name)
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        SELECT COLUMNPROPERTY(
+            OBJECT_ID(QUOTENAME(?) + '.' + QUOTENAME(?)),
+            ?,
+            'IsIdentity'
+        ) AS IsIdentity
+        """,
+        (schema, table, column_name),
+    )
+    row = cursor.fetchone()
+    return bool(row and row.IsIdentity)
 
 
 def _get_filter_value_column(connection: pyodbc.Connection) -> str | None:
@@ -458,6 +544,8 @@ def _bootstrap_admin_user(login: str, senha: str) -> dict | None:
 
 
 def _log_config(evento: str, detalhe: str, payload: dict | None = None) -> None:
+    if not SAVE_LOGS:
+        return
     current_user = g.get("current_user")
     if not current_user:
         return
@@ -480,6 +568,8 @@ def _log_config(evento: str, detalhe: str, payload: dict | None = None) -> None:
 
 
 def _log_operacao(status: str, payload_entrada: dict, payload_resultado: dict | None = None, erro: dict | None = None) -> None:
+    if not SAVE_LOGS:
+        return
     current_user = g.get("current_user")
     try:
         _execute(
@@ -563,13 +653,15 @@ def _load_operacoes_ativas() -> list[dict]:
     rows = _fetch_all(
         f"""
         SELECT
-            IdCapRecursoOperacoes AS id,
-            NomeOperacao AS nome,
-            IdAtivo AS ativo,
-            DataCriacao AS data_criacao
-        FROM {OPERACAO_TABLE}
-        WHERE IdAtivo = 1
-        ORDER BY NomeOperacao
+            o.IdCapRecursoOperacoes AS id,
+            o.NomeOperacao AS nome,
+            o.IdAtivo AS ativo,
+            o.DataCriacao AS data_criacao,
+            (SELECT COUNT(1) FROM {RELATORIO_X_OPERACAO_TABLE} rxo
+             WHERE rxo.IdCapRecursoOperacoes = o.IdCapRecursoOperacoes AND rxo.IdAtivo = 1) AS quantidade_relatorios
+        FROM {OPERACAO_TABLE} o
+        WHERE o.IdAtivo = 1
+        ORDER BY o.NomeOperacao
         """
     )
     return [
@@ -579,6 +671,7 @@ def _load_operacoes_ativas() -> list[dict]:
             "ativo": _to_bool(row["ativo"]),
             "status": "Ativo" if _to_bool(row["ativo"]) else "Inativo",
             "data_criacao": _format_datetime(row.get("data_criacao")),
+            "quantidade_relatorios": int(row.get("quantidade_relatorios") or 0),
         }
         for row in rows
     ]
@@ -656,13 +749,10 @@ def _load_usuarios(filtro_busca: str, filtro_status: str) -> list[dict]:
             u.Login AS login,
             u.Email AS email,
             u.Area AS area,
-            u.IdAcesso AS id_acesso,
+            u.IdAcesso AS access_id,
             u.IdAtivo AS ativo,
-            u.DataCriacao AS data_criacao,
-            COALESCE(a.NomeAcesso, a.Descricao, a.Perfil, 'Usuario') AS perfil
+            u.DataCriacao AS data_criacao
         FROM {USUARIO_TABLE} u
-        LEFT JOIN {ACESSO_TABLE} a
-            ON a.IdAcesso = u.IdAcesso
         {where_sql}
         ORDER BY u.Login
         """,
@@ -671,9 +761,38 @@ def _load_usuarios(filtro_busca: str, filtro_status: str) -> list[dict]:
     usuarios = []
     for row in rows:
         usuario = _serialize_user(row)
-        usuario["id_acesso"] = int(row.get("id_acesso") or 0)
+        usuario["id_acesso"] = int(row.get("access_id") or 0)
         usuarios.append(usuario)
     return usuarios
+
+
+def _user_duplicate_field(
+    connection: pyodbc.Connection,
+    login_usuario: str,
+    email: str,
+    exclude_id: int | None = None,
+) -> str | None:
+    conditions = ["(LOWER(Login) = LOWER(?) OR LOWER(Email) = LOWER(?))"]
+    params: list[object] = [login_usuario, email]
+    if exclude_id is not None:
+        conditions.append("IdLogin <> ?")
+        params.append(exclude_id)
+
+    cursor = connection.cursor()
+    cursor.execute(
+        f"""
+        SELECT TOP 1 Login, Email
+        FROM {USUARIO_TABLE} WITH (UPDLOCK, HOLDLOCK)
+        WHERE {' AND '.join(conditions)}
+        """,
+        tuple(params),
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+    if _normalize_text(row.Login).lower() == login_usuario.lower():
+        return "login"
+    return "email"
 
 
 def _load_operacoes(filtro_nome: str) -> list[dict]:
@@ -681,13 +800,15 @@ def _load_operacoes(filtro_nome: str) -> list[dict]:
         rows = _fetch_all(
             f"""
             SELECT
-                IdCapRecursoOperacoes AS id,
-                NomeOperacao AS nome,
-                IdAtivo AS ativo,
-                DataCriacao AS data_criacao
-            FROM {OPERACAO_TABLE}
-            WHERE IdAtivo = 1 AND NomeOperacao LIKE ?
-            ORDER BY NomeOperacao
+                o.IdCapRecursoOperacoes AS id,
+                o.NomeOperacao AS nome,
+                o.IdAtivo AS ativo,
+                o.DataCriacao AS data_criacao,
+                (SELECT COUNT(1) FROM {RELATORIO_X_OPERACAO_TABLE} rxo
+                 WHERE rxo.IdCapRecursoOperacoes = o.IdCapRecursoOperacoes AND rxo.IdAtivo = 1) AS quantidade_relatorios
+            FROM {OPERACAO_TABLE} o
+            WHERE o.IdAtivo = 1 AND o.NomeOperacao LIKE ?
+            ORDER BY o.NomeOperacao
             """,
             (f"%{filtro_nome}%",),
         )
@@ -695,13 +816,15 @@ def _load_operacoes(filtro_nome: str) -> list[dict]:
         rows = _fetch_all(
             f"""
             SELECT
-                IdCapRecursoOperacoes AS id,
-                NomeOperacao AS nome,
-                IdAtivo AS ativo,
-                DataCriacao AS data_criacao
-            FROM {OPERACAO_TABLE}
-            WHERE IdAtivo = 1
-            ORDER BY NomeOperacao
+                o.IdCapRecursoOperacoes AS id,
+                o.NomeOperacao AS nome,
+                o.IdAtivo AS ativo,
+                o.DataCriacao AS data_criacao,
+                (SELECT COUNT(1) FROM {RELATORIO_X_OPERACAO_TABLE} rxo
+                 WHERE rxo.IdCapRecursoOperacoes = o.IdCapRecursoOperacoes AND rxo.IdAtivo = 1) AS quantidade_relatorios
+            FROM {OPERACAO_TABLE} o
+            WHERE o.IdAtivo = 1
+            ORDER BY o.NomeOperacao
             """
         )
     return [
@@ -711,6 +834,7 @@ def _load_operacoes(filtro_nome: str) -> list[dict]:
             "ativo": _to_bool(row["ativo"]),
             "status": "Ativo" if _to_bool(row["ativo"]) else "Inativo",
             "data_criacao": _format_datetime(row.get("data_criacao")),
+            "quantidade_relatorios": int(row.get("quantidade_relatorios") or 0),
         }
         for row in rows
     ]
@@ -866,7 +990,11 @@ def _load_relatorio_operacao_payload(operacao_id: int) -> list[dict]:
             filtros_execucao = []
             for filtro in relatorio.get("filtros", []):
                 clone = dict(filtro)
-                clone["valor"] = valores.get(int(clone.get("id") or 0), "")
+                valor_fixo = _normalize_text(clone.get("valor_fixo"))
+                if clone.get("automatico") and valor_fixo:
+                    clone["valor"] = valor_fixo
+                else:
+                    clone["valor"] = valores.get(int(clone.get("id") or 0), "")
                 filtros_execucao.append(clone)
 
             relatorio["id_relatorio"] = int(row["id_relatorio"])
@@ -1058,6 +1186,105 @@ def _required_filter_messages(relatorio: dict) -> list[str]:
     return missing
 
 
+def _run_execution_job(
+    job_id: str,
+    tipo: str,
+    email: str,
+    senha: str,
+    relatorios: list[dict],
+    user_snapshot: dict,
+    operacao_nome: str = "",
+) -> None:
+    with app.app_context():
+        g.current_user = user_snapshot
+        _update_execution_job(job_id, estado="em_execucao", resumo="Execucao em andamento.")
+        try:
+            if tipo == "relatorio":
+                relatorio = relatorios[0]
+                _update_execution_job_item(
+                    job_id,
+                    relatorio.get("id"),
+                    estado="em_execucao",
+                    mensagem="Executando filtros e aguardando o download.",
+                )
+                resultado = executar_relatorio(email, senha, relatorio)
+            else:
+                def on_report_event(evento, relatorio, detalhe):
+                    relatorio_id = relatorio.get("id") or relatorio.get("id_relatorio")
+                    if evento == "processando":
+                        _update_execution_job_item(
+                            job_id,
+                            relatorio_id,
+                            estado="em_execucao",
+                            mensagem="Executando filtros e aguardando o download.",
+                        )
+                    elif evento == "sucesso":
+                        _update_execution_job_item(
+                            job_id,
+                            relatorio_id,
+                            estado="baixado",
+                            mensagem="Arquivo confirmado no destino.",
+                            caminho_final=detalhe.get("caminho_final", ""),
+                            arquivos=detalhe.get("arquivos", []),
+                        )
+                    elif evento == "erro":
+                        _update_execution_job_item(
+                            job_id,
+                            relatorio_id,
+                            estado=detalhe.get("estado", "nao_baixado"),
+                            mensagem=detalhe.get("mensagem", "Falha na execucao."),
+                            etapa=detalhe.get("etapa", "execucao"),
+                        )
+
+                resultado = executar_relatorios_em_sequencia(
+                    email,
+                    senha,
+                    relatorios,
+                    on_report_event=on_report_event,
+                )
+
+            _finish_execution_job(job_id, resultado)
+            _log_operacao(
+                "sucesso" if not resultado.get("falhas") else "erro",
+                {
+                    "tipo_execucao": tipo,
+                    "nome_operacao": operacao_nome,
+                    "nome_relatorio": relatorios[0].get("nome", "") if tipo == "relatorio" else "",
+                    "observacao": "Execucao em segundo plano concluida.",
+                },
+                resultado,
+                {"falhas": resultado.get("falhas", [])} if resultado.get("falhas") else None,
+            )
+        except Exception as exc:
+            app.logger.exception("Falha inesperada no trabalho de execucao %s.", job_id)
+            itens = []
+            for relatorio in relatorios:
+                itens.append(
+                    {
+                        "relatorio_id": relatorio.get("id") or relatorio.get("id_relatorio"),
+                        "relatorio_nome": relatorio.get("nome", ""),
+                        "operacao_nome": operacao_nome,
+                        "estado": "ignorado",
+                        "mensagem": str(exc),
+                        "etapa": "execucao",
+                        "caminho_final": "",
+                        "arquivos": [],
+                    }
+                )
+            _finish_execution_job(
+                job_id,
+                {
+                    "itens": itens,
+                    "falhas": itens,
+                    "sucessos": [],
+                    "quantidade_relatorios": len(itens),
+                    "quantidade_baixados": 0,
+                    "quantidade_nao_baixados": len(itens),
+                    "resumo": f"0 relatorios baixados; {len(itens)} nao baixados.",
+                },
+            )
+
+
 def login_required(view):
     @wraps(view)
     def wrapper(*args, **kwargs):
@@ -1207,14 +1434,30 @@ def main():
     relatorios = _safe_db_call(_load_relatorios_disponiveis, [])
     credenciais_execucao = get_execution_preferences_for_current_session()
     operacao_relatorios = _safe_db_call(_load_operation_report_summaries, {})
+    execution_job = _get_current_execution_job()
+    resultado_execucao = (
+        execution_job.get("resultado")
+        if execution_job and execution_job.get("estado") == "concluida"
+        else get_last_execution_result_for_current_session()
+    )
     return render_template(
         "main.html",
         operacoes_disponiveis=operacoes,
         relatorios_disponiveis=relatorios,
         credenciais_execucao=credenciais_execucao,
-        resultado_execucao=get_last_execution_result_for_current_session(),
+        resultado_execucao=resultado_execucao,
+        execution_job=execution_job,
         operacao_relatorios=operacao_relatorios,
     )
+
+
+@app.get("/execucoes/atual")
+@login_required
+def execucao_atual():
+    job = _get_current_execution_job()
+    if not job:
+        return jsonify({"estado": "inexistente", "itens": []})
+    return jsonify(job)
 
 
 @app.post("/processar")
@@ -1232,6 +1475,11 @@ def processar():
     set_execution_preferences_for_current_session(email, sharepoint_link)
     clear_execution_result_for_current_session()
 
+    current_job = _get_current_execution_job()
+    if current_job and current_job.get("estado") in {"pendente", "em_execucao"}:
+        flash("Ja existe uma execucao em andamento para esta sessao.", "error")
+        return redirect(url_for("main"))
+
     try:
         if modo == "completo":
             relatorio_id = int(request.form.get("relatorio") or 0)
@@ -1246,19 +1494,14 @@ def processar():
                 return redirect(url_for("main"))
 
             payload["sharepoint_link"] = sharepoint_link
-            resultado = executar_relatorio(email, senha, payload)
-            set_last_execution_result_for_current_session(resultado)
-            _log_operacao(
-                "sucesso" if resultado.get("quantidade_baixados") else "erro",
-                {
-                    "tipo_execucao": "relatorio",
-                    "nome_relatorio": payload.get("nome", ""),
-                    "observacao": "Execucao individual concluida.",
-                },
-                resultado,
-                None if resultado.get("quantidade_baixados") else {"mensagem": resultado.get("mensagem", "")},
-            )
-            flash(resultado.get("resumo", "Execucao concluida."), "success" if resultado.get("quantidade_baixados") else "error")
+            job_id = _create_execution_job("relatorio", [payload])
+            threading.Thread(
+                target=_run_execution_job,
+                args=(job_id, "relatorio", email, senha, [payload], deepcopy(g.current_user)),
+                daemon=True,
+                name=f"appcaptacao-{job_id[:8]}",
+            ).start()
+            flash("Execucao iniciada. Acompanhe o status de cada etapa abaixo.", "success")
             return redirect(url_for("main"))
 
         if modo == "parceiros":
@@ -1282,25 +1525,22 @@ def processar():
                 missing = _required_filter_messages(relatorio)
                 if missing:
                     flash(
-                        f"Relatorio '{relatorio.get('nome', '')}' possui filtros obrigatorios sem valor: {', '.join(missing)}.",
+                        f"Operacao '{operacao.get('nome', '')}' (ID {operacao_id}): "
+                        f"relatorio '{relatorio.get('nome', '')}' possui filtros obrigatorios sem valor: "
+                        f"{', '.join(missing)}. Salve os filtros desta operacao em Acompanhamento.",
                         "error",
                     )
                     return redirect(url_for("main"))
 
-            resultado = executar_relatorios_em_sequencia(email, senha, relatorios)
-            resultado["operacao_nome"] = operacao.get("nome", "") if operacao else ""
-            set_last_execution_result_for_current_session(resultado)
-            _log_operacao(
-                "sucesso" if not resultado.get("falhas") else "erro",
-                {
-                    "tipo_execucao": "operacao",
-                    "nome_operacao": operacao.get("nome", ""),
-                    "observacao": "Execucao em sequencia concluida.",
-                },
-                resultado,
-                {"falhas": resultado.get("falhas", [])} if resultado.get("falhas") else None,
-            )
-            flash(resultado.get("resumo", "Execucao da operacao concluida."), "success" if not resultado.get("falhas") else "error")
+            operacao_nome = operacao.get("nome", "") if operacao else ""
+            job_id = _create_execution_job("operacao", relatorios, operacao_nome)
+            threading.Thread(
+                target=_run_execution_job,
+                args=(job_id, "operacao", email, senha, relatorios, deepcopy(g.current_user), operacao_nome),
+                daemon=True,
+                name=f"appcaptacao-{job_id[:8]}",
+            ).start()
+            flash("Operacao iniciada. Os relatorios serao atualizados individualmente.", "success")
             return redirect(url_for("main"))
 
         flash("Selecione um modo de execucao valido.", "error")
@@ -1393,32 +1633,71 @@ def cadastrar_usuario():
     login_usuario = _normalize_text(request.form.get("login_usuario"))
     email = _normalize_text(request.form.get("email"))
     area = _normalize_text(request.form.get("area"))
-    id_acesso = int(request.form.get("id_acesso") or 0)
+    raw_id_acesso = _normalize_text(request.form.get("id_acesso"))
     senha = str(request.form.get("senha") or "")
     confirmar = str(request.form.get("confirmar_senha") or "")
 
-    if not login_usuario or not email or not area or not id_acesso:
-        flash("Preencha todos os campos obrigatorios.", "error")
-        return redirect(url_for("usuarios", modal_tipo="criar"))
+    modal_params = {
+        "modal_tipo": "criar",
+        "modal_usuario_login": login_usuario,
+        "modal_usuario_email": email,
+        "modal_usuario_area": area,
+        "modal_usuario_id_acesso": raw_id_acesso,
+    }
+    if not all([login_usuario, email, area, raw_id_acesso, senha, confirmar]):
+        flash("Preencha todos os campos obrigatorios do cadastro.", "error")
+        return redirect(url_for("usuarios", **modal_params))
     if senha != confirmar:
         flash("Senha e confirmacao nao conferem.", "error")
-        return redirect(url_for("usuarios", modal_tipo="criar"))
+        return redirect(url_for("usuarios", **modal_params))
 
     try:
-        _execute(
-            f"""
-            INSERT INTO {USUARIO_TABLE} (Login, Email, Area, Senha, IdAcesso, IdAtivo, DataCriacao)
-            VALUES (?, ?, ?, ?, ?, 1, GETDATE())
-            """,
-            (login_usuario, email, area, generate_password_hash(senha), id_acesso),
-            commit=True,
-        )
+        id_acesso = int(raw_id_acesso)
+    except ValueError:
+        id_acesso = 0
+    if id_acesso not in {1, 2, 3}:
+        flash("Selecione um nivel de acesso valido.", "error")
+        return redirect(url_for("usuarios", **modal_params))
+
+    try:
+        with closing(_db_connection()) as connection:
+            duplicate_field = _user_duplicate_field(connection, login_usuario, email)
+            if duplicate_field:
+                label = "login" if duplicate_field == "login" else "email"
+                raise ValueError(f"Ja existe um usuario com este {label}.")
+
+            cursor = connection.cursor()
+            senha_hash = generate_password_hash(senha, method="scrypt")
+            if _column_is_identity(connection, USUARIO_TABLE, "IdLogin"):
+                cursor.execute(
+                    f"""
+                    INSERT INTO {USUARIO_TABLE}
+                        (Login, Email, Area, Senha, IdAcesso, IdAtivo, DataCriacao)
+                    VALUES (?, ?, ?, ?, ?, 1, GETDATE())
+                    """,
+                    (login_usuario, email, area, senha_hash, id_acesso),
+                )
+            else:
+                id_login = _get_next_id(connection, USUARIO_TABLE, "IdLogin")
+                cursor.execute(
+                    f"""
+                    INSERT INTO {USUARIO_TABLE}
+                        (IdLogin, Login, Email, Area, Senha, IdAcesso, IdAtivo, DataCriacao)
+                    VALUES (?, ?, ?, ?, ?, ?, 1, GETDATE())
+                    """,
+                    (id_login, login_usuario, email, area, senha_hash, id_acesso),
+                )
+            connection.commit()
         _log_config("usuario_criacao", f"Usuario {login_usuario} criado.", {"email": email, "area": area})
         flash("Usuario cadastrado com sucesso.", "success")
         return redirect(url_for("usuarios"))
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("usuarios", **modal_params))
     except Exception as exc:
-        flash(f"Nao foi possivel cadastrar o usuario: {exc}", "error")
-        return redirect(url_for("usuarios", modal_tipo="criar"))
+        app.logger.exception("Falha ao cadastrar usuario.")
+        flash("Nao foi possivel cadastrar o usuario no banco.", "error")
+        return redirect(url_for("usuarios", **modal_params))
 
 
 @app.post("/usuarios/<int:id_login>/editar")
@@ -1427,43 +1706,77 @@ def cadastrar_usuario():
 def editar_usuario(id_login: int):
     email = _normalize_text(request.form.get("email"))
     area = _normalize_text(request.form.get("area"))
-    id_acesso = int(request.form.get("id_acesso") or 0)
+    raw_id_acesso = _normalize_text(request.form.get("id_acesso"))
     senha = str(request.form.get("senha") or "")
     confirmar = str(request.form.get("confirmar_senha") or "")
+    usuario_login = _normalize_text(request.form.get("usuario_login"))
 
-    if senha and senha != confirmar:
+    modal_params = {
+        "modal_tipo": "editar",
+        "modal_usuario_id": id_login,
+        "modal_usuario_login": usuario_login,
+        "modal_usuario_email": email,
+        "modal_usuario_area": area,
+        "modal_usuario_id_acesso": raw_id_acesso,
+    }
+
+    if not all([email, area, raw_id_acesso]):
+        flash("Preencha email, area e nivel de acesso.", "error")
+        return redirect(url_for("usuarios", **modal_params))
+
+    if senha != confirmar:
         flash("A nova senha e a confirmacao nao conferem.", "error")
-        return redirect(
-            url_for(
-                "usuarios",
-                modal_tipo="editar",
-                modal_usuario_id=id_login,
-                modal_usuario_login=request.form.get("usuario_login", ""),
-                modal_usuario_email=email,
-                modal_usuario_area=area,
-                modal_usuario_id_acesso=id_acesso,
-            )
-        )
+        return redirect(url_for("usuarios", **modal_params))
 
     try:
-        if senha:
-            _execute(
-                f"UPDATE {USUARIO_TABLE} SET Email = ?, Area = ?, IdAcesso = ?, Senha = ? WHERE IdLogin = ?",
-                (email, area, id_acesso, generate_password_hash(senha), id_login),
-                commit=True,
+        id_acesso = int(raw_id_acesso)
+    except ValueError:
+        id_acesso = 0
+    if id_acesso not in {1, 2, 3}:
+        flash("Selecione um nivel de acesso valido.", "error")
+        return redirect(url_for("usuarios", **modal_params))
+
+    try:
+        with closing(_db_connection()) as connection:
+            duplicate_field = _user_duplicate_field(
+                connection,
+                usuario_login,
+                email,
+                exclude_id=id_login,
             )
-        else:
-            _execute(
-                f"UPDATE {USUARIO_TABLE} SET Email = ?, Area = ?, IdAcesso = ? WHERE IdLogin = ?",
-                (email, area, id_acesso, id_login),
-                commit=True,
+            if duplicate_field == "email":
+                raise ValueError("Ja existe outro usuario com este email.")
+
+            assignments = ["Email = ?", "Area = ?", "IdAcesso = ?"]
+            params: list[object] = [email, area, id_acesso]
+            if senha:
+                assignments.append("Senha = ?")
+                params.append(generate_password_hash(senha, method="scrypt"))
+            if _column_exists(connection, USUARIO_TABLE, "DataAlteracao"):
+                assignments.append("DataAlteracao = GETDATE()")
+            if _column_exists(connection, USUARIO_TABLE, "IdLoginAlteracao") and g.get("current_user"):
+                assignments.append("IdLoginAlteracao = ?")
+                params.append(g.current_user["id"])
+            params.append(id_login)
+
+            cursor = connection.cursor()
+            cursor.execute(
+                f"UPDATE {USUARIO_TABLE} SET {', '.join(assignments)} WHERE IdLogin = ?",
+                tuple(params),
             )
+            if cursor.rowcount == 0:
+                raise ValueError("Usuario nao encontrado.")
+            connection.commit()
         _log_config("usuario_edicao", f"Usuario {id_login} atualizado.")
         flash("Usuario atualizado com sucesso.", "success")
         return redirect(url_for("usuarios"))
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("usuarios", **modal_params))
     except Exception as exc:
-        flash(f"Nao foi possivel atualizar o usuario: {exc}", "error")
-        return redirect(url_for("usuarios"))
+        app.logger.exception("Falha ao atualizar usuario %s.", id_login)
+        flash("Nao foi possivel atualizar o usuario no banco.", "error")
+        return redirect(url_for("usuarios", **modal_params))
 
 
 @app.post("/usuarios/<int:id_login>/inativar")
@@ -1474,15 +1787,30 @@ def inativar_usuario_route(id_login: int):
         flash("Voce nao pode inativar o proprio usuario.", "error")
         return redirect(url_for("usuarios"))
     try:
-        _execute(
-            f"UPDATE {USUARIO_TABLE} SET IdAtivo = 0 WHERE IdLogin = ?",
-            (id_login,),
-            commit=True,
-        )
+        with closing(_db_connection()) as connection:
+            assignments = ["IdAtivo = 0"]
+            params: list[object] = []
+            if _column_exists(connection, USUARIO_TABLE, "DataAlteracao"):
+                assignments.append("DataAlteracao = GETDATE()")
+            if _column_exists(connection, USUARIO_TABLE, "IdLoginAlteracao"):
+                assignments.append("IdLoginAlteracao = ?")
+                params.append(g.current_user["id"])
+            params.append(id_login)
+            cursor = connection.cursor()
+            cursor.execute(
+                f"UPDATE {USUARIO_TABLE} SET {', '.join(assignments)} WHERE IdLogin = ? AND IdAtivo = 1",
+                tuple(params),
+            )
+            if cursor.rowcount == 0:
+                raise ValueError("Usuario nao encontrado ou ja inativo.")
+            connection.commit()
         _log_config("usuario_inativacao", f"Usuario {id_login} inativado.")
         flash("Usuario inativado com sucesso.", "success")
+    except ValueError as exc:
+        flash(str(exc), "error")
     except Exception as exc:
-        flash(f"Nao foi possivel inativar o usuario: {exc}", "error")
+        app.logger.exception("Falha ao inativar usuario %s.", id_login)
+        flash("Nao foi possivel inativar o usuario no banco.", "error")
     return redirect(url_for("usuarios"))
 
 
@@ -1816,6 +2144,8 @@ def logs():
 
 
 def _load_logs_configuracao(filtros: dict) -> list[dict]:
+    if not SAVE_LOGS:
+        return []
     conditions = []
     params: list[object] = []
     if filtros["usuario"]:
@@ -1854,6 +2184,8 @@ def _load_logs_configuracao(filtros: dict) -> list[dict]:
 
 
 def _load_logs_operacao(filtros: dict) -> list[dict]:
+    if not SAVE_LOGS:
+        return []
     conditions = []
     params: list[object] = []
     if filtros["nome_operacao"]:
@@ -1956,12 +2288,13 @@ def sair():
     return redirect(url_for("index"))
 
 
-def run_application(use_waitress: bool = False) -> None:
+def run_application(use_waitress: bool = False, open_browser: bool = True) -> None:
     host = os.getenv("APP_HOST", "127.0.0.1").strip() or "127.0.0.1"
     port = int(os.getenv("APP_PORT", "4732"))
     debug = os.getenv("APP_DEBUG", "false").strip().lower() == "true"
 
-    start_browser_thread(host, port)
+    if open_browser:
+        start_browser_thread(host, port)
 
     if use_waitress:
         from waitress import serve

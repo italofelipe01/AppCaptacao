@@ -9,6 +9,7 @@ import base64
 import io
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -130,6 +131,11 @@ def get_local_dev_env_path() -> Path:
     return Path(__file__).resolve().parent.parent / ".env"
 
 
+def get_reference_env_path() -> Path:
+    """Usa a configuracao da versao funcional sem duplicar credenciais."""
+    return Path(__file__).resolve().parent.parent / "oldversion" / ".env"
+
+
 def get_local_dev_encrypted_env_path() -> Path:
     return Path(__file__).resolve().parent.parent / ".env.enc"
 
@@ -138,8 +144,40 @@ def get_state_dir() -> Path:
     return get_hidden_config_dir() / APP_STATE_DIRNAME
 
 
+def get_temporary_state_dir() -> Path:
+    return Path(tempfile.gettempdir()).resolve() / APP_NAME / APP_STATE_DIRNAME
+
+
+def _ensure_writable_directory(path: Path) -> Path:
+    path = Path(path).resolve()
+    path.mkdir(parents=True, exist_ok=True)
+    probe_path = path / f".write_probe_{os.getpid()}"
+    try:
+        probe_path.write_bytes(b"")
+    finally:
+        try:
+            probe_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+    return path
+
+
+def get_writable_state_dir() -> Path:
+    errors: list[OSError] = []
+    for candidate in (get_state_dir(), get_temporary_state_dir()):
+        try:
+            return _ensure_writable_directory(candidate)
+        except OSError as exc:
+            errors.append(exc)
+
+    detail = "; ".join(str(error) for error in errors)
+    raise PermissionError(
+        f"Nao foi possivel criar um diretorio de estado gravavel para {APP_NAME}: {detail}"
+    )
+
+
 def get_sienge_session_store_dir() -> Path:
-    return get_state_dir() / "sienge_sessions"
+    return get_writable_state_dir() / "sienge_sessions"
 
 
 def mark_path_hidden(path: Path) -> None:
@@ -223,7 +261,10 @@ def _plaintext_config_path_candidates() -> list[Path]:
 
 
 def get_config_path_candidates() -> list[Path]:
-    candidates = _encrypted_config_path_candidates()
+    candidates = []
+    if not is_frozen_runtime():
+        candidates.append(get_reference_env_path())
+    candidates.extend(_encrypted_config_path_candidates())
     if not is_frozen_runtime() or allow_plaintext_config_in_frozen():
         candidates.extend(_plaintext_config_path_candidates())
     return list(dict.fromkeys(candidates))
@@ -322,6 +363,7 @@ def list_cleanup_targets() -> list[Path]:
         get_runtime_base_dir() / ".env.enc",
         get_runtime_base_dir() / ".env",
         get_state_dir(),
+        get_temporary_state_dir(),
     ]
     if not is_frozen_runtime():
         targets.extend([get_local_dev_encrypted_env_path(), get_local_dev_env_path()])

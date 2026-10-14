@@ -1,0 +1,13 @@
+# Normaliza fins de linha: o codigo fica em LF no repositorio e na copia de
+# trabalho; scripts de Windows ficam em CRLF para o cmd.exe e o PowerShell.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binarios
+*.png binary
+*.ico binary
+*.docx binary
+*.xlsx binary
+*.pdf binary

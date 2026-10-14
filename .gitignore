@@ -1,9 +1,52 @@
+# ===== CONFIGURACAO E SEGREDOS (NUNCA FAZER COMMIT) =====
+# Configuracao real fica fora do git: .env na raiz em desenvolvimento e
+# configuracao criptografada por DPAPI no perfil do usuario em producao.
 .env
 .env.enc
-app_captacao.env
-app_captacao.env.enc
+*.env
+*.env.enc
 .config/
-__pycache__/
-*.pyc
+!.env.example
+
+# ===== ARQUIVO LOCAL DA VERSAO ANTERIOR =====
+# Snapshot da versao anterior, com executaveis e .env reais. Fica apenas na
+# maquina de desenvolvimento; nada do codigo atual depende dele.
+oldversion/
+
+# ===== BUILD (PyInstaller) =====
 build/
 dist/
+*.exe
+
+# ===== ARTEFATOS GERADOS EM EXECUCAO =====
+downloads/
+logs/
+*.log
+screenshots/
+*.crdownload
+*.tmp
+*.part
+
+# ===== PYTHON =====
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ===== EDITORES E SISTEMA OPERACIONAL =====
+.vscode/
+.idea/
+.claude/settings.local.json
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Arquivos de bloqueio do Office (documento aberto no Word/Excel)
+~$*
