@@ -1,0 +1,4 @@
+# Ferramentas de desenvolvimento, testes e empacotamento.
+-r requirements.txt
+pytest>=8.0,<10.0
+pyinstaller>=6.0,<7.0

@@ -8,11 +8,6 @@
 .config/
 !.env.example
 
-# ===== ARQUIVO LOCAL DA VERSAO ANTERIOR =====
-# Snapshot da versao anterior, com executaveis e .env reais. Fica apenas na
-# maquina de desenvolvimento; nada do codigo atual depende dele.
-oldversion/
-
 # ===== BUILD (PyInstaller) =====
 build/
 dist/

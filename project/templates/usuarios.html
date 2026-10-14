@@ -299,6 +299,14 @@
 {% endblock %}
 
 {% block scripts %}
+<script type="application/json" id="dados-usuarios">{{ {
+    "modal_tipo": modal_tipo,
+    "modal_usuario_id": modal_usuario_id,
+    "modal_usuario_login": modal_usuario_login,
+    "modal_usuario_email": modal_usuario_email,
+    "modal_usuario_area": modal_usuario_area,
+    "modal_usuario_id_acesso": modal_usuario_id_acesso,
+}|tojson }}</script>
 <script>
     function abrirModal(modalId) {
         const modal = document.getElementById(modalId);
@@ -336,12 +344,13 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-        const modalTipo = {{ modal_tipo|tojson }};
-        const modalUsuarioId = {{ modal_usuario_id|tojson }};
-        const modalUsuarioLogin = {{ modal_usuario_login|tojson }};
-        const modalUsuarioEmail = {{ modal_usuario_email|tojson }};
-        const modalUsuarioArea = {{ modal_usuario_area|tojson }};
-        const modalUsuarioIdAcesso = {{ modal_usuario_id_acesso|tojson }};
+        const dadosPagina = JSON.parse(document.getElementById("dados-usuarios").textContent);
+        const modalTipo = dadosPagina.modal_tipo;
+        const modalUsuarioId = dadosPagina.modal_usuario_id;
+        const modalUsuarioLogin = dadosPagina.modal_usuario_login;
+        const modalUsuarioEmail = dadosPagina.modal_usuario_email;
+        const modalUsuarioArea = dadosPagina.modal_usuario_area;
+        const modalUsuarioIdAcesso = dadosPagina.modal_usuario_id_acesso;
 
         document.querySelectorAll("[data-modal-edicao]").forEach((button) => {
             button.addEventListener("click", () => {

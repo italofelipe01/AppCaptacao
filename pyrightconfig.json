@@ -1,0 +1,18 @@
+{
+  "include": [
+    "src",
+    "tests",
+    "run.py"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "build",
+    "dist"
+  ],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": ["src"]
+    }
+  ]
+}
