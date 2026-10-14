@@ -7,7 +7,7 @@ import secrets
 
 from flask import Flask, g, request, session
 
-from app_captacao.core.config import settings  # noqa: F401  (carrega o .env antes de tudo)
+from app_captacao.core.config import settings  # carrega o .env antes de tudo
 from app_captacao.core.config.environment import get_static_path, get_template_path
 from app_captacao.core.security.sessao_usuario import carregar_usuario_da_sessao
 from app_captacao.core.shared.navegador_local import start_browser_thread
@@ -24,7 +24,7 @@ app = Flask(
     template_folder=get_template_path(),
     static_folder=get_static_path(),
 )
-app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "").strip() or secrets.token_urlsafe(32)
+app.config["SECRET_KEY"] = settings.FLASK_SECRET_KEY or secrets.token_urlsafe(32)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = False

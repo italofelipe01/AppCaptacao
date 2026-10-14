@@ -12,6 +12,9 @@ from app_captacao.core.config.environment import initialize_environment
 
 initialize_environment()
 
+# Assina o cookie de sessao. Vazio: chave aleatoria por processo (todos saem ao reiniciar).
+FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "").strip()
+
 # Tabelas do SQL Server (schema.tabela). Os padroes refletem o banco atual.
 USUARIO_TABLE = os.getenv("USUARIO_TABLE", "dbo.CapRecursoUsuario")
 OPERACAO_TABLE = os.getenv("OPERACAO_TABLE", "dbo.CapRecursoOperacoes")
