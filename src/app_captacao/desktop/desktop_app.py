@@ -206,7 +206,8 @@ class AppCaptacaoDesktop(ctk.CTk):
     def _run_server(self) -> None:
         self.server_started_by_app = True
         try:
-            run_application(use_waitress=True)
+            # A propria janela abre o navegador quando o servidor responde.
+            run_application(use_waitress=True, open_browser=False)
         except Exception as exc:  # pragma: no cover
             self.after(0, lambda: self._handle_server_error(str(exc)))
 
