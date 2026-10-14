@@ -305,4 +305,4 @@ def _clicar_elemento_com_fallback(driver, locator, descricao="elemento"):
         descricao,
         ultimo_erro,
     )
-    raise ultimo_erro
+    raise ultimo_erro or RuntimeError(f"Nao foi possivel clicar em {descricao}.")

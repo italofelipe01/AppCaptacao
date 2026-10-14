@@ -1,3 +1,4 @@
+import errno
 import tempfile
 import time
 import unittest
@@ -38,6 +39,30 @@ class DownloadWatcherTests(unittest.TestCase):
             new_file.write_bytes(b"complete")
             result = downloads._aguardar_arquivo_download(marker)
         self.assertEqual(result, new_file)
+
+    def test_arquivo_renomeado_durante_a_verificacao_nao_derruba_o_monitor(self):
+        arquivo = self.directory / f"relatorio_{uuid.uuid4().hex}.xlsx"
+        stat_original = Path.stat
+        chamadas = {"total": 0}
+
+        def stat_instavel(path, *args, **kwargs):
+            if path == arquivo:
+                chamadas["total"] += 1
+                if chamadas["total"] == 3:
+                    raise FileNotFoundError(errno.ENOENT, "arquivo renomeado pelo navegador", str(path))
+            return stat_original(path, *args, **kwargs)
+
+        with patch.object(downloads, "DOWNLOAD_DIR", str(self.directory)), patch.object(
+            downloads, "DOWNLOAD_WAIT_TIMEOUT", 0.5
+        ), patch.object(downloads, "DOWNLOAD_STABLE_CHECK_INTERVAL", 0.01), patch.object(
+            downloads, "DOWNLOAD_STABLE_CYCLES_REQUIRED", 2
+        ):
+            marker = downloads.marcar_inicio_download()
+            time.sleep(0.002)
+            arquivo.write_bytes(b"conteudo")
+            with patch.object(Path, "stat", autospec=True, side_effect=stat_instavel):
+                result = downloads._aguardar_arquivo_download(marker)
+        self.assertEqual(result, arquivo)
 
 
 if __name__ == "__main__":

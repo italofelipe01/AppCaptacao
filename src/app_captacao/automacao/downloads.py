@@ -122,11 +122,13 @@ def _aguardar_arquivo_download(inicio_download):
             if arquivo.suffix.lower() in DOWNLOAD_TEMP_EXTENSIONS:
                 downloads_em_andamento.append(arquivo)
             else:
-                candidatos.append(arquivo)
+                candidatos.append((arquivo, stat))
 
         if candidatos and not downloads_em_andamento:
-            candidato = max(candidatos, key=lambda item: item.stat().st_mtime)
-            tamanho_atual = candidato.stat().st_size
+            # Usa o stat da listagem: o navegador pode renomear ou remover o arquivo
+            # entre a listagem e uma nova leitura.
+            candidato, stat_candidato = max(candidatos, key=lambda item: item[1].st_mtime)
+            tamanho_atual = stat_candidato.st_size
             if tamanho_atual <= 0:
                 estabilidade_por_arquivo[candidato] = (tamanho_atual, 0)
             else:
