@@ -249,6 +249,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script type="application/json" id="dados-main">{{ {"operacao_relatorios": operacao_relatorios}|tojson }}</script>
 <script>
     function trocarModo() {
         const modo = document.getElementById("modo");
@@ -444,7 +445,7 @@
 
         relatorio.addEventListener("change", carregarFiltrosRelatorio);
 
-        const operacaoRelatorios = {{ operacao_relatorios|tojson }};
+        const operacaoRelatorios = JSON.parse(document.getElementById("dados-main").textContent).operacao_relatorios;
         const operacaoBusca = document.getElementById("operacao-busca");
         const operacaoId = document.getElementById("operacao");
         const operacoesLista = document.getElementById("operacoes-lista");

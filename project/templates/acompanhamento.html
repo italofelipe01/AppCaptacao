@@ -326,6 +326,11 @@
 {% endblock %}
 
 {% block scripts %}
+<script type="application/json" id="dados-acompanhamento">{{ {
+    "modal_tipo": modal_tipo,
+    "modal_operacao_id": modal_operacao_id,
+    "modal_operacao_nome": modal_operacao_nome,
+}|tojson }}</script>
 <script>
     const modalState = {
         relatoriosDisponiveis: [],
@@ -682,9 +687,10 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-        const modalTipo = {{ modal_tipo|tojson }};
-        const modalOperacaoId = {{ modal_operacao_id|tojson }};
-        const modalOperacaoNome = {{ modal_operacao_nome|tojson }};
+        const dadosPagina = JSON.parse(document.getElementById("dados-acompanhamento").textContent);
+        const modalTipo = dadosPagina.modal_tipo;
+        const modalOperacaoId = dadosPagina.modal_operacao_id;
+        const modalOperacaoNome = dadosPagina.modal_operacao_nome;
 
         document.querySelectorAll("[data-modal-edicao]").forEach((button) => {
             button.addEventListener("click", () => {
