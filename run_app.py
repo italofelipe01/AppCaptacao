@@ -1,13 +1,22 @@
-"""Ponto de entrada da nova versao do AppCaptacao."""
+"""Ponto de entrada do AppCaptacao em desenvolvimento (python run_app.py)."""
 
 import os
 import socket
+import sys
 import threading
 import time
 import webbrowser
+from pathlib import Path
 
-from app_core.app import run_application
-from app_core.app_config import initialize_environment
+SRC_DIR = Path(__file__).resolve().parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from app_captacao.core.config.environment import initialize_environment  # noqa: E402
+
+initialize_environment()
+
+from app_captacao.app import run_application  # noqa: E402
 
 
 def _browser_url() -> str:
@@ -49,7 +58,6 @@ def _open_browser_when_ready() -> None:
 
 
 if __name__ == "__main__":
-    initialize_environment()
     url = _browser_url()
     if _app_already_running():
         print(f"AppCaptacao ja esta em execucao em {url}")

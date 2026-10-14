@@ -7,8 +7,8 @@ project_root = Path.cwd()
 
 
 a = Analysis(
-    ["app_core/config_installer.py"],
-    pathex=[str(project_root)],
+    ["src/app_captacao/desktop/config_installer.py"],
+    pathex=[str(project_root / "src")],
     binaries=[],
     datas=[],
     hiddenimports=["customtkinter"],
