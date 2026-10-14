@@ -1,0 +1,10 @@
+Flask>=3.0,<4.0
+customtkinter>=5.2,<6.0
+tkcalendar>=1.6,<2.0
+python-dotenv>=1.0,<2.0
+pyodbc>=5.1,<6.0
+selenium>=4.20,<5.0
+playwright>=1.53,<2.0
+openpyxl>=3.1,<4.0
+waitress>=3.0,<4.0
+pyinstaller>=6.0,<7.0

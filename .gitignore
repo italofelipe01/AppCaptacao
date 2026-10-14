@@ -1,0 +1,9 @@
+.env
+.env.enc
+app_captacao.env
+app_captacao.env.enc
+.config/
+__pycache__/
+*.pyc
+build/
+dist/

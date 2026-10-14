@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}EBM Automacao{% endblock %}</title>
+
+    <script>
+        (() => {
+            const savedTheme = localStorage.getItem("theme");
+            const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            const useDark = savedTheme ? savedTheme === "dark" : prefersDark;
+
+            if (useDark) {
+                document.documentElement.classList.add("dark");
+            }
+        })();
+    </script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-local.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+</head>
+
+<body class="app-shell antialiased text-slate-900 transition-colors duration-300 dark:text-slate-100">
+    <div class="relative flex min-h-screen">
+        <div class="pointer-events-none absolute inset-0 overflow-hidden">
+            <div class="absolute left-[-120px] top-[-80px] h-72 w-72 rounded-full bg-cyan-300/25 blur-3xl dark:bg-cyan-500/10"></div>
+            <div class="absolute bottom-[-120px] right-[-120px] h-96 w-96 rounded-full bg-sky-200/35 blur-3xl dark:bg-sky-500/10"></div>
+        </div>
+
+        {% include "components/menu.html" %}
+
+        <main class="relative flex-1 overflow-y-auto">
+            <div class="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-6 lg:px-10">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    <script>
+        function syncThemeButtons() {
+            const isDark = document.documentElement.classList.contains("dark");
+            document.querySelectorAll("[data-theme-label]").forEach((label) => {
+                label.textContent = isDark ? "Tema claro" : "Tema escuro";
+            });
+        }
+
+        function toggleTheme() {
+            const root = document.documentElement;
+            const nextDark = !root.classList.contains("dark");
+            root.classList.toggle("dark", nextDark);
+            localStorage.setItem("theme", nextDark ? "dark" : "light");
+            syncThemeButtons();
+        }
+
+        document.addEventListener("DOMContentLoaded", syncThemeButtons);
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

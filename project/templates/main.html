@@ -1,0 +1,387 @@
+{% extends "layout_base.html" %}
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<section class="py-4">
+    <div class="mx-auto w-full max-w-5xl">
+        <div class="overflow-hidden rounded-[36px] border border-white/60 bg-white/88 shadow-soft backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/85">
+            <div class="border-b border-slate-200/80 px-8 py-7 dark:border-slate-800">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-300">
+                            Automacao
+                        </p>
+                        <h1 class="mt-2 text-3xl font-extrabold text-slate-950 dark:text-slate-100">
+                            Iniciar automacao
+                        </h1>
+                    </div>
+
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        Configure os dados e execute a rotina.
+                    </div>
+                </div>
+            </div>
+
+            <form action="{{ url_for('processar') }}" method="POST" class="space-y-8 px-8 py-8">
+                {% with mensagens = get_flashed_messages(with_categories=true) %}
+                    {% if mensagens %}
+                        <div class="space-y-3">
+                            {% for categoria, mensagem in mensagens %}
+                                <div class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">
+                                    {{ mensagem }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <section class="space-y-5">
+                    <div class="flex items-center justify-between gap-3">
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Informacoes de acesso</h2>
+                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                            Etapa 01
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Email</label>
+                            <input
+                                type="email"
+                                name="email"
+                                value="{{ credenciais_execucao.email if credenciais_execucao else '' }}"
+                                required
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha</label>
+                            <input
+                                type="password"
+                                name="senha"
+                                value="{{ credenciais_execucao.senha if credenciais_execucao else '' }}"
+                                required
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+
+                        <div class="flex flex-col md:col-span-2">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Link/Caminho SharePoint</label>
+                            <input
+                                type="text"
+                                name="sharepoint_link"
+                                value="{{ credenciais_execucao.sharepoint_link if credenciais_execucao else '' }}"
+                                placeholder="Cole a URL do SharePoint ou o caminho local sincronizado"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+
+                        <div id="campo-data-periodo" class="hidden flex-col md:col-span-2">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data do periodo</label>
+                            <input
+                                type="date"
+                                id="data_periodo"
+                                name="data_periodo"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-5">
+                    <div class="flex items-center justify-between gap-3">
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Tipo de execucao</h2>
+                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                            Etapa 02
+                        </span>
+                    </div>
+
+                    <select
+                        id="modo"
+                        name="modo"
+                        required
+                        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                    >
+                        <option value="">Selecionar...</option>
+                        <option value="parceiros">Selecionar Operacao</option>
+                        <option value="completo">Selecionar Relatorio</option>
+                    </select>
+                </section>
+
+                <section id="acc-parceiros" class="hidden rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 dark:border-slate-700 dark:bg-slate-800/70">
+                    <button
+                        id="parceiros-toggle"
+                        type="button"
+                        class="flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-950"
+                    >
+                        <span>Modo Operacao</span>
+                        <span class="text-slate-400">+</span>
+                    </button>
+
+                    <div id="parceiros-content" class="hidden px-1 pt-4">
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="flex flex-col">
+                                <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Operacao</label>
+                                <select
+                                    name="operacao"
+                                    class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                                >
+                                    <option value="">Selecione</option>
+                                    {% for operacao in operacoes_disponiveis %}
+                                        <option value="{{ operacao.id }}">{{ operacao.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                            As operacoes exibidas sao carregadas diretamente da tabela CapRecursoOperacoes.
+                        </p>
+                    </div>
+                </section>
+
+                <section id="acc-completo" class="hidden rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 dark:border-slate-700 dark:bg-slate-800/70">
+                    <button
+                        id="completo-toggle"
+                        type="button"
+                        class="flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-950"
+                    >
+                        <span>Modo Relatorio</span>
+                        <span class="text-slate-400">+</span>
+                    </button>
+
+                    <div id="completo-content" class="hidden px-1 pt-4">
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div class="flex flex-col">
+                                <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Relatorio</label>
+                                <select
+                                    name="relatorio"
+                                    id="relatorio"
+                                    class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                                >
+                                    <option value="">Selecione</option>
+                                    {% for relatorio in relatorios_disponiveis %}
+                                        <option value="{{ relatorio.id }}" data-url="{{ relatorio.url }}">{{ relatorio.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="flex flex-col md:col-span-2">
+                                <label class="text-sm font-medium text-slate-700 dark:text-slate-200">URL do relatorio</label>
+                                <input
+                                    type="text"
+                                    id="relatorio-url"
+                                    readonly
+                                    placeholder="A URL sera carregada a partir do cadastro do relatorio"
+                                    class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                >
+                            </div>
+                        </div>
+
+                        <div id="relatorio-filtros-status" class="mt-4 hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"></div>
+                        <div id="relatorio-filtros-dinamicos" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2"></div>
+                    </div>
+                </section>
+
+                <div class="flex flex-col items-center gap-8 border-t border-slate-200/80 pt-8 dark:border-slate-800">
+                    <img
+                        src="{{ url_for('static', filename='img/ebm.png') }}"
+                        class="h-16 w-auto opacity-80"
+                        alt="EBM"
+                    >
+
+                    <button
+                        type="submit"
+                        class="w-full rounded-2xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                    >
+                        Executar automacao
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function trocarModo() {
+        const modo = document.getElementById("modo");
+        const parceiros = document.getElementById("acc-parceiros");
+        const completo = document.getElementById("acc-completo");
+        const campoDataPeriodo = document.getElementById("campo-data-periodo");
+        const inputDataPeriodo = document.getElementById("data_periodo");
+        const mostrarDataPeriodo = false;
+
+        parceiros.classList.toggle("hidden", modo.value !== "parceiros");
+        completo.classList.toggle("hidden", modo.value !== "completo");
+        campoDataPeriodo.classList.toggle("hidden", !mostrarDataPeriodo);
+        campoDataPeriodo.classList.toggle("flex", mostrarDataPeriodo);
+        inputDataPeriodo.required = mostrarDataPeriodo;
+    }
+
+    function toggleAccordion(contentId, toggleId) {
+        const content = document.getElementById(contentId);
+        const toggle = document.getElementById(toggleId);
+        const icon = toggle.querySelector("span:last-child");
+        const aberto = !content.classList.contains("hidden");
+
+        content.classList.toggle("hidden", aberto);
+        icon.textContent = aberto ? "+" : "-";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const modo = document.getElementById("modo");
+        const relatorio = document.getElementById("relatorio");
+        const parceirosToggle = document.getElementById("parceiros-toggle");
+        const completoToggle = document.getElementById("completo-toggle");
+        const relatorioUrl = document.getElementById("relatorio-url");
+        const filtrosStatus = document.getElementById("relatorio-filtros-status");
+        const filtrosDinamicos = document.getElementById("relatorio-filtros-dinamicos");
+
+        function limparFiltrosRelatorio() {
+            filtrosDinamicos.innerHTML = "";
+            filtrosStatus.textContent = "";
+            filtrosStatus.classList.add("hidden");
+        }
+
+        function formatarDetalheFiltro(filtro) {
+            const detalhes = [];
+            if (filtro.tipo_campo) {
+                detalhes.push(`Tipo ${filtro.tipo_campo}`);
+            }
+            if (filtro.tipo_campo_valor) {
+                detalhes.push(`Valor ${filtro.tipo_campo_valor}`);
+            }
+            detalhes.push(`Iframe ${filtro.iframe_index}`);
+            if (filtro.acao) {
+                detalhes.push(`Acao ${filtro.acao}`);
+            }
+            return detalhes.join(" | ");
+        }
+
+        function configurarCampoValor(input, filtro) {
+            const tipoCampoValor = (filtro.tipo_campo_valor || "").trim().toUpperCase();
+
+            if (tipoCampoValor === "CLICK") {
+                input.type = "hidden";
+                input.value = "";
+                input.required = false;
+                return;
+            }
+
+            if (tipoCampoValor === "DATE") {
+                input.type = "date";
+                input.placeholder = "";
+                return;
+            }
+
+            if (tipoCampoValor === "STRINGINT") {
+                input.type = "text";
+                input.placeholder = "numero,numero,numero";
+                input.inputMode = "numeric";
+                input.pattern = "[0-9]+(,[0-9]+)*";
+                input.title = "Use numeros separados por virgula. Exemplo: 123,456,789";
+                return;
+            }
+
+            input.type = "text";
+            input.placeholder = filtro.campo_identificador || "Informe o valor";
+        }
+
+        function criarCampoFiltro(filtro) {
+            const container = document.createElement("div");
+            container.className = "flex flex-col";
+
+            const label = document.createElement("label");
+            label.className = "text-sm font-medium text-slate-700 dark:text-slate-200";
+            label.setAttribute("for", `filtro_${filtro.id}`);
+            label.textContent = filtro.nome;
+
+            const input = document.createElement("input");
+            input.id = `filtro_${filtro.id}`;
+            input.name = `filtro_${filtro.id}`;
+            input.required = !filtro.opcional;
+            configurarCampoValor(input, filtro);
+            input.className = "mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700";
+
+            const tipoCampoValor = (filtro.tipo_campo_valor || "").trim().toUpperCase();
+            if (tipoCampoValor === "CLICK") {
+                input.required = false;
+            }
+
+            const ajuda = document.createElement("p");
+            ajuda.className = "mt-2 text-xs text-slate-500 dark:text-slate-400";
+            ajuda.textContent = tipoCampoValor === "CLICK"
+                ? `${formatarDetalheFiltro(filtro)} | Acao automatica de clique`
+                : `${formatarDetalheFiltro(filtro)} | Campo ${filtro.campo_identificador}`;
+
+            container.appendChild(label);
+            if (tipoCampoValor === "CLICK") {
+                const aviso = document.createElement("div");
+                aviso.className = "mt-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
+                aviso.textContent = "Acao automatica de clique. Nenhum valor precisa ser informado.";
+                container.appendChild(input);
+                container.appendChild(aviso);
+            } else {
+                container.appendChild(input);
+            }
+            container.appendChild(ajuda);
+            return container;
+        }
+
+        async function carregarFiltrosRelatorio() {
+            const selectedOption = relatorio.options[relatorio.selectedIndex];
+            relatorioUrl.value = selectedOption ? (selectedOption.dataset.url || "") : "";
+            limparFiltrosRelatorio();
+
+            if (!relatorio.value) {
+                return;
+            }
+
+            filtrosStatus.textContent = "Carregando filtros do relatorio...";
+            filtrosStatus.classList.remove("hidden");
+
+            try {
+                const response = await fetch(`/relatorios/${relatorio.value}/filtros-dados`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Nao foi possivel carregar os filtros.");
+                }
+
+                const filtros = data.filtros || [];
+                relatorioUrl.value = data.relatorio?.url || relatorioUrl.value;
+
+                if (!filtros.length) {
+                    filtrosStatus.textContent = "Este relatorio nao possui filtros ativos cadastrados.";
+                    return;
+                }
+
+                filtrosStatus.textContent = `${filtros.length} filtro(s) carregado(s) a partir do cadastro do relatorio.`;
+                filtros.forEach((filtro) => {
+                    filtrosDinamicos.appendChild(criarCampoFiltro(filtro));
+                });
+            } catch (error) {
+                filtrosStatus.textContent = error.message;
+            }
+        }
+
+        modo.addEventListener("change", trocarModo);
+
+        parceirosToggle.addEventListener("click", () => {
+            toggleAccordion("parceiros-content", "parceiros-toggle");
+        });
+
+        completoToggle.addEventListener("click", () => {
+            toggleAccordion("completo-content", "completo-toggle");
+        });
+
+        relatorio.addEventListener("change", carregarFiltrosRelatorio);
+
+        trocarModo();
+        limparFiltrosRelatorio();
+    });
+</script>
+{% endblock %}

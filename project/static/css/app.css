@@ -1,0 +1,126 @@
+:root {
+    color-scheme: light;
+    --app-font-sans: "Aptos", "Segoe UI Variable Text", "Segoe UI", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --app-text-primary: #0f172a;
+    --app-text-secondary: #475569;
+    --app-surface: rgba(255, 255, 255, 0.92);
+    --app-surface-muted: #f8fafc;
+    --app-surface-strong: #ffffff;
+    --app-border: rgba(148, 163, 184, 0.26);
+    --app-field-bg: #ffffff;
+    --app-field-text: #0f172a;
+    --app-field-placeholder: #94a3b8;
+}
+
+html.dark {
+    color-scheme: dark;
+    --app-text-primary: #e2e8f0;
+    --app-text-secondary: #94a3b8;
+    --app-surface: rgba(15, 23, 42, 0.88);
+    --app-surface-muted: rgba(30, 41, 59, 0.72);
+    --app-surface-strong: #0f172a;
+    --app-border: rgba(71, 85, 105, 0.6);
+    --app-field-bg: #111827;
+    --app-field-text: #f8fafc;
+    --app-field-placeholder: #64748b;
+}
+
+html,
+body.app-shell {
+    font-family: var(--app-font-sans);
+}
+
+body.app-shell {
+    background:
+        radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 28%),
+        linear-gradient(180deg, #eef6ff 0%, #f8fafc 48%, #edf4f7 100%);
+    color: var(--app-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+html.dark body.app-shell {
+    background:
+        radial-gradient(circle at top left, rgba(34, 211, 238, 0.08), transparent 24%),
+        linear-gradient(180deg, #020617 0%, #0f172a 48%, #111827 100%);
+}
+
+#sidebar {
+    transition: width 0.28s ease;
+}
+
+.menu-label {
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+#sidebar.w-20 .menu-label {
+    opacity: 0;
+    transform: translateX(-8px);
+    pointer-events: none;
+}
+
+body.app-shell,
+body.app-shell * {
+    transition:
+        background-color 0.25s ease,
+        border-color 0.25s ease,
+        color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+body.app-shell main,
+body.app-shell section,
+body.app-shell article,
+body.app-shell aside {
+    color: inherit;
+}
+
+body.app-shell :is(input, select, textarea) {
+    background-color: var(--app-field-bg);
+    color: var(--app-field-text);
+    border-color: var(--app-border);
+    caret-color: var(--app-field-text);
+}
+
+body.app-shell :is(input, select, textarea)::placeholder {
+    color: var(--app-field-placeholder);
+}
+
+body.app-shell :is(input, select, textarea):focus {
+    border-color: #64748b;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.22);
+}
+
+html.dark body.app-shell :is(input, select, textarea):focus {
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(71, 85, 105, 0.34);
+}
+
+body.app-shell :is(input, select, textarea):disabled {
+    background-color: var(--app-surface-muted);
+    color: var(--app-text-secondary);
+    opacity: 1;
+}
+
+body.app-shell :is(table, thead, tbody, tr, th, td) {
+    color: inherit;
+}
+
+body.app-shell .bg-white,
+body.app-shell .bg-white\/88 {
+    background-color: var(--app-surface-strong);
+}
+
+body.app-shell .bg-slate-50,
+body.app-shell .bg-slate-50\/70,
+body.app-shell .bg-slate-50\/80 {
+    background-color: var(--app-surface-muted);
+}
+
+body.app-shell .border-slate-200,
+body.app-shell .border-slate-200\/80,
+body.app-shell .border-white\/60 {
+    border-color: var(--app-border);
+}

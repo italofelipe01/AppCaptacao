@@ -1,0 +1,384 @@
+{% extends "layout_base.html" %}
+{% block title %}Usuarios{% endblock %}
+
+{% block content %}
+<section class="py-4">
+    <div class="mx-auto w-full max-w-7xl space-y-6">
+        <div class="overflow-hidden rounded-[36px] border border-white/60 bg-white/88 shadow-soft backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/85">
+            <div class="border-b border-slate-200/80 px-8 py-7 dark:border-slate-800">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-300">
+                            Usuarios
+                        </p>
+                        <h1 class="mt-2 text-3xl font-extrabold text-slate-950 dark:text-slate-100">
+                            Cadastro de usuario
+                        </h1>
+                        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                            Gerencie usuarios com filtro, criacao, edicao e inativacao.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onclick="abrirModalCriacao()"
+                        class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                    >
+                        Novo usuario
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-8 py-8">
+                {% with mensagens = get_flashed_messages(with_categories=true) %}
+                    {% if mensagens %}
+                        <div class="mb-6 space-y-3">
+                            {% for categoria, mensagem in mensagens %}
+                                <div class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">
+                                    {{ mensagem }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <form method="GET" action="{{ url_for('usuarios') }}" class="mb-6">
+                    <div class="grid gap-4 lg:grid-cols-[1fr_240px_auto]">
+                        <div class="flex flex-col">
+                            <label for="busca" class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                Filtro de usuario
+                            </label>
+                            <input
+                                id="busca"
+                                name="busca"
+                                type="text"
+                                value="{{ filtro_busca }}"
+                                placeholder="Buscar por login, email ou area"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label for="status" class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                Status
+                            </label>
+                            <select
+                                id="status"
+                                name="status"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                                <option value="ativos" {% if filtro_status == 'ativos' %}selected{% endif %}>Ativos</option>
+                                <option value="inativos" {% if filtro_status == 'inativos' %}selected{% endif %}>Inativos</option>
+                                <option value="todos" {% if filtro_status == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-end gap-3">
+                            <button
+                                type="submit"
+                                class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                            >
+                                Filtrar
+                            </button>
+                            <a
+                                href="{{ url_for('usuarios') }}"
+                                class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                            >
+                                Limpar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="overflow-hidden rounded-[28px] border border-slate-200 dark:border-slate-800">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                            <thead class="bg-slate-50 dark:bg-slate-800/60">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Login</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Email</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Area</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acesso</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Status</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
+                                {% if usuarios_lista %}
+                                    {% for usuario in usuarios_lista %}
+                                    <tr>
+                                        <td class="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ usuario.login }}</td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ usuario.email }}</td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ usuario.area }}</td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ usuario.perfil }}</td>
+                                        <td class="px-6 py-4 text-sm">
+                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {% if usuario.ativo %}bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                                {{ usuario.status }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    data-modal-edicao
+                                                    data-usuario-id="{{ usuario.id }}"
+                                                    data-usuario-login="{{ usuario.login }}"
+                                                    data-usuario-email="{{ usuario.email }}"
+                                                    data-usuario-area="{{ usuario.area }}"
+                                                    data-usuario-id-acesso="{{ usuario.id_acesso }}"
+                                                    class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                                                >
+                                                    Edicao
+                                                </button>
+
+                                                {% if usuario.ativo and current_user.id != usuario.id %}
+                                                <form method="POST" action="{{ url_for('inativar_usuario_route', id_login=usuario.id) }}" onsubmit="return confirm('Deseja inativar este usuario?');">
+                                                    <button
+                                                        type="submit"
+                                                        class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
+                                                    >
+                                                        Inativar
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-16 text-center">
+                                            <div class="mx-auto flex max-w-md flex-col items-center">
+                                                <div class="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                                    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"></path>
+                                                        <path d="M20 21a8 8 0 1 0-16 0"></path>
+                                                    </svg>
+                                                </div>
+                                                <p class="mt-5 text-base font-semibold text-slate-900 dark:text-slate-100">
+                                                    Nenhum usuario encontrado
+                                                </p>
+                                                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                                                    Ajuste os filtros ou cadastre um novo usuario.
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div id="modal-usuario-criar" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 px-4 py-8">
+    <div class="w-full max-w-3xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <div class="border-b border-slate-200 px-7 py-6 dark:border-slate-800">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300">Cadastro</p>
+                    <h2 class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Novo usuario</h2>
+                </div>
+                <button type="button" onclick="fecharModal('modal-usuario-criar')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
+                </button>
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('cadastrar_usuario') }}" class="space-y-7 px-7 py-7">
+            <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div class="flex flex-col">
+                    <label for="criar-email" class="text-sm font-medium text-slate-700 dark:text-slate-200">Email</label>
+                    <input id="criar-email" name="email" type="email" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                </div>
+                <div class="flex flex-col">
+                    <label for="criar-login" class="text-sm font-medium text-slate-700 dark:text-slate-200">Login</label>
+                    <input id="criar-login" name="login_usuario" type="text" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                </div>
+                <div class="flex flex-col">
+                    <label for="criar-area" class="text-sm font-medium text-slate-700 dark:text-slate-200">Area</label>
+                    <select id="criar-area" name="area" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                        <option value="">Selecionar...</option>
+                        <option value="performance">Performance</option>
+                        <option value="financeiro">Financeiro</option>
+                        <option value="captacao">Captação</option>
+                        <option value="tesouraria">Tesouraria</option>
+                        <option value="controladoria">Controladoria</option>
+                        <option value="ti">TI</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label for="criar-id-acesso" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nivel de acesso</label>
+                    <select id="criar-id-acesso" name="id_acesso" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                        <option value="">Selecionar...</option>
+                        <option value="1">Administrador</option>
+                        <option value="2">Usuario com cadastro de operacao</option>
+                        <option value="3">Usuario de execucao</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label for="criar-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha</label>
+                    <input id="criar-senha" name="senha" type="password" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                </div>
+                <div class="flex flex-col">
+                    <label for="criar-confirmar-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Confirmar senha</label>
+                    <input id="criar-confirmar-senha" name="confirmar_senha" type="password" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                </div>
+            </div>
+            <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-slate-800">
+                <button type="button" onclick="fecharModal('modal-usuario-criar')" class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Cancelar</button>
+                <button type="submit" class="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">Cadastrar usuario</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-usuario-editar" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 px-4 py-8">
+    <div class="w-full max-w-3xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <div class="border-b border-slate-200 px-7 py-6 dark:border-slate-800">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-300">Edicao</p>
+                    <h2 class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Editar usuario</h2>
+                </div>
+                <button type="button" onclick="fecharModal('modal-usuario-editar')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
+                </button>
+            </div>
+        </div>
+        <form id="form-editar-usuario" method="POST" class="space-y-7 px-7 py-7">
+            <input type="hidden" id="editar-usuario-login-hidden" name="usuario_login">
+            <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div class="flex flex-col">
+                    <label for="editar-usuario-login" class="text-sm font-medium text-slate-700 dark:text-slate-200">Login</label>
+                    <input id="editar-usuario-login" type="text" disabled class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                </div>
+                <div class="flex flex-col">
+                    <label for="editar-usuario-email" class="text-sm font-medium text-slate-700 dark:text-slate-200">Email</label>
+                    <input id="editar-usuario-email" name="email" type="email" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                </div>
+                <div class="flex flex-col">
+                    <label for="editar-usuario-area" class="text-sm font-medium text-slate-700 dark:text-slate-200">Area</label>
+                    <select id="editar-usuario-area" name="area" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                        <option value="">Selecionar...</option>
+                        <option value="performance">Performance</option>
+                        <option value="financeiro">Financeiro</option>
+                        <option value="captacao">Captação</option>
+                        <option value="tesouraria">Tesouraria</option>
+                        <option value="controladoria">Controladoria</option>
+                        <option value="ti">TI</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label for="editar-usuario-id-acesso" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nivel de acesso</label>
+                    <select id="editar-usuario-id-acesso" name="id_acesso" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                        <option value="">Selecionar...</option>
+                        <option value="1">Administrador</option>
+                        <option value="2">Usuario com cadastro de operacao</option>
+                        <option value="3">Usuario de execucao</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label for="editar-usuario-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nova senha</label>
+                    <input id="editar-usuario-senha" name="senha" type="password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                </div>
+                <div class="flex flex-col">
+                    <label for="editar-usuario-confirmar-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Confirmar nova senha</label>
+                    <input id="editar-usuario-confirmar-senha" name="confirmar_senha" type="password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                </div>
+            </div>
+            <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-slate-800">
+                <button type="button" onclick="fecharModal('modal-usuario-editar')" class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Cancelar</button>
+                <button type="submit" class="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-600">Salvar alteracoes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function abrirModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    }
+
+    function fecharModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
+
+    function abrirModalCriacao() {
+        abrirModal("modal-usuario-criar");
+    }
+
+    function abrirModalEdicaoUsuario(usuarioId, usuarioLogin, usuarioEmail, usuarioArea, usuarioIdAcesso) {
+        const form = document.getElementById("form-editar-usuario");
+        form.action = `/usuarios/${usuarioId}/editar`;
+
+        document.getElementById("editar-usuario-login").value = usuarioLogin;
+        document.getElementById("editar-usuario-login-hidden").value = usuarioLogin;
+        document.getElementById("editar-usuario-email").value = usuarioEmail;
+        document.getElementById("editar-usuario-area").value = usuarioArea;
+        document.getElementById("editar-usuario-id-acesso").value = usuarioIdAcesso;
+        document.getElementById("editar-usuario-senha").value = "";
+        document.getElementById("editar-usuario-confirmar-senha").value = "";
+
+        abrirModal("modal-usuario-editar");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const modalTipo = {{ modal_tipo|tojson }};
+        const modalUsuarioId = {{ modal_usuario_id|tojson }};
+        const modalUsuarioLogin = {{ modal_usuario_login|tojson }};
+        const modalUsuarioEmail = {{ modal_usuario_email|tojson }};
+        const modalUsuarioArea = {{ modal_usuario_area|tojson }};
+        const modalUsuarioIdAcesso = {{ modal_usuario_id_acesso|tojson }};
+
+        document.querySelectorAll("[data-modal-edicao]").forEach((button) => {
+            button.addEventListener("click", () => {
+                abrirModalEdicaoUsuario(
+                    button.dataset.usuarioId || "",
+                    button.dataset.usuarioLogin || "",
+                    button.dataset.usuarioEmail || "",
+                    button.dataset.usuarioArea || "",
+                    button.dataset.usuarioIdAcesso || "",
+                );
+            });
+        });
+
+        if (modalTipo === "criar") {
+            abrirModalCriacao();
+        }
+
+        if (modalTipo === "editar" && modalUsuarioId) {
+            abrirModalEdicaoUsuario(
+                modalUsuarioId,
+                modalUsuarioLogin || "",
+                modalUsuarioEmail || "",
+                modalUsuarioArea || "",
+                modalUsuarioIdAcesso || "",
+            );
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            ["modal-usuario-criar", "modal-usuario-editar"].forEach((modalId) => fecharModal(modalId));
+        }
+    });
+
+    document.addEventListener("click", (event) => {
+        ["modal-usuario-criar", "modal-usuario-editar"].forEach((modalId) => {
+            const modal = document.getElementById(modalId);
+            if (event.target === modal) {
+                fecharModal(modalId);
+            }
+        });
+    });
+</script>
+{% endblock %}

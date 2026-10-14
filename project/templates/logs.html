@@ -1,0 +1,300 @@
+{% extends "layout_base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block content %}
+<section class="py-4">
+    <div class="mx-auto w-full max-w-6xl space-y-6">
+        <div class="overflow-hidden rounded-[36px] border border-white/60 bg-white/88 shadow-soft backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/85">
+            <div class="border-b border-slate-200/80 px-8 py-7 dark:border-slate-800">
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-300">
+                            Historico
+                        </p>
+                        <h1 class="mt-2 text-3xl font-extrabold text-slate-950 dark:text-slate-100">
+                            Logs
+                        </h1>
+                    </div>
+
+                    <div class="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800">
+                        {% if current_user and current_user.access_id == 1 %}
+                        <a
+                            href="{{ url_for('logs', aba='adm') }}"
+                            class="rounded-xl px-4 py-2 text-sm font-semibold transition {{ 'bg-slate-950 text-white dark:bg-cyan-400 dark:text-slate-950' if aba == 'adm' else 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100' }}"
+                        >
+                            Log Configuracao
+                        </a>
+                        {% endif %}
+                        <a
+                            href="{{ url_for('logs', aba='operacao') }}"
+                            class="rounded-xl px-4 py-2 text-sm font-semibold transition {{ 'bg-slate-950 text-white dark:bg-cyan-400 dark:text-slate-950' if aba == 'operacao' else 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100' }}"
+                        >
+                            Log Automacao
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-8 px-8 py-8">
+                {% if aba == 'adm' %}
+                <form method="GET" action="{{ url_for('logs') }}" class="space-y-5">
+                    <input type="hidden" name="aba" value="adm">
+
+                    <div class="flex items-center justify-between gap-3">
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Filtros do log de configuracao</h2>
+                        <a href="{{ url_for('exportar_logs_json', aba='adm', usuario=filtros.usuario, tipo_evento=filtros.tipo_evento, data_inicio=filtros.data_inicio, data_fim=filtros.data_fim) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Baixar JSON</a>
+                    </div>
+
+                    <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Usuario</label>
+                            <input
+                                type="text"
+                                name="usuario"
+                                value="{{ filtros.usuario }}"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Tipo de evento</label>
+                            <select
+                                name="tipo_evento"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                                <option value="">Todos</option>
+                                <option value="login" {% if filtros.tipo_evento == 'login' %}selected{% endif %}>Login</option>
+                                <option value="logout" {% if filtros.tipo_evento == 'logout' %}selected{% endif %}>Logout</option>
+                                <option value="login_falha" {% if filtros.tipo_evento == 'login_falha' %}selected{% endif %}>Falha de login</option>
+                                <option value="operacao_criacao" {% if filtros.tipo_evento == 'operacao_criacao' %}selected{% endif %}>Criacao de operacao</option>
+                                <option value="operacao_edicao" {% if filtros.tipo_evento == 'operacao_edicao' %}selected{% endif %}>Edicao de operacao</option>
+                                <option value="operacao_inativacao" {% if filtros.tipo_evento == 'operacao_inativacao' %}selected{% endif %}>Inativacao de operacao</option>
+                                <option value="operacao_relatorio_vinculo" {% if filtros.tipo_evento == 'operacao_relatorio_vinculo' %}selected{% endif %}>Vinculo de relatorio</option>
+                                <option value="operacao_filtros_atualizacao" {% if filtros.tipo_evento == 'operacao_filtros_atualizacao' %}selected{% endif %}>Atualizacao de filtros</option>
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicio</label>
+                            <input
+                                type="date"
+                                name="data_inicio"
+                                value="{{ filtros.data_inicio }}"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data fim</label>
+                            <input
+                                type="date"
+                                name="data_fim"
+                                value="{{ filtros.data_fim }}"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button
+                            type="submit"
+                            class="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                        >
+                            Aplicar filtros
+                        </button>
+                        <a
+                            href="{{ url_for('logs', aba='adm') }}"
+                            class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                        >
+                            Limpar
+                        </a>
+                    </div>
+                </form>
+                {% else %}
+                <form method="GET" action="{{ url_for('logs') }}" class="space-y-5">
+                    <input type="hidden" name="aba" value="operacao">
+
+                    <div class="flex items-center justify-between gap-3">
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Filtros do log da automacao</h2>
+                        <a href="{{ url_for('exportar_logs_json', aba='operacao', nome_operacao=filtros.nome_operacao, status=filtros.status, responsavel=filtros.responsavel, data_inicio=filtros.data_inicio) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Baixar JSON</a>
+                    </div>
+
+                    <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operacao</label>
+                            <input
+                                type="text"
+                                name="nome_operacao"
+                                value="{{ filtros.nome_operacao }}"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Status</label>
+                            <select
+                                name="status"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                                <option value="">Todos</option>
+                                <option value="aguardando" {% if filtros.status == 'aguardando' %}selected{% endif %}>Aguardando</option>
+                                <option value="processando" {% if filtros.status == 'processando' %}selected{% endif %}>Processando</option>
+                                <option value="sucesso" {% if filtros.status == 'sucesso' %}selected{% endif %}>Sucesso</option>
+                                <option value="erro" {% if filtros.status == 'erro' %}selected{% endif %}>Erro</option>
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Responsavel</label>
+                            <input
+                                type="text"
+                                name="responsavel"
+                                value="{{ filtros.responsavel }}"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicio</label>
+                            <input
+                                type="date"
+                                name="data_inicio"
+                                value="{{ filtros.data_inicio }}"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button
+                            type="submit"
+                            class="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                        >
+                            Aplicar filtros
+                        </button>
+                        <a
+                            href="{{ url_for('logs', aba='operacao') }}"
+                            class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                        >
+                            Limpar
+                        </a>
+                    </div>
+                </form>
+                {% endif %}
+
+                <div class="overflow-hidden rounded-[28px] border border-slate-200 dark:border-slate-800">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                            <thead class="bg-slate-50 dark:bg-slate-800/60">
+                                <tr>
+                                    {% if aba == 'adm' %}
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Usuario</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Evento</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Data</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Detalhe</th>
+                                    {% else %}
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Operacao</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Status</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Responsavel</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Atualizacao</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
+                                {% if registros %}
+                                    {% for registro in registros %}
+                                    <tr>
+                                        {% if aba == 'adm' %}
+                                        <td class="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ registro.usuario }}</td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ registro.evento }}</td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ registro.data_evento }}</td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">
+                                            <p>{{ registro.detalhe }}</p>
+                                            {% if registro.payload_json %}
+                                            <details class="mt-2">
+                                                <summary class="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">Ver JSON</summary>
+                                                <pre class="mt-2 overflow-x-auto rounded-xl bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ registro.payload_json }}</pre>
+                                            </details>
+                                            {% endif %}
+                                        </td>
+                                        {% else %}
+                                        <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">
+                                            <p class="font-semibold">{{ registro.nome_operacao }}</p>
+                                            <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{{ registro.tipo_execucao }}</p>
+                                            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">{{ registro.nome_relatorio }}</p>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm">
+                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {% if registro.status == 'sucesso' %}bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300{% elif registro.status == 'erro' %}bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                                {{ registro.status }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ registro.responsavel }}</td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">
+                                            <p>{{ registro.atualizacao }}</p>
+                                            {% if registro.observacao %}
+                                            <p class="mt-1 text-xs">{{ registro.observacao }}</p>
+                                            {% endif %}
+                                            {% if registro.empresa %}
+                                            <p class="mt-2 text-xs"><span class="font-semibold text-slate-700 dark:text-slate-200">Empresa:</span> {{ registro.empresa|join(', ') }}</p>
+                                            {% endif %}
+                                            {% if registro.empreendimento %}
+                                            <p class="mt-1 text-xs"><span class="font-semibold text-slate-700 dark:text-slate-200">Empreendimento:</span> {{ registro.empreendimento|join(', ') }}</p>
+                                            {% endif %}
+                                            {% if registro.filtros_resumo %}
+                                            <details class="mt-2">
+                                                <summary class="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">Ver filtros</summary>
+                                                <pre class="mt-2 overflow-x-auto rounded-xl bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ registro.filtros_resumo|tojson(indent=2) }}</pre>
+                                            </details>
+                                            {% endif %}
+                                            {% if registro.payload_entrada_json or registro.payload_resultado_json or registro.erro_json %}
+                                            <details class="mt-2">
+                                                <summary class="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">Ver JSON</summary>
+                                                <div class="mt-2 space-y-2">
+                                                    {% if registro.payload_entrada_json %}
+                                                    <pre class="overflow-x-auto rounded-xl bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ registro.payload_entrada_json }}</pre>
+                                                    {% endif %}
+                                                    {% if registro.payload_resultado_json %}
+                                                    <pre class="overflow-x-auto rounded-xl bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ registro.payload_resultado_json }}</pre>
+                                                    {% endif %}
+                                                    {% if registro.erro_json %}
+                                                    <pre class="overflow-x-auto rounded-xl bg-rose-50 p-3 text-xs text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">{{ registro.erro_json }}</pre>
+                                                    {% endif %}
+                                                </div>
+                                            </details>
+                                            {% endif %}
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="px-6 py-16 text-center">
+                                            <div class="mx-auto flex max-w-md flex-col items-center">
+                                                <div class="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                                    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M6 3h9l3 3v15H6z"></path>
+                                                        <path d="M15 3v4h4"></path>
+                                                        <path d="M9 10h6"></path>
+                                                        <path d="M9 14h6"></path>
+                                                        <path d="M9 18h4"></path>
+                                                    </svg>
+                                                </div>
+                                                <p class="mt-5 text-base font-semibold text-slate-900 dark:text-slate-100">
+                                                    Nenhum log encontrado
+                                                </p>
+                                                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                                                    A grade ficara preenchida assim que os registros do banco forem conectados.
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

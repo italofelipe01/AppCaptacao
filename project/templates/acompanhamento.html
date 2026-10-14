@@ -1,0 +1,672 @@
+{% extends "layout_base.html" %}
+{% block title %}Acompanhamento{% endblock %}
+
+{% block content %}
+<section class="py-4">
+    <div class="mx-auto w-full max-w-7xl space-y-6">
+        <div class="overflow-hidden rounded-[36px] border border-white/60 bg-white/88 shadow-soft backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/85">
+            <div class="border-b border-slate-200/80 px-8 py-7 dark:border-slate-800">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-300">
+                            Ebm Desenvolvimento Imobiliario
+                        </p>
+                        <h1 class="mt-2 text-3xl font-extrabold text-slate-950 dark:text-slate-100">
+                            Operações
+                        </h1>
+                        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                            A grid exibe apenas operacoes ativas. O gerenciamento de relatorios e filtros acontece por modal.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onclick="abrirModalOperacao()"
+                        class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                    >
+                        Nova Operação
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-8 py-8">
+                {% with mensagens = get_flashed_messages(with_categories=true) %}
+                    {% if mensagens %}
+                        <div class="mb-6 space-y-3">
+                            {% for categoria, mensagem in mensagens %}
+                                <div class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">
+                                    {{ mensagem }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <form method="GET" action="{{ url_for('acompanhamento') }}" class="mb-6">
+                    <div class="grid gap-4 md:grid-cols-[1fr_auto]">
+                        <div class="flex flex-col">
+                            <label for="nome_operacao" class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                Nome da operacao
+                            </label>
+                            <input
+                                id="nome_operacao"
+                                name="nome_operacao"
+                                type="text"
+                                value="{{ filtro_nome }}"
+                                placeholder="Filtrar por nome da operacao"
+                                class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                            >
+                        </div>
+
+                        <div class="flex items-end gap-3">
+                            <button
+                                type="submit"
+                                class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                            >
+                                Filtrar
+                            </button>
+                            <a
+                                href="{{ url_for('acompanhamento') }}"
+                                class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                            >
+                                Limpar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+
+                {% if filtro_nome %}
+                <div class="mb-6 flex flex-wrap gap-3">
+                    <span class="inline-flex items-center rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
+                        Filtro ativo: {{ filtro_nome }}
+                    </span>
+                </div>
+                {% endif %}
+
+                <div class="overflow-hidden rounded-[28px] border border-slate-200 dark:border-slate-800">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                            <thead class="bg-slate-50 dark:bg-slate-800/60">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Codigo</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Nome da operacao</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Status</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Criada em</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
+                                {% if operacoes %}
+                                    {% for operacao in operacoes %}
+                                    <tr>
+                                        <td class="px-6 py-4 text-sm font-semibold text-slate-600 dark:text-slate-300">{{ operacao.id }}</td>
+                                        <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">{{ operacao.nome }}</td>
+                                        <td class="px-6 py-4 text-sm">
+                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {% if operacao.ativo %}bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                                {{ operacao.status }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ operacao.data_criacao }}</td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    data-modal-edicao
+                                                    data-operacao-id="{{ operacao.id }}"
+                                                    data-operacao-nome="{{ operacao.nome }}"
+                                                    class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                                                >
+                                                    Editar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    data-modal-relatorios
+                                                    data-operacao-id="{{ operacao.id }}"
+                                                    data-operacao-nome="{{ operacao.nome }}"
+                                                    class="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20"
+                                                >
+                                                    Adicionar relatorios
+                                                </button>
+                                                <form method="POST" action="{{ url_for('inativar_operacao_route', operacao_id=operacao.id) }}" onsubmit="return confirm('Deseja inativar esta operacao?');">
+                                                    <button
+                                                        type="submit"
+                                                        class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
+                                                    >
+                                                        Inativar
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-16 text-center">
+                                            <div class="mx-auto flex max-w-md flex-col items-center">
+                                                <div class="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                                    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M3 6h18"></path>
+                                                        <path d="M7 12h10"></path>
+                                                        <path d="M10 18h4"></path>
+                                                    </svg>
+                                                </div>
+                                                <p class="mt-5 text-base font-semibold text-slate-900 dark:text-slate-100">Nenhuma operacao ativa encontrada</p>
+                                                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">As operacoes inativadas nao aparecem mais nesta grade.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div id="modal-operacao" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 px-4 py-8">
+    <div class="w-full max-w-2xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <div class="border-b border-slate-200 px-7 py-6 dark:border-slate-800">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300">Cadastro</p>
+                    <h2 class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Nova operacao</h2>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Primeiro passo: gravar a operacao na tabela principal.</p>
+                </div>
+                <button type="button" onclick="fecharModal('modal-operacao')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <path d="M6 6l12 12"></path>
+                        <path d="M18 6 6 18"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('criar_operacao_route') }}" class="space-y-7 px-7 py-7">
+            <div class="flex flex-col">
+                <label for="modal-nome-operacao" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operacao</label>
+                <input id="modal-nome-operacao" name="nome_operacao" type="text" placeholder="Digite o nome da operacao" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+            </div>
+            <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-slate-800">
+                <button type="button" onclick="fecharModal('modal-operacao')" class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Cancelar</button>
+                <button type="submit" class="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">Salvar operacao</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-edicao" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 px-4 py-8">
+    <div class="w-full max-w-2xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <div class="border-b border-slate-200 px-7 py-6 dark:border-slate-800">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-300">Edicao</p>
+                    <h2 class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Editar operacao</h2>
+                </div>
+                <button type="button" onclick="fecharModal('modal-edicao')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <path d="M6 6l12 12"></path>
+                        <path d="M18 6 6 18"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <form id="form-edicao" method="POST" class="space-y-7 px-7 py-7">
+            <input type="hidden" id="edicao-operacao-nome-atual" name="operacao_nome_atual" value="{{ modal_operacao_nome }}">
+            <div class="grid gap-5 md:grid-cols-2">
+                <div class="flex flex-col">
+                    <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Codigo</label>
+                    <input id="edicao-operacao-id" type="text" value="{{ modal_operacao_id }}" disabled class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                </div>
+                <div class="flex flex-col">
+                    <label for="edicao-operacao-nome" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operacao</label>
+                    <input id="edicao-operacao-nome" name="nome_operacao" type="text" value="{{ modal_operacao_nome }}" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                </div>
+            </div>
+            <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-slate-800">
+                <button type="button" onclick="fecharModal('modal-edicao')" class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Cancelar</button>
+                <button type="submit" class="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-600">Salvar alteracoes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-relatorios" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 px-4 py-8">
+    <div class="flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <div class="border-b border-slate-200 px-7 py-6 dark:border-slate-800">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300">Relatorios</p>
+                    <h2 class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Operacao <span id="relatorios-operacao-nome-view">{{ modal_operacao_nome }}</span></h2>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Ao adicionar um relatorio, os filtros cadastrados para ele sao vinculados automaticamente. Pela linha do relatorio, atualize apenas o valor padrao de cada filtro.</p>
+                </div>
+                <button type="button" onclick="fecharModal('modal-relatorios')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <path d="M6 6l12 12"></path>
+                        <path d="M18 6 6 18"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="flex-1 space-y-7 overflow-y-auto px-7 py-7">
+            <form id="form-relatorios" method="POST" class="grid gap-4 rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 md:grid-cols-[1fr_auto] dark:border-slate-700 dark:bg-slate-800/60">
+                <input type="hidden" id="relatorios-operacao-nome" name="operacao_nome" value="{{ modal_operacao_nome }}">
+                <div class="flex flex-col">
+                    <label for="id_relatorio" class="text-sm font-medium text-slate-700 dark:text-slate-200">Adicionar relatorio</label>
+                    <div id="combobox-relatorio" class="relative mt-2">
+                        <input type="hidden" id="id_relatorio" name="id_relatorio">
+                        <button type="button" data-combobox-trigger class="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                            <span data-combobox-label class="truncate text-slate-400 dark:text-slate-500">Selecione</span>
+                            <svg class="ml-3 h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                        <div data-combobox-panel class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-soft dark:border-slate-700 dark:bg-slate-900">
+                            <input type="text" data-combobox-search placeholder="Pesquisar relatorio" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                            <div data-combobox-options class="mt-3 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-2 dark:border-slate-700 dark:bg-slate-800/60"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">Adicionar</button>
+                </div>
+            </form>
+
+            <div class="overflow-hidden rounded-[28px] border border-slate-200 dark:border-slate-800">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                        <thead class="bg-slate-50 dark:bg-slate-800/60">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Relatorio</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acao</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-relatorios-operacao" class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const modalState = {
+        relatoriosDisponiveis: [],
+        operacaoId: "",
+        operacaoNome: "",
+        comboboxes: {},
+    };
+
+    function abrirModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    }
+
+    function fecharModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
+
+    function abrirModalOperacao() {
+        abrirModal("modal-operacao");
+    }
+
+    function abrirModalEdicao(operacaoId, operacaoNome) {
+        const form = document.getElementById("form-edicao");
+        document.getElementById("edicao-operacao-id").value = operacaoId;
+        document.getElementById("edicao-operacao-nome").value = operacaoNome;
+        document.getElementById("edicao-operacao-nome-atual").value = operacaoNome;
+        form.action = `/acompanhamento/operacoes/${operacaoId}/editar`;
+        abrirModal("modal-edicao");
+    }
+
+    function escapeHtml(valor) {
+        const div = document.createElement("div");
+        div.textContent = valor ?? "";
+        return div.innerHTML;
+    }
+
+    function escapeAttr(valor) {
+        return escapeHtml(valor).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function obterConfigCampoValor(tipoCampoValor) {
+        const tipo = (tipoCampoValor || "").trim().toUpperCase();
+        if (tipo === "CLICK") {
+            return {
+                type: "hidden",
+                placeholder: "",
+                inputmode: "",
+                pattern: "",
+                title: "",
+                readonly: true,
+            };
+        }
+
+        if (tipo === "DATE") {
+            return {
+                type: "date",
+                placeholder: "",
+                inputmode: "",
+                pattern: "",
+                title: "",
+                readonly: false,
+            };
+        }
+
+        if (tipo === "STRINGINT") {
+            return {
+                type: "text",
+                placeholder: "numero,numero,numero",
+                inputmode: "numeric",
+                pattern: "[0-9]+(,[0-9]+)*",
+                title: "Use numeros separados por virgula. Exemplo: 123,456,789",
+                readonly: false,
+            };
+        }
+
+        return {
+            type: "text",
+            placeholder: "Digite o valor padrao",
+            inputmode: "",
+            pattern: "",
+            title: "",
+            readonly: false,
+        };
+    }
+
+    function atributosCampoValor(config) {
+        const atributos = [
+            `type="${config.type}"`,
+            `placeholder="${escapeAttr(config.placeholder)}"`,
+        ];
+
+        if (config.inputmode) {
+            atributos.push(`inputmode="${config.inputmode}"`);
+        }
+
+        if (config.pattern) {
+            atributos.push(`pattern="${config.pattern}"`);
+        }
+
+        if (config.title) {
+            atributos.push(`title="${escapeAttr(config.title)}"`);
+        }
+
+        if (config.readonly) {
+            atributos.push("readonly");
+        }
+
+        return atributos.join(" ");
+    }
+
+    function filtrarOptions(options, termo) {
+        const termoNormalizado = (termo || "").trim().toLowerCase();
+        return !termoNormalizado
+            ? options
+            : options.filter((item) => (item.nome || "").toLowerCase().includes(termoNormalizado));
+    }
+
+    function fecharCombobox(combobox) {
+        if (!combobox) {
+            return;
+        }
+
+        combobox.panel.classList.add("hidden");
+    }
+
+    function renderizarCombobox(combobox, options) {
+        combobox.optionsContainer.innerHTML = "";
+
+        if (!options.length) {
+            const empty = document.createElement("div");
+            empty.className = "rounded-xl px-4 py-3 text-sm text-slate-500 dark:text-slate-400";
+            empty.textContent = "Nenhum resultado encontrado.";
+            combobox.optionsContainer.appendChild(empty);
+            return;
+        }
+
+        options.forEach((item) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "flex w-full items-center rounded-xl px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-white dark:text-slate-100 dark:hover:bg-slate-700";
+            button.textContent = item.nome;
+            button.addEventListener("click", () => {
+                combobox.hiddenInput.value = item.id;
+                combobox.label.textContent = item.nome;
+                combobox.label.classList.remove("text-slate-400", "dark:text-slate-500");
+                combobox.label.classList.add("text-slate-700", "dark:text-slate-100");
+                combobox.search.value = "";
+                renderizarCombobox(combobox, combobox.options);
+                fecharCombobox(combobox);
+            });
+            combobox.optionsContainer.appendChild(button);
+        });
+    }
+
+    function atualizarCombobox(combobox, options) {
+        combobox.options = options;
+        combobox.hiddenInput.value = "";
+        combobox.label.textContent = combobox.placeholder;
+        combobox.label.classList.add("text-slate-400", "dark:text-slate-500");
+        combobox.label.classList.remove("text-slate-700", "dark:text-slate-100");
+        combobox.search.value = "";
+        renderizarCombobox(combobox, options);
+    }
+
+    function inicializarCombobox(containerId, placeholder) {
+        const container = document.getElementById(containerId);
+        const combobox = {
+            container,
+            hiddenInput: container.querySelector("input[type='hidden']"),
+            trigger: container.querySelector("[data-combobox-trigger]"),
+            label: container.querySelector("[data-combobox-label]"),
+            panel: container.querySelector("[data-combobox-panel]"),
+            search: container.querySelector("[data-combobox-search]"),
+            optionsContainer: container.querySelector("[data-combobox-options]"),
+            placeholder,
+            options: [],
+        };
+
+        combobox.trigger.addEventListener("click", () => {
+            const estaFechado = combobox.panel.classList.contains("hidden");
+            Object.values(modalState.comboboxes).forEach((item) => fecharCombobox(item));
+            if (estaFechado) {
+                combobox.panel.classList.remove("hidden");
+                combobox.search.focus();
+            }
+        });
+
+        combobox.search.addEventListener("input", (event) => {
+            renderizarCombobox(combobox, filtrarOptions(combobox.options, event.target.value));
+        });
+
+        atualizarCombobox(combobox, []);
+        modalState.comboboxes[containerId] = combobox;
+        return combobox;
+    }
+
+    function renderizarRelatoriosOperacao(relatorios) {
+        const tbody = document.getElementById("lista-relatorios-operacao");
+        tbody.innerHTML = "";
+
+        if (!relatorios.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="2" class="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                        Nenhum relatorio vinculado para esta operacao.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        relatorios.forEach((relatorio) => {
+            const tr = document.createElement("tr");
+            const filtrosRowId = `filtros-relatorio-${relatorio.id_relatorio}`;
+            const relatorioNome = escapeHtml(relatorio.nome_relatorio);
+            const relatorioNomeAttr = escapeAttr(relatorio.nome_relatorio);
+            tr.innerHTML = `
+                <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">${relatorioNome}</td>
+                <td class="px-6 py-4">
+                    <button
+                        type="button"
+                        class="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20"
+                        data-relatorio-id="${relatorio.id_relatorio}"
+                        data-filtros-target="${filtrosRowId}"
+                    >
+                        Adicionar filtro
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+            const filtros = relatorio.filtros || [];
+            const filtrosRow = document.createElement("tr");
+            filtrosRow.id = filtrosRowId;
+            filtrosRow.className = "hidden bg-slate-50/70 dark:bg-slate-800/50";
+            filtrosRow.innerHTML = `
+                <td colspan="2" class="px-6 py-5">
+                    ${
+                        filtros.length
+                            ? `
+                                <form method="POST" action="/acompanhamento/operacoes/${modalState.operacaoId}/filtros" class="space-y-4">
+                                    <input type="hidden" name="operacao_nome" value="${escapeAttr(modalState.operacaoNome)}">
+                                    <input type="hidden" name="relatorio_nome" value="${relatorioNomeAttr}">
+                                    <input type="hidden" name="id_relatorio" value="${relatorio.id_relatorio}">
+                                        ${filtros.map((filtro) => `
+                                        ${(() => {
+                                            const configCampoValor = obterConfigCampoValor(filtro.tipo_campo_valor);
+                                            const ehClick = (filtro.tipo_campo_valor || "").trim().toUpperCase() === "CLICK";
+                                            return `
+                                        <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_1.5fr] dark:border-slate-700 dark:bg-slate-900">
+                                            <input type="hidden" name="id_filtro" value="${filtro.id_filtro}">
+                                            <div class="flex flex-col">
+                                                <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Filtro</span>
+                                                <span class="mt-2 text-sm font-medium text-slate-800 dark:text-slate-100">${escapeHtml(filtro.nome_filtro)}</span>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <label class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Valor padrao</label>
+                                                ${
+                                                    ehClick
+                                                        ? `<input type="hidden" name="valor" value="">
+                                                           <span class="mt-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Acao automatica de clique. Nenhum valor precisa ser informado.</span>`
+                                                        : `<input name="valor" ${atributosCampoValor(configCampoValor)} value="${escapeAttr(filtro.valor || "")}" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">`
+                                                }
+                                            </div>
+                                        </div>
+                                            `;
+                                        })()}
+                                    `).join("")}
+                                    <div class="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-700">
+                                        <button type="submit" class="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">Salvar filtros</button>
+                                    </div>
+                                </form>
+                            `
+                            : `<div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">Este relatorio nao possui filtros ativos cadastrados no catalogo.</div>`
+                    }
+                </td>
+            `;
+            tbody.appendChild(filtrosRow);
+        });
+
+        tbody.querySelectorAll("[data-filtros-target]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const target = document.getElementById(button.dataset.filtrosTarget || "");
+                if (!target) {
+                    return;
+                }
+                target.classList.toggle("hidden");
+            });
+        });
+    }
+
+    async function abrirModalRelatorios(operacaoId, operacaoNome) {
+        modalState.operacaoId = operacaoId;
+        modalState.operacaoNome = operacaoNome;
+
+        document.getElementById("relatorios-operacao-nome-view").textContent = operacaoNome;
+        document.getElementById("relatorios-operacao-nome").value = operacaoNome;
+        document.getElementById("form-relatorios").action = `/acompanhamento/operacoes/${operacaoId}/relatorios`;
+
+        try {
+            const response = await fetch(`/acompanhamento/operacoes/${operacaoId}/relatorios/dados`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Falha ao carregar relatorios.");
+            }
+
+            modalState.relatoriosDisponiveis = data.relatorios_disponiveis || [];
+            atualizarCombobox(modalState.comboboxes["combobox-relatorio"], modalState.relatoriosDisponiveis);
+            renderizarRelatoriosOperacao(data.relatorios_operacao || []);
+            abrirModal("modal-relatorios");
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const modalTipo = {{ modal_tipo|tojson }};
+        const modalOperacaoId = {{ modal_operacao_id|tojson }};
+        const modalOperacaoNome = {{ modal_operacao_nome|tojson }};
+
+        document.querySelectorAll("[data-modal-edicao]").forEach((button) => {
+            button.addEventListener("click", () => {
+                abrirModalEdicao(
+                    button.dataset.operacaoId || "",
+                    button.dataset.operacaoNome || "",
+                );
+            });
+        });
+
+        document.querySelectorAll("[data-modal-relatorios]").forEach((button) => {
+            button.addEventListener("click", () => {
+                abrirModalRelatorios(
+                    button.dataset.operacaoId || "",
+                    button.dataset.operacaoNome || "",
+                );
+            });
+        });
+
+        inicializarCombobox("combobox-relatorio", "Selecione");
+        if (modalTipo === "criar") {
+            abrirModalOperacao();
+        }
+
+        if (modalTipo === "editar" && modalOperacaoId) {
+            abrirModalEdicao(modalOperacaoId, modalOperacaoNome || "");
+        }
+
+        if (modalTipo === "relatorios" && modalOperacaoId) {
+            abrirModalRelatorios(modalOperacaoId, modalOperacaoNome || "");
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            ["modal-operacao", "modal-edicao", "modal-relatorios"].forEach((modalId) => fecharModal(modalId));
+        }
+    });
+
+    document.addEventListener("click", (event) => {
+        ["modal-operacao", "modal-edicao", "modal-relatorios"].forEach((modalId) => {
+            const modal = document.getElementById(modalId);
+            if (event.target === modal) {
+                fecharModal(modalId);
+            }
+        });
+
+        Object.values(modalState.comboboxes).forEach((combobox) => {
+            if (combobox && !combobox.container.contains(event.target)) {
+                fecharCombobox(combobox);
+            }
+        });
+    });
+</script>
+{% endblock %}
