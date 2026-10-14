@@ -1,7 +1,7 @@
 [project]
 name = "app-captacao"
 version = "1.0.0"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 description = "Automacao de downloads de relatorios do Sienge com interface web local."
 
 [tool.pytest.ini_options]
@@ -13,6 +13,8 @@ version_toml = ["pyproject.toml:project.version"]
 commit_parser = "conventional"
 commit_message = "chore(release): {version} [skip ci]"
 tag_format = "v{version}"
+# Sem tags ainda: o primeiro release sai como 1.x, nao 0.x.
+allow_zero_version = false
 
 [tool.semantic_release.branches.main]
 match = "main"

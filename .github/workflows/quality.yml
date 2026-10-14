@@ -1,0 +1,63 @@
+name: Quality Gate
+
+# Unica definicao do gate. Roda em PR para main e e chamado pelo Release
+# (workflow_call) antes de versionar: push para main passa por aqui via Release.
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  PYRIGHT_VERSION: "1.1.414"
+
+jobs:
+  quality:
+    name: Validar desenvolvimento
+    # Windows: o app depende de pywin32, DPAPI e do driver ODBC do Windows.
+    runs-on: windows-latest
+    timeout-minutes: 25
+    concurrency:
+      group: quality-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Configurar Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Instalar dependencias Python
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Configurar Node para validacao JS e Pyright
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Instalar Pyright
+        run: npm install --global "pyright@${PYRIGHT_VERSION}"
+
+      - name: Compilar Python
+        run: python -m compileall -q src tests run.py
+
+      - name: Validar tipos Python
+        run: pyright --pythonpath "$(python -c 'import sys; print(sys.executable)')"
+
+      - name: Validar JavaScript
+        run: |
+          for arquivo in project/static/js/*.js; do
+            node --check "$arquivo"
+          done
+
+      - name: Testar
+        run: python -m pytest
