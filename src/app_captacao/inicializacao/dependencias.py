@@ -83,7 +83,12 @@ def versao_atende(instalada: str, especificador: str) -> bool:
         if not encontrado:
             continue
         operador, versao = encontrado.groups()
-        if not _COMPARADORES[operador](atual, _versao_em_tupla(versao)):
+        exigida = _versao_em_tupla(versao)
+        # Zeros a direita nao mudam a versao: 3.1 == 3.1.0.
+        tamanho = max(len(atual), len(exigida))
+        atual_completa = atual + (0,) * (tamanho - len(atual))
+        exigida_completa = exigida + (0,) * (tamanho - len(exigida))
+        if not _COMPARADORES[operador](atual_completa, exigida_completa):
             return False
     return True
 

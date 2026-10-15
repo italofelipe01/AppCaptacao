@@ -28,7 +28,7 @@ Relatórios, filtros, operações e usuários vivem no **SQL Server** (tabelas `
 .\.venv\Scripts\python.exe run.py                            # checklist e app
 .\.venv\Scripts\python.exe run.py --somente-verificar        # só o checklist
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pytest                         # ~70 testes, sem rede/banco
+.\.venv\Scripts\python.exe -m pytest                         # ~130 testes, sem rede/banco
 .\.venv\Scripts\python.exe -m compileall -q src tests run.py
 npx pyright@1.1.414 --pythonpath .venv\Scripts\python.exe    # deve dar 0 erros
 node --check project\static\js\menu.js
@@ -78,8 +78,9 @@ packaging/ scripts/ tools/ docs/
 
 `/processar` → valida filtros (`regras.filtros_obrigatorios_sem_valor`) → `execucao.jobs` cria o
 job → thread `execucao.runner` → `automacao.executar_relatorio(s)`. Estados por relatório:
-`pendente`, `em_execucao`, `baixado`, `nao_baixado` (com `etapa`), `ignorado`. Uma execução por
-sessão. A tela faz polling em `/execucoes/atual`.
+`pendente`, `em_execucao`, `baixado`, `nao_baixado` (com `etapa`), `ignorado`. Uma automação por
+vez no processo (o Edge e a pasta de downloads são do computador): `jobs.create_execution_job`
+recusa com `ExecucaoEmAndamentoError`. A tela faz polling em `/execucoes/atual`.
 
 ### Login no Sienge
 
@@ -90,9 +91,10 @@ restaurada** (D6). Edge sem fallback para Chrome (D5).
 
 ### Catálogo e executores
 
-Executor resolvido em `catalogo/regras.py`: ID do vínculo na operação → trecho da URL → ID do
-relatório → nome. Sem executor = erro de configuração, nunca clique genérico. Particularidade de
-tela vai no executor do relatório.
+Executor resolvido em `catalogo/regras.py`: trecho da URL (terminando a rota) → ID do relatório →
+nome sem acento (chave mais longa vence). Sem executor = erro de configuração, nunca clique
+genérico. Particularidade de tela vai no executor do relatório; filtro de valor fixo vai em
+`FILTROS_FIXOS_POR_EXECUTOR`.
 
 ### Downloads
 

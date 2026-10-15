@@ -32,11 +32,27 @@ def executar_relatorio(email, senha, relatorio_config, driver=None, sessao_auten
     driver_gerenciado = driver is None
 
     try:
-        driver = driver or navegador.criar_driver()
-        wait = WebDriverWait(driver, DEFAULT_TIMEOUT)
-        if not sessao_autenticada:
-            login.fazer_login(driver, wait, email, senha)
-            time.sleep(POST_LOGIN_WAIT)
+        try:
+            driver = driver or navegador.criar_driver()
+            wait = WebDriverWait(driver, DEFAULT_TIMEOUT)
+            if not sessao_autenticada:
+                login.fazer_login(driver, wait, email, senha)
+                time.sleep(POST_LOGIN_WAIT)
+        except Exception as exc:
+            # Mesmo criterio da operacao: sem sessao, o relatorio nem foi tentado.
+            logger.exception("O navegador ou a autenticacao nao foi concluido; o relatorio sera ignorado.")
+            item = _item_ignorado_por_autenticacao(relatorio_config, exc)
+            return {
+                "tipo_execucao": "relatorio",
+                "itens": [item],
+                "sucessos": [],
+                "falhas": [item],
+                "quantidade_relatorios": 1,
+                "quantidade_baixados": 0,
+                "quantidade_nao_baixados": 1,
+                "mensagem": item["mensagem"],
+                "resumo": "0 relatorios baixados; 1 nao baixado.",
+            }
 
         arquivos = _executar_relatorio_no_driver(driver, wait, relatorio_config)
         stable = downloads.aguardar_pasta_download_estabilizar()
@@ -80,7 +96,7 @@ def executar_relatorio(email, senha, relatorio_config, driver=None, sessao_auten
         }
     finally:
         if driver_gerenciado and driver and not KEEP_BROWSER_OPEN:
-            driver.quit()
+            _encerrar_driver(driver)
 
 
 def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_event=None):
@@ -112,15 +128,7 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
         except Exception as exc:
             logger.exception("O navegador ou a autenticacao nao foi concluido; os relatorios serao ignorados.")
             for relatorio_config in relatorios_config:
-                item = _montar_item_resultado(
-                    relatorio_config,
-                    "ignorado",
-                    mensagem=(
-                        "Navegador ou autenticacao nao concluido: "
-                        f"{erros.mensagem_erro_usuario(exc, 'nao foi possivel iniciar a sessao.')}"
-                    ),
-                    etapa="autenticacao",
-                )
+                item = _item_ignorado_por_autenticacao(relatorio_config, exc)
                 resultado_execucao["itens"].append(item)
                 resultado_execucao["falhas"].append(item)
             resultado_execucao["quantidade_nao_baixados"] = len(relatorios_config)
@@ -233,7 +241,7 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                     break
     finally:
         if driver and not KEEP_BROWSER_OPEN:
-            driver.quit()
+            _encerrar_driver(driver)
     resultado_execucao["quantidade_baixados"] = len(resultado_execucao["sucessos"])
     resultado_execucao["quantidade_nao_baixados"] = len(resultado_execucao["falhas"])
     resultado_execucao["resumo"] = (
@@ -241,6 +249,26 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
         f"{resultado_execucao['quantidade_nao_baixados']} nao baixado(s)."
     )
     return resultado_execucao
+
+
+def _encerrar_driver(driver):
+    """Fecha o navegador sem perder o resultado: falha aqui so vai para o log."""
+    try:
+        driver.quit()
+    except Exception:
+        logger.warning("Nao foi possivel encerrar o navegador da automacao.", exc_info=True)
+
+
+def _item_ignorado_por_autenticacao(relatorio_config, exc):
+    return _montar_item_resultado(
+        relatorio_config,
+        "ignorado",
+        mensagem=(
+            "Navegador ou autenticacao nao concluido: "
+            f"{erros.mensagem_erro_usuario(exc, 'nao foi possivel iniciar a sessao.')}"
+        ),
+        etapa="autenticacao",
+    )
 
 
 def _montar_item_resultado(
@@ -275,6 +303,14 @@ def _executar_relatorio_no_driver(driver, wait, relatorio_config):
             f"O relatorio '{relatorio_config.get('nome', '')}' nao possui UrlRelatorio cadastrada."
         )
 
+    executor_relatorio = regras.executor_do_relatorio(relatorio_config)
+    if not executor_relatorio:
+        raise ValueError(
+            "Relatorio sem modulo dedicado configurado: "
+            f"id={relatorio_config.get('id')} | "
+            f"nome={relatorio_config.get('nome', '')}"
+        )
+
     driver.switch_to.default_content()
     navegador.fechar_janelas_extras(driver)
 
@@ -285,24 +321,6 @@ def _executar_relatorio_no_driver(driver, wait, relatorio_config):
     )
     driver.get(relatorio_url)
     navegador.aguardar_carregamento_da_pagina(driver, wait)
-
-    url_normalizada = relatorio_url.lower()
-    if "/common/page/3012" in url_normalizada or relatorio_config.get("id") == 7:
-        executor_relatorio = "extrato_cliente_historico"
-    else:
-        executor_relatorio = regras.obter_executor_relatorio(
-            relatorio_config.get("nome", ""),
-            relatorio_config.get("id_relatorio_operacao"),
-            relatorio_config.get("id"),
-            relatorio_url,
-        )
-    if not executor_relatorio:
-        raise ValueError(
-            "Relatorio sem modulo dedicado configurado: "
-            f"id={relatorio_config.get('id')} | "
-            f"id_relatorio_operacao={relatorio_config.get('id_relatorio_operacao')} | "
-            f"nome={relatorio_config.get('nome', '')}"
-        )
 
     if executor_relatorio != "extrato_saldo_devedor_presente":
         time.sleep(6)

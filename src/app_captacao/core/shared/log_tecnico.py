@@ -1,7 +1,7 @@
 r"""Log tecnico em arquivo rotativo, para diagnosticar falhas da automacao.
 
 Grava INFO ou mais grave de todos os modulos app_captacao.* em
-%LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log (5 arquivos de 5 MB). O console
+%LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log (o atual e mais 5 de 5 MB). O console
 (janela do Iniciar AppCaptacao.bat) mostra as mesmas etapas, com a hora e os
 marcadores do checklist.
 """

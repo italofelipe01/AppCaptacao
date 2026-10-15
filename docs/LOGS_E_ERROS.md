@@ -12,7 +12,7 @@
 ## Log técnico (arquivo)
 
 `%LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log` — tudo de `app_captacao.*` a partir de INFO,
-com rotação de 5 arquivos de 5 MB. O console (janela do `Iniciar AppCaptacao.bat`) mostra as
+com rotação a cada 5 MB: o arquivo atual e mais 5 anteriores (até 30 MB). O console (janela do `Iniciar AppCaptacao.bat`) mostra as
 mesmas mensagens com a hora e os marcadores do checklist: `[INFO ]` para as etapas da automação,
 `[AVISO]` e `[ERRO ]`. O `run.py` imprime o caminho do arquivo ao iniciar.
 

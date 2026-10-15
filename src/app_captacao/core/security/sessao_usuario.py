@@ -45,7 +45,8 @@ def carregar_usuario_da_sessao(sessao: Mapping[str, Any]) -> dict | None:
         return bootstrap
 
     if not user_id:
-        return _usuario_da_sessao(sessao)
+        # Sessao sem id nao tem como ser conferida no banco: nao vale como login.
+        return None
 
     try:
         row = usuarios_repo.load_user_by_id(user_id)

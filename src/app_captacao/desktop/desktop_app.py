@@ -166,7 +166,7 @@ class AppCaptacaoDesktop(ctk.CTk):
 
         footer = ctk.CTkLabel(
             container,
-            text="Dica: a aplicacao web usa as configuracoes do .env carregadas por app_config.py.",
+            text="Dica: a configuracao vem do ConfigurarAppCaptacao.exe (%LOCALAPPDATA%\\AppCaptacao).",
             font=ctk.CTkFont(size=12),
             text_color="#64748b",
         )

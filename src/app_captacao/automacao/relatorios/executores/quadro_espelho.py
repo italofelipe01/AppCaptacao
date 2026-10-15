@@ -12,7 +12,6 @@ from app_captacao.automacao.relatorios.executores.extrato_saldo_devedor_presente
     TIMEOUT_LOCALIZACAO_CAMPO,
     _aguardar_grade_pronta,
     _clicar_botao_gerar_relatorio,
-    _consolidar_planilhas,
     _extrair_valores,
     _fechar_janelas_extras,
     _ir_para_proxima_pagina,
@@ -27,7 +26,7 @@ from app_captacao.automacao.relatorios.executores.extrato_saldo_devedor_presente
     _obter_total_registros,
     _obter_valor_iteracao,
     _preencher_input_manual,
-    _remover_arquivos_intermediarios,
+    _registrar_arquivo_final,
     _selecionar_formato_excel_na_modal,
     _selecionar_tamanho_pagina,
 )
@@ -154,6 +153,7 @@ def executar(driver, wait, relatorio_config, contexto):
                 relatorio_config,
                 _montar_sufixo_exportacao(valor_empresa or valor_grupo_empresa, numero_pagina),
                 inicio_download,
+                registrar_resultado=False,
             )
             _fechar_janelas_extras(driver)
             if arquivo_baixado:
@@ -163,19 +163,16 @@ def executar(driver, wait, relatorio_config, contexto):
                 _log_etapa(logger, iteracao, "paginacao", f"avancando para a proxima pagina apos exportar a pagina {numero_pagina}")
                 _ir_para_proxima_pagina(driver, logger)
 
-        if len(arquivos_baixados) > 1:
-            consolidado = _consolidar_planilhas(
-                arquivos_baixados,
-                relatorio_config,
-                valor_empresa or valor_grupo_empresa,
-                download_dir,
-                sanitizar_nome_arquivo,
-                montar_caminho_download_unico,
-                logger,
-            )
-            if consolidado:
-                copiar_download_para_sharepoint(relatorio_config, consolidado)
-                _remover_arquivos_intermediarios(arquivos_baixados, consolidado, logger)
+        _registrar_arquivo_final(
+            arquivos_baixados,
+            relatorio_config,
+            valor_empresa or valor_grupo_empresa,
+            download_dir,
+            sanitizar_nome_arquivo,
+            montar_caminho_download_unico,
+            copiar_download_para_sharepoint,
+            logger,
+        )
 
 
 def _abrir_aba_lista(driver, logger):

@@ -26,7 +26,7 @@ AppCaptacao/
 │   │                           routes_acompanhamento, routes_logs, registro, erros, auditoria
 │   └── desktop/                desktop_app.py (janela do .exe), config_installer.py
 ├── project/                    FRONTEND: templates/ e static/ (não alterar sem pedido)
-├── tests/                      espelha src/: core, catalogo/web, automacao, execucao, ...
+├── tests/                      espelha src/: core, catalogo, web, automacao, execucao, ...
 ├── packaging/                  .spec do PyInstaller e ícone
 ├── scripts/                    gerar_executaveis.ps1, criar_atalho.bat/.ps1
 ├── tools/baixa_pdfs/           ferramenta independente (não faz parte do app)
@@ -58,7 +58,8 @@ AppCaptacao/
 
 | Pasta | Cobre |
 | --- | --- |
-| `tests/core/` | configuração, sessão/usuário, log técnico |
+| `tests/core/` | configuração, conexão, senha, sessão/usuário, log técnico |
+| `tests/catalogo/` | escolha do executor, filtros obrigatórios e fixos, consulta do catálogo |
 | `tests/web/` | rotas (usuários, acompanhamento, erros) e scripts dos templates |
 | `tests/automacao/` | execução em sequência, login, downloads, executor do saldo devedor |
 | `tests/execucao/` | job em segundo plano e limite de memória |

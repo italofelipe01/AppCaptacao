@@ -10,8 +10,8 @@ from __future__ import annotations
 from contextlib import closing
 from datetime import date
 
+from app_captacao.catalogo import regras
 from app_captacao.catalogo import relatorios as relatorios_repo
-from app_captacao.catalogo.relatorios import UNIDADES_SELECAO_CAMPO, UNIDADES_SELECAO_VALOR
 from app_captacao.core.config.settings import (
     FILTRO_CATALOGO_TABLE,
     FILTRO_X_OPERACAO_TABLE,
@@ -52,7 +52,8 @@ def load_relatorios_operacao(operacao_id: int) -> list[dict]:
             SELECT
                 rxo.IdCapRecursoRelatorioOperacao AS id_relatorio_operacao,
                 rxo.IdCapRecursoRelatorio AS id_relatorio,
-                r.NomeRelatorio AS nome_relatorio
+                r.NomeRelatorio AS nome_relatorio,
+                r.UrlRelatorio AS url_relatorio
             FROM {RELATORIO_X_OPERACAO_TABLE} rxo
             INNER JOIN {RELATORIO_TABLE} r
                 ON r.IdCapRecursoRelatorio = rxo.IdCapRecursoRelatorio
@@ -69,6 +70,9 @@ def load_relatorios_operacao(operacao_id: int) -> list[dict]:
         for ordem_execucao, row in enumerate(rows, start=1):
             relatorio_id = int(row["id_relatorio"])
             relatorio_nome = normalize_text(row["nome_relatorio"])
+            executor = regras.executor_do_relatorio(
+                {"id": relatorio_id, "nome": relatorio_nome, "url": normalize_text(row["url_relatorio"])}
+            )
             params = [operacao_id]
             if coluna_relatorio_existe:
                 params.append(relatorio_id)
@@ -100,39 +104,24 @@ def load_relatorios_operacao(operacao_id: int) -> list[dict]:
                     "id_relatorio": relatorio_id,
                     "nome_relatorio": relatorio_nome,
                     "ordem_execucao": ordem_execucao,
-                    "filtros": [
-                        {
-                            "id_filtro": int(filtro["id_filtro"]),
-                            "nome_filtro": normalize_text(filtro["nome_filtro"]),
-                            "campo_identificador": normalize_text(filtro["campo_identificador"]),
-                            "valor": (
-                                UNIDADES_SELECAO_VALOR
-                                if relatorio_nome.strip().lower() == "unidades"
-                                and normalize_text(filtro["campo_identificador"]).lower() == UNIDADES_SELECAO_CAMPO
-                                else format_filter_value(filtro["valor"], filtro["tipo_campo_valor"])
-                            ),
-                            "automatico": (
-                                relatorio_nome.strip().lower() == "unidades"
-                                and normalize_text(filtro["campo_identificador"]).lower() == UNIDADES_SELECAO_CAMPO
-                            ),
-                            "valor_fixo": (
-                                UNIDADES_SELECAO_VALOR
-                                if relatorio_nome.strip().lower() == "unidades"
-                                and normalize_text(filtro["campo_identificador"]).lower() == UNIDADES_SELECAO_CAMPO
-                                else ""
-                            ),
-                            "tipo_campo_valor": (
-                                "CLICK"
-                                if relatorio_nome.strip().lower() == "unidades"
-                                and normalize_text(filtro["campo_identificador"]).lower() == UNIDADES_SELECAO_CAMPO
-                                else normalize_text(filtro["tipo_campo_valor"])
-                            ),
-                        }
-                        for filtro in filtros
-                    ],
+                    "filtros": [_filtro_da_operacao(executor, filtro) for filtro in filtros],
                 }
             )
         return relatorios
+
+
+def _filtro_da_operacao(executor: str, filtro: dict) -> dict:
+    campo_identificador = normalize_text(filtro["campo_identificador"])
+    valor_fixo = regras.valor_fixo_do_filtro(executor, {"campo_identificador": campo_identificador})
+    return {
+        "id_filtro": int(filtro["id_filtro"]),
+        "nome_filtro": normalize_text(filtro["nome_filtro"]),
+        "campo_identificador": campo_identificador,
+        "valor": valor_fixo or format_filter_value(filtro["valor"], filtro["tipo_campo_valor"]),
+        "automatico": bool(valor_fixo),
+        "valor_fixo": valor_fixo,
+        "tipo_campo_valor": "CLICK" if valor_fixo else normalize_text(filtro["tipo_campo_valor"]),
+    }
 
 
 def load_relatorio_operacao_payload(operacao_id: int) -> list[dict]:

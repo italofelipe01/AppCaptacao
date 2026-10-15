@@ -76,12 +76,16 @@ def executar(driver, wait, relatorio_config, contexto):
         )
 
     # Extração dos valores de empresa e empreendimento para iteração
-    # O relatório suporta múltiplas empresas e empreendimentos, que devem
-    # ser processados em pares (mesmo índice). O total de iterações é
-    # determinado pelo menor comprimento entre as listas.
+    # O relatório suporta múltiplas empresas e empreendimentos, processados em
+    # pares (mesmo índice). Um valor único vale para todas as iterações; listas
+    # de tamanhos diferentes são erro de cadastro, não motivo para descartar valores.
     empresas = _extrair_valores(empresa)
     empreendimentos = _extrair_valores(empreendimento)
-    total = min(len(empresas), len(empreendimentos))
+    total = _calcular_pares_empresa_empreendimento(empresas, empreendimentos)
+    if len(empresas) == 1:
+        empresas = empresas * total
+    if len(empreendimentos) == 1:
+        empreendimentos = empreendimentos * total
 
     logger.info(
         "Executor extrato_cliente_historico em modo versaoantiga com %s iteracao(oes).",
@@ -125,6 +129,20 @@ def executar(driver, wait, relatorio_config, contexto):
         renomear_download(relatorio_config, str(empresas[index]), inicio_download)
 
         index += 1
+
+
+def _calcular_pares_empresa_empreendimento(empresas, empreendimentos):
+    """Quantidade de pares empresa/empreendimento a executar."""
+    if not empresas or not empreendimentos:
+        raise ValueError(
+            "O extrato de cliente historico precisa de empresa e empreendimento preenchidos."
+        )
+    if len(empresas) > 1 and len(empreendimentos) > 1 and len(empresas) != len(empreendimentos):
+        raise ValueError(
+            "Os filtros Empresa e Empreendimento do extrato de cliente historico possuem "
+            f"quantidades de valores diferentes ({len(empresas)} e {len(empreendimentos)})."
+        )
+    return max(len(empresas), len(empreendimentos))
 
 
 def _obter_filtro_por_campo(filtros, campo_identificador):
@@ -188,8 +206,8 @@ def _preencher_campo_legado(driver, wait, identificador, valor, by, logger):
         by: Tipo de localizador (By.ID, By.NAME, etc).
         logger: Instância de logger para mensagens.
     """
-    # Localiza o primeiro iframe da página e切换到ele
-    # Muitos sistemas legados renderizam formulários dentro de iframes
+    # Localiza o primeiro iframe da página e entra nele:
+    # muitos sistemas legados renderizam formulários dentro de iframes
     iframe = wait.until(lambda current_driver: current_driver.find_element(By.TAG_NAME, "iframe"))
     driver.switch_to.frame(iframe)
 

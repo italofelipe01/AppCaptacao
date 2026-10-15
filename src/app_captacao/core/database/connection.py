@@ -13,6 +13,7 @@ except ImportError:  # pragma: no cover - fallback opcional em instalacoes antig
     pymssql = None
 
 from app_captacao.core.config.environment import initialize_environment
+from app_captacao.core.shared.texto import parse_int
 
 
 initialize_environment()
@@ -99,15 +100,25 @@ class _PymssqlConnectionAdapter:
 DbConnection = pyodbc.Connection | _PymssqlConnectionAdapter
 
 
+def nome_do_banco() -> str:
+    """Banco usado na conexao: DB_DATABASE; DB_SCHEMA so quando DB_DATABASE nem existe (legado)."""
+    return os.getenv("DB_DATABASE", os.getenv("DB_SCHEMA", "")).strip()
+
+
+def _valor_odbc(valor: str) -> str:
+    """Valor de atributo ODBC entre chaves: senha com ';' ou '}' nao quebra a string."""
+    return "{" + str(valor).replace("}", "}}") + "}"
+
+
 def _get_odbc_connection(timeout: int):
     driver = os.getenv("DB_DRIVER", "SQL Server")
     extra_params = os.getenv("DB_EXTRA_PARAMS", "").strip()
     connection_parts = [
-        f"DRIVER={{{driver}}}",
-        f"SERVER={os.getenv('DB_HOST', '')}",
-        f"DATABASE={os.getenv('DB_DATABASE', os.getenv('DB_SCHEMA', ''))}",
-        f"UID={os.getenv('DB_USER', '')}",
-        f"PWD={os.getenv('DB_PASSWORD', '')}",
+        f"DRIVER={_valor_odbc(driver)}",
+        f"SERVER={_valor_odbc(os.getenv('DB_HOST', ''))}",
+        f"DATABASE={_valor_odbc(nome_do_banco())}",
+        f"UID={_valor_odbc(os.getenv('DB_USER', ''))}",
+        f"PWD={_valor_odbc(os.getenv('DB_PASSWORD', ''))}",
     ]
 
     if not extra_params and driver.lower() != "sql server":
@@ -131,7 +142,7 @@ def _get_pymssql_connection(timeout: int):
         server=os.getenv("DB_HOST", ""),
         user=os.getenv("DB_USER", ""),
         password=os.getenv("DB_PASSWORD", ""),
-        database=os.getenv("DB_DATABASE", os.getenv("DB_SCHEMA", "")),
+        database=nome_do_banco(),
         login_timeout=timeout,
         timeout=timeout,
         charset="UTF-8",
@@ -141,7 +152,7 @@ def _get_pymssql_connection(timeout: int):
 
 def get_db_connection() -> DbConnection:
     global _preferred_backend
-    timeout = int(os.getenv("DB_TIMEOUT", "5"))
+    timeout = parse_int(os.getenv("DB_TIMEOUT"), 5) or 5
 
     if _preferred_backend == "pymssql":
         return _get_pymssql_connection(timeout)

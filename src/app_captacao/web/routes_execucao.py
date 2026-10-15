@@ -9,6 +9,7 @@ from copy import deepcopy
 
 from flask import flash, g, jsonify, redirect, render_template, request, url_for
 
+from app_captacao.automacao.downloads import mensagem_destino_invalido
 from app_captacao.catalogo import operacao_relatorios as vinculos_repo
 from app_captacao.catalogo import operacoes as operacoes_repo
 from app_captacao.catalogo import regras
@@ -71,12 +72,16 @@ def processar():
         return redirect(url_for("main"))
 
     jobs.set_execution_preferences_for_current_session(email, sharepoint_link)
-    jobs.clear_execution_result_for_current_session()
+    motivo_destino = mensagem_destino_invalido(sharepoint_link)
+    if motivo_destino:
+        flash(motivo_destino, "error")
+        return redirect(url_for("main"))
 
     current_job = jobs.get_current_execution_job()
-    if current_job and current_job.get("estado") in {"pendente", "em_execucao"}:
+    if current_job and current_job.get("estado") in jobs.ESTADOS_EM_ANDAMENTO:
         flash("Ja existe uma execucao em andamento para esta sessao.", "error")
         return redirect(url_for("main"))
+    jobs.clear_execution_result_for_current_session()
 
     try:
         if modo == "completo":
@@ -138,6 +143,9 @@ def processar():
             return redirect(url_for("main"))
 
         flash("Selecione um modo de execucao valido.", "error")
+    except jobs.ExecucaoEmAndamentoError as exc:
+        # Outra sessao (ou aba) ja esta usando o Edge e a pasta de downloads deste computador.
+        flash(str(exc), "error")
     except Exception as exc:
         logs_repo.registrar_log_operacao(
             g.current_user["login"],
@@ -166,7 +174,6 @@ def relatorio_filtros_dados(relatorio_id: int):
         relatorio = relatorios_repo.buscar_relatorio_com_filtros(relatorio_id)
         if not relatorio:
             return jsonify({"error": "Relatorio nao encontrado."}), 404
-        relatorio = relatorios_repo.aplicar_filtros_fixos_relatorio(relatorio)
 
         filtros = []
         for filtro in relatorio.get("filtros", []):

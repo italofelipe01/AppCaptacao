@@ -81,6 +81,29 @@ class BackgroundExecutionTests(unittest.TestCase):
         self.assertEqual([item["estado"] for item in job["itens"]], ["baixado", "nao_baixado"])
         self.assertEqual(registrar.call_args.args[0], "tester")
 
+    def test_falha_inesperada_preserva_o_que_ja_foi_baixado(self):
+        reports = [{"id": 1, "nome": "A"}, {"id": 2, "nome": "B"}, {"id": 3, "nome": "C"}]
+        with app.test_request_context("/"):
+            job_id = jobs.create_execution_job("operacao", reports, "Operacao X")
+
+        def quebra_no_segundo(_email, _senha, _reports, on_report_event):
+            on_report_event("sucesso", reports[0], {"caminho_final": r"C:\Destino\a.xlsx", "arquivos": [r"C:\Destino\a.xlsx"]})
+            on_report_event("processando", reports[1], {})
+            raise RuntimeError("invalid session id: chrome not reachable")
+
+        with patch.object(automacao, "executar_relatorios_em_sequencia", side_effect=quebra_no_segundo), patch.object(
+            logs_repo, "registrar_log_operacao"
+        ) as registrar:
+            runner.run_execution_job(job_id, "operacao", "user", "password", reports, {"login": "tester"}, "Operacao X")
+
+        job = jobs._execution_jobs[job_id]
+        estados = [(item["estado"], item["etapa"]) for item in job["itens"]]
+        self.assertEqual(estados, [("baixado", ""), ("nao_baixado", "execucao"), ("ignorado", "execucao")])
+        self.assertEqual(job["itens"][0]["caminho_final"], r"C:\Destino\a.xlsx")
+        self.assertEqual((job["quantidade_baixados"], job["quantidade_nao_baixados"]), (1, 2))
+        self.assertNotIn("chrome not reachable", " ".join(item["mensagem"] for item in job["itens"]))
+        self.assertEqual(registrar.call_args.args[1], "erro")
+
 
 if __name__ == "__main__":
     unittest.main()

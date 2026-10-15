@@ -1,11 +1,14 @@
 """Regras do catalogo: qual executor atende cada relatorio e quais filtros exigem valor.
 
-A resolucao do executor segue esta ordem: ID do vinculo na operacao, trecho da
-URL, ID do relatorio e, por fim, nome normalizado. Relatorio sem executor e
-lacuna de configuracao, nunca motivo para cliques genericos.
+A resolucao do executor segue esta ordem: trecho da URL, ID do relatorio e, por
+fim, nome normalizado (sem acento e sem diferenca de maiusculas). Relatorio sem
+executor e lacuna de configuracao, nunca motivo para cliques genericos.
 """
 
 from __future__ import annotations
+
+import re
+import unicodedata
 
 from app_captacao.core.shared.texto import normalize_text
 
@@ -24,10 +27,13 @@ ACOES_QUE_EXIGEM_VALOR = {
 
 
 def _normalizar_nome_relatorio(nome_relatorio):
-    return " ".join(str(nome_relatorio or "").strip().lower().split())
+    sem_acento = unicodedata.normalize("NFKD", str(nome_relatorio or ""))
+    sem_acento = "".join(caractere for caractere in sem_acento if not unicodedata.combining(caractere))
+    return " ".join(sem_acento.strip().lower().split())
 
 
-# Nome do relatorio (normalizado) -> executor dedicado. Usado so quando ID e URL nao resolvem.
+# Nome do relatorio -> executor dedicado. Usado so quando URL e ID nao resolvem.
+# As chaves sao comparadas sem acento: "Relatório" e "Relatorio" sao a mesma chave.
 RELATORIOS_EXECUTORES = {
     "extratoclientehistorico": "extrato_cliente_historico",
     "extrato cliente historico": "extrato_cliente_historico",
@@ -54,11 +60,6 @@ RELATORIOS_EXECUTORES = {
     "relatorio de analitico de apropriacoes": "analitico_propriedade",
     "analitico de apropriacoes": "analitico_propriedade",
     "analitico de apropriacoes7": "analitico_propriedade",
-    "relatório analítico de apropriações": "analitico_propriedade",
-    "relatório analítico de apropriações7": "analitico_propriedade",
-    "relatório de analítico de apropriações": "analitico_propriedade",
-    "analítico de apropriações": "analitico_propriedade",
-    "analítico de apropriações7": "analitico_propriedade",
     "posicao de saldos": "posicao_saldos",
     "relatorio posicao de saldos": "posicao_saldos",
     "relatorio de posicao de saldos": "posicao_saldos",
@@ -89,10 +90,7 @@ RELATORIOS_EXECUTORES = {
     "relatorio de vendas": "vendas",
 }
 
-
-RELATORIOS_EXECUTORES_OPERACAO = {
-    7: "extrato_cliente_historico",
-}
+_EXECUTORES_POR_NOME = {_normalizar_nome_relatorio(nome): executor for nome, executor in RELATORIOS_EXECUTORES.items()}
 
 
 RELATORIOS_EXECUTORES_RELATORIO = {
@@ -125,6 +123,16 @@ RELATORIOS_EXECUTORES_URL = {
     "/common/page/723": "preco_total_vendas",
 }
 
+# O trecho precisa terminar a rota: "/common/page/723" nao casa com "/common/page/7230".
+_FIM_DO_TRECHO_URL = r"(?![0-9a-z_-])"
+
+
+# Filtros que o executor preenche sozinho com valor fixo: a tela nao pede o valor
+# e a validacao nao cobra. Executor -> campo (minusculo) -> valor.
+FILTROS_FIXOS_POR_EXECUTOR = {
+    "unidades": {"filter.selecao": "por Empreendimento"},
+}
+
 
 def _inteiro_ou_none(valor):
     try:
@@ -133,44 +141,73 @@ def _inteiro_ou_none(valor):
         return None
 
 
-def obter_executor_relatorio(nome_relatorio, id_relatorio_operacao=None, id_relatorio=None, url_relatorio=""):
-    id_relatorio_operacao = _inteiro_ou_none(id_relatorio_operacao)
-    id_relatorio = _inteiro_ou_none(id_relatorio)
-
-    if id_relatorio_operacao in RELATORIOS_EXECUTORES_OPERACAO:
-        return RELATORIOS_EXECUTORES_OPERACAO[id_relatorio_operacao]
-
+def _executor_pela_url(url_relatorio):
     url_normalizada = str(url_relatorio or "").strip().lower()
     for trecho_url, executor in RELATORIOS_EXECUTORES_URL.items():
-        if trecho_url in url_normalizada:
+        if re.search(re.escape(trecho_url) + _FIM_DO_TRECHO_URL, url_normalizada):
             return executor
-
-    if id_relatorio in RELATORIOS_EXECUTORES_RELATORIO:
-        return RELATORIOS_EXECUTORES_RELATORIO[id_relatorio]
-
-    nome_normalizado = _normalizar_nome_relatorio(nome_relatorio)
-    nome_compacto = nome_normalizado.replace(" ", "")
-    if nome_normalizado in RELATORIOS_EXECUTORES:
-        return RELATORIOS_EXECUTORES[nome_normalizado]
-
-    if nome_compacto in RELATORIOS_EXECUTORES:
-        return RELATORIOS_EXECUTORES[nome_compacto]
-
-    for chave_relatorio, executor in RELATORIOS_EXECUTORES.items():
-        chave_compacta = chave_relatorio.replace(" ", "")
-        if chave_relatorio in nome_normalizado or chave_compacta in nome_compacto:
-            return executor
-
     return ""
 
 
-def eh_filtro_opcional_relatorio(relatorio, filtro):
-    executor = obter_executor_relatorio(
-        relatorio.get("nome", ""),
-        relatorio.get("id_relatorio_operacao"),
+def _executor_pelo_nome(nome_relatorio):
+    nome = _normalizar_nome_relatorio(nome_relatorio)
+    if not nome:
+        return ""
+    compacto = nome.replace(" ", "")
+    if nome in _EXECUTORES_POR_NOME:
+        return _EXECUTORES_POR_NOME[nome]
+    if compacto in _EXECUTORES_POR_NOME:
+        return _EXECUTORES_POR_NOME[compacto]
+
+    # Nome com texto a mais: vence a chave mais longa ("preco total de vendas", nao "vendas").
+    candidatos = [
+        (len(chave), executor)
+        for chave, executor in _EXECUTORES_POR_NOME.items()
+        if re.search(rf"\b{re.escape(chave)}\b", nome) or chave.replace(" ", "") in compacto
+    ]
+    if not candidatos:
+        return ""
+    return max(candidatos, key=lambda candidato: candidato[0])[1]
+
+
+def obter_executor_relatorio(nome_relatorio, id_relatorio=None, url_relatorio=""):
+    executor = _executor_pela_url(url_relatorio)
+    if executor:
+        return executor
+
+    id_relatorio = _inteiro_ou_none(id_relatorio)
+    if id_relatorio in RELATORIOS_EXECUTORES_RELATORIO:
+        return RELATORIOS_EXECUTORES_RELATORIO[id_relatorio]
+
+    return _executor_pelo_nome(nome_relatorio)
+
+
+def executor_do_relatorio(relatorio: dict) -> str:
+    """Executor de um relatorio vindo do catalogo, da operacao ou do payload de execucao."""
+    return obter_executor_relatorio(
+        relatorio.get("nome") or relatorio.get("nome_relatorio") or "",
         relatorio.get("id") or relatorio.get("id_relatorio"),
-        relatorio.get("url", ""),
+        relatorio.get("url") or relatorio.get("url_relatorio") or "",
     )
+
+
+def valor_fixo_do_filtro(executor: str, filtro: dict) -> str:
+    campo = normalize_text(filtro.get("campo_identificador")).lower()
+    return FILTROS_FIXOS_POR_EXECUTOR.get(executor, {}).get(campo, "")
+
+
+def aplicar_filtros_fixos(relatorio: dict) -> dict:
+    """Preenche os filtros de valor fixo do executor e os marca como automaticos."""
+    executor = executor_do_relatorio(relatorio)
+    for filtro in relatorio.get("filtros", []):
+        valor = valor_fixo_do_filtro(executor, filtro)
+        if valor:
+            filtro.update(valor=valor, valor_fixo=valor, opcional=True, automatico=True, tipo_campo_valor="CLICK")
+    return relatorio
+
+
+def eh_filtro_opcional_relatorio(relatorio, filtro):
+    executor = executor_do_relatorio(relatorio)
     campo = str(filtro.get("campo_identificador") or "").strip().lower()
 
     if executor in {

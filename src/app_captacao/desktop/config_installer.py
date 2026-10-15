@@ -41,7 +41,6 @@ APP_DEBUG=false
 DB_DRIVER=SQL Server
 DB_HOST=
 DB_DATABASE=
-DB_SCHEMA=dbo
 DB_USER=
 DB_PASSWORD=
 DB_EXTRA_PARAMS=
@@ -63,6 +62,15 @@ def _normalize_env_text(text: str) -> str:
     if not normalized:
         return ""
     return normalized + "\n"
+
+
+def _valor_env(text: str, key: str) -> str:
+    """Valor da chave no texto do .env; vazio quando a chave falta ou esta sem valor."""
+    prefix = f"{key}="
+    for line in _normalize_env_text(text).splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix):].strip().strip("'\"")
+    return ""
 
 
 def _upsert_env_key(text: str, key: str, value: str) -> str:
@@ -259,7 +267,7 @@ class ConfigInstallerApp(ctk.CTk):
             messagebox.showwarning("Configurar AppCaptacao", "Informe a configuracao antes de salvar.")
             return
 
-        if "FLASK_SECRET_KEY=" not in content:
+        if not _valor_env(content, "FLASK_SECRET_KEY"):
             content = _upsert_env_key(content, "FLASK_SECRET_KEY", secrets.token_urlsafe(32))
             self.editor.delete("1.0", "end")
             self.editor.insert("1.0", content)

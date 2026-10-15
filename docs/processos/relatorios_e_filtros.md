@@ -35,10 +35,14 @@ valores separados por vírgula (ex.: várias empresas) é tratado pelo executor.
 
 Ordem de resolução em [catalogo/regras.py](../../src/app_captacao/catalogo/regras.py):
 
-1. ID do vínculo na operação (`RELATORIOS_EXECUTORES_OPERACAO`);
-2. trecho da URL (`RELATORIOS_EXECUTORES_URL`);
-3. ID do relatório (`RELATORIOS_EXECUTORES_RELATORIO`);
-4. nome normalizado (`RELATORIOS_EXECUTORES`).
+1. trecho da URL (`RELATORIOS_EXECUTORES_URL`): o trecho precisa terminar a rota, então
+   `/common/page/723` não casa com `/common/page/7230`;
+2. ID do relatório (`RELATORIOS_EXECUTORES_RELATORIO`);
+3. nome (`RELATORIOS_EXECUTORES`), comparado sem acento e sem diferença de maiúsculas. Nome com
+   texto a mais ("Relatório de Preço Total de Vendas - EBM") usa a chave mais longa contida nele.
+
+O ID do vínculo na operação (`IdCapRecursoRelatorioOperacao`) não decide o executor: é só a ordem
+de criação da linha de vínculo.
 
 | Executor | ID do relatório | Trecho da URL |
 | --- | --- | --- |
@@ -73,7 +77,9 @@ funções de campo e download da automação.
 | `preco_total_vendas`, `unidades` | Empreendimento (`filter.empreend.cdempreendview`, `cdempreendview`) |
 
 No relatório **Unidades**, o filtro `filter.selecao` é fixo em "por Empreendimento" e preenchido
-automaticamente.
+automaticamente. A regra vale para o executor `unidades` (não para quem tem "unidades" no nome) e
+fica em `FILTROS_FIXOS_POR_EXECUTOR`, em `catalogo/regras.py`: a tela de execução, a de
+Acompanhamento e o payload da operação usam a mesma tabela.
 
 ## Cadastro de operações (tela Acompanhamento)
 

@@ -41,8 +41,11 @@ def verificar_configuracao() -> list[Resultado]:
 
     resultados = [Resultado("Configuracao", OK, f"Carregada de {caminho}")]
 
+    from app_captacao.core.database.connection import nome_do_banco
+
     faltando = [nome for nome in ("DB_HOST",) if not os.getenv(nome, "").strip()]
-    if not (os.getenv("DB_DATABASE", "").strip() or os.getenv("DB_SCHEMA", "").strip()):
+    # Mesma regra da conexao: DB_DATABASE vazio nao cai para DB_SCHEMA.
+    if not nome_do_banco():
         faltando.append("DB_DATABASE")
     conexao_confiavel = "trusted_connection=yes" in os.getenv("DB_EXTRA_PARAMS", "").replace(" ", "").lower()
     if not conexao_confiavel:

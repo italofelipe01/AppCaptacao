@@ -311,12 +311,16 @@ def aguardar_carregamento_da_pagina(driver, wait, timeout=DEFAULT_TIMEOUT):
 
 
 def fechar_janelas_extras(driver):
+    """Fecha as abas extras; dialogo interno do Edge (edge://...) que nao fecha e ignorado."""
     main = driver.current_window_handle
     for handle in list(driver.window_handles):
         if handle == main:
             continue
-        driver.switch_to.window(handle)
-        driver.close()
+        try:
+            driver.switch_to.window(handle)
+            driver.close()
+        except WebDriverException:
+            logger.info("Janela extra %s nao pode ser fechada; seguindo.", handle)
     driver.switch_to.window(main)
 
 
