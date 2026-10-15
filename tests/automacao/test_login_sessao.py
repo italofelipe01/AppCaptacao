@@ -21,7 +21,7 @@ class LoginTests(unittest.TestCase):
         # Decisao registrada: a sessao salva nao e restaurada; o login e sempre automatico.
         restaurar.assert_not_called()
         self.assertFalse(hasattr(login, "restaurar_sessao_sienge"))
-        login_automatico.assert_called_once_with(driver, wait, "usuario@example.com", "senha")
+        login_automatico.assert_called_once_with(driver, "usuario@example.com", "senha")
 
     def test_sso_frame_detach_falls_back_to_manual_token(self):
         driver = MagicMock()
