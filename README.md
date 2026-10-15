@@ -65,10 +65,18 @@ O `.env` fica só no seu computador: ele nunca vai para o git.
 
 ### 3. Abra o app
 
-Dê **duplo clique em `Iniciar AppCaptacao.bat`**. Na primeira vez ele prepara tudo sozinho (cria
-o ambiente `.venv` e instala as bibliotecas, uns 2 minutos) e depois confere o ambiente:
+Dê **duplo clique em `Iniciar AppCaptacao.bat`**. Na primeira vez em cada computador ele prepara
+tudo sozinho (cria o ambiente `.venv` e instala as bibliotecas, uns 2 minutos) e depois confere o
+ambiente. A janela mostra cada etapa:
 
 ```text
+[1/3] Conferindo o ambiente Python desta pasta (.venv)...
+      .venv pronto: Python 3.13.2
+
+[2/3] Ambiente ja preparado neste computador.
+
+[3/3] Iniciando o AppCaptacao: checklist do ambiente e abertura do app.
+
 Verificando o ambiente do AppCaptacao...
   [ OK  ] Python: 3.13.2
   [ OK  ] Bibliotecas: 9 bibliotecas instaladas.
@@ -83,9 +91,16 @@ AppCaptacao iniciando em http://127.0.0.1:4732/
 ```
 
 O navegador abre sozinho na tela de login. **Deixe a janela preta aberta** enquanto usa o app;
-fechá-la desliga o AppCaptação.
+fechá-la desliga o AppCaptação. Durante as execuções ela mostra as etapas da automação
+(`[INFO ]`), avisos (`[AVISO]`) e erros (`[ERRO ]`), com a hora.
 
-Se aparecer `[ERRO ]`, o app não abre e a linha seguinte diz o que corrigir. `[AVISO]` só informa.
+Se aparecer `[ERRO ]` no checklist, o app não abre e a linha seguinte diz o que corrigir.
+`[AVISO]` só informa. Ao terminar, com sucesso ou com erro, a janela mostra o resultado e só fecha
+quando você apertar uma tecla. Se encerrar o app com `Ctrl+C`, o Windows pergunta
+"Deseja finalizar o arquivo em lotes (S/N)?": responda **N** para ver o resultado.
+
+A pasta do projeto pode ir para outro computador. O `.venv` só vale para o computador onde foi
+criado: se ele vier junto (num `.zip`, por exemplo), o `Iniciar AppCaptacao.bat` percebe e recria.
 
 ## Criar o atalho na Área de Trabalho
 

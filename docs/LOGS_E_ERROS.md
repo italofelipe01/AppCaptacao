@@ -12,8 +12,9 @@
 ## Log técnico (arquivo)
 
 `%LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log` — tudo de `app_captacao.*` a partir de INFO,
-com rotação de 5 arquivos de 5 MB. No console só aparecem avisos e erros. O `run.py` imprime o
-caminho ao iniciar.
+com rotação de 5 arquivos de 5 MB. O console (janela do `Iniciar AppCaptacao.bat`) mostra as
+mesmas mensagens com a hora e os marcadores do checklist: `[INFO ]` para as etapas da automação,
+`[AVISO]` e `[ERRO ]`. O `run.py` imprime o caminho do arquivo ao iniciar.
 
 ## Logs no banco
 
