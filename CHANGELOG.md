@@ -7,6 +7,17 @@ geradas pelo `python-semantic-release` a partir dos commits (Conventional Commit
 
 <!-- version list -->
 
+## v1.0.2 (2026-10-15)
+
+### Bug Fixes
+
+- **automacao**: Rodar a operacao em lote no Edge anexado sem perder a sessao
+  ([`2c81618`](https://github.com/italofelipe01/AppCaptacao/commit/2c816186e2eabc72e9192963be7ed8335a6d5339))
+
+- **log**: Uma linha por erro no console e sem mensagens duplicadas
+  ([`092ea71`](https://github.com/italofelipe01/AppCaptacao/commit/092ea71e426d36e13a2bce5389d073c369a1bd86))
+
+
 ## v1.0.1 (2026-10-15)
 
 ### Bug Fixes
