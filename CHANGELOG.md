@@ -6,3 +6,7 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 geradas pelo `python-semantic-release` a partir dos commits (Conventional Commits).
 
 <!-- version list -->
+
+## v1.0.0 (2026-10-15)
+
+- Initial Release
