@@ -1,6 +1,9 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from types import SimpleNamespace
+from urllib.parse import urlsplit
+
 from selenium.common.exceptions import WebDriverException
 
 from app_captacao.automacao import config, login, navegador, sessao
@@ -58,6 +61,10 @@ class SessionStateTests(unittest.TestCase):
         self.assertTrue(sessao.sessao_sienge_ativa(driver))
 
 
+def _host_sienge():
+    return urlsplit(config.LOGIN_URL).hostname
+
+
 class BrowserSelectionTests(unittest.TestCase):
     def test_edge_failure_does_not_fall_back_to_chrome(self):
         with patch.object(navegador, "SELENIUM_BROWSER", "edge"), patch.object(
@@ -69,6 +76,42 @@ class BrowserSelectionTests(unittest.TestCase):
                 navegador.criar_driver()
 
         criar_chrome.assert_not_called()
+
+
+class AttachedBrowserWindowTests(unittest.TestCase):
+    def _driver(self, urls):
+        driver = MagicMock()
+        driver.window_handles = list(urls)
+        estado = {"atual": None}
+
+        def trocar(handle):
+            estado["atual"] = handle
+
+        driver.switch_to = SimpleNamespace(window=trocar, new_window=MagicMock())
+        type(driver).current_url = property(lambda _self: urls[estado["atual"]])
+        driver.maximize_window.side_effect = WebDriverException("Browser window not found")
+        return driver, estado
+
+    def test_attached_edge_skips_internal_sync_dialog(self):
+        # Perfil novo num Windows ligado ao Entra ID: o Edge abre o dialogo de sincronizacao.
+        driver, estado = self._driver(
+            {
+                "aba-sienge": f"https://{_host_sienge()}/sienge/",
+                "dialogo": "edge://sync-confirmation-dialog/",
+            }
+        )
+
+        navegador._posicionar_na_aba_web(driver)
+
+        self.assertEqual(estado["atual"], "aba-sienge")
+        driver.switch_to.new_window.assert_not_called()
+
+    def test_attached_browser_without_web_tab_opens_a_new_one(self):
+        driver, _estado = self._driver({"dialogo": "edge://sync-confirmation-dialog/"})
+
+        navegador._posicionar_na_aba_web(driver)
+
+        driver.switch_to.new_window.assert_called_once_with("tab")
 
 
 if __name__ == "__main__":
