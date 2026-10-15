@@ -264,6 +264,7 @@ def executar(driver, wait, relatorio_config, contexto):
                 relatorio_config,
                 _montar_sufixo_exportacao(valor_empresa, numero_pagina),
                 inicio_download,
+                registrar_resultado=False,
             )
             if arquivo_baixado:
                 arquivos_baixados.append(Path(arquivo_baixado))
@@ -285,25 +286,57 @@ def executar(driver, wait, relatorio_config, contexto):
                 _log_etapa(logger, iteracao, "paginacao", f"avancando para a proxima pagina apos exportar a pagina {numero_pagina}")
                 _ir_para_proxima_pagina(driver, logger)
 
-        if len(arquivos_baixados) > 1:
-            _log_etapa(logger, iteracao, "consolidacao", f"consolidando {len(arquivos_baixados)} arquivos exportados")
-            consolidado = _consolidar_planilhas(
-                arquivos_baixados,
-                relatorio_config,
-                valor_empresa,
-                download_dir,
-                sanitizar_nome_arquivo,
-                montar_caminho_download_unico,
-                logger,
-            )
-            if consolidado:
-                _log_etapa(logger, iteracao, "consolidacao", f"arquivo consolidado gerado: {consolidado}")
-                copiar_download_para_sharepoint(relatorio_config, consolidado)
-                _remover_arquivos_intermediarios(arquivos_baixados, consolidado, logger)
-        elif len(arquivos_baixados) == 1:
-            _log_etapa(logger, iteracao, "fim", "fluxo concluido com um unico arquivo exportado")
-        else:
-            _log_etapa(logger, iteracao, "fim", "fluxo concluido sem arquivos exportados")
+        _log_etapa(logger, iteracao, "consolidacao", f"{len(arquivos_baixados)} arquivo(s) exportado(s)")
+        _registrar_arquivo_final(
+            arquivos_baixados,
+            relatorio_config,
+            valor_empresa,
+            download_dir,
+            sanitizar_nome_arquivo,
+            montar_caminho_download_unico,
+            copiar_download_para_sharepoint,
+            logger,
+        )
+
+
+def _registrar_arquivo_final(
+    arquivos,
+    relatorio_config,
+    empresa_id,
+    download_dir,
+    sanitizar_nome_arquivo,
+    montar_caminho_download_unico,
+    copiar_download_para_sharepoint,
+    logger,
+):
+    """Copia para o destino e registra so o resultado da iteracao.
+
+    Uma pagina: o proprio arquivo. Varias: o consolidado, e as paginas locais sao
+    apagadas. Se a consolidacao nao gerar linhas, as paginas exportadas ficam como resultado.
+    """
+    if len(arquivos) == 1:
+        copiar_download_para_sharepoint(relatorio_config, arquivos[0])
+        return
+    if not arquivos:
+        return
+
+    consolidado = _consolidar_planilhas(
+        arquivos,
+        relatorio_config,
+        empresa_id,
+        download_dir,
+        sanitizar_nome_arquivo,
+        montar_caminho_download_unico,
+        logger,
+    )
+    if consolidado:
+        logger.info("Arquivo consolidado gerado: %s", consolidado)
+        copiar_download_para_sharepoint(relatorio_config, consolidado)
+        _remover_arquivos_intermediarios(arquivos, consolidado, logger)
+        return
+
+    for arquivo in arquivos:
+        copiar_download_para_sharepoint(relatorio_config, arquivo)
 
 
 def _preparar_filtros_relatorio(

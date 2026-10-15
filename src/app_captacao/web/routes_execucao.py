@@ -9,6 +9,7 @@ from copy import deepcopy
 
 from flask import flash, g, jsonify, redirect, render_template, request, url_for
 
+from app_captacao.automacao.downloads import mensagem_destino_invalido
 from app_captacao.catalogo import operacao_relatorios as vinculos_repo
 from app_captacao.catalogo import operacoes as operacoes_repo
 from app_captacao.catalogo import regras
@@ -71,6 +72,10 @@ def processar():
         return redirect(url_for("main"))
 
     jobs.set_execution_preferences_for_current_session(email, sharepoint_link)
+    motivo_destino = mensagem_destino_invalido(sharepoint_link)
+    if motivo_destino:
+        flash(motivo_destino, "error")
+        return redirect(url_for("main"))
     jobs.clear_execution_result_for_current_session()
 
     current_job = jobs.get_current_execution_job()

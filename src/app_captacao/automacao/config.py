@@ -33,6 +33,8 @@ DOWNLOAD_TEMP_EXTENSIONS = {".crdownload", ".tmp", ".part", ".download"}
 DOWNLOAD_STABLE_CHECK_INTERVAL = 0.75
 DOWNLOAD_STABLE_CYCLES_REQUIRED = int(os.getenv("SELENIUM_DOWNLOAD_STABLE_CYCLES", "3"))
 DOWNLOAD_QUIET_PERIOD_SECONDS = float(os.getenv("SELENIUM_DOWNLOAD_QUIET_PERIOD_SECONDS", "2.5"))
+# Temporario (.crdownload, .tmp...) parado ha mais que isto e download abandonado, nao em andamento.
+DOWNLOAD_TEMP_STALE_SECONDS = int(os.getenv("SELENIUM_DOWNLOAD_STALE_TEMP_SECONDS", "300"))
 
 # Tempo de espera após login (segundos)
 POST_LOGIN_WAIT = int(os.getenv("SELENIUM_POST_LOGIN_WAIT_SECONDS", "8"))

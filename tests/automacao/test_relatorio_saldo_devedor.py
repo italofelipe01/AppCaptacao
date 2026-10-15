@@ -138,8 +138,35 @@ class SaldoDevedorModalFiltersTests(unittest.TestCase):
             saldo_devedor.executar(driver, None, {"filtros": []}, contexto)
 
         self.assertEqual(renomear.call_count, 2)
+        for chamada in renomear.call_args_list:
+            self.assertEqual(chamada.kwargs, {"registrar_resultado": False})
         avancar.assert_called_once_with(driver, self.logger)
         driver.close.assert_not_called()
+
+
+class SaldoDevedorArquivoFinalTests(unittest.TestCase):
+    def _registrar(self, arquivos, consolidado):
+        copiar = MagicMock()
+        with patch.object(saldo_devedor, "_consolidar_planilhas", return_value=consolidado) as consolidar, patch.object(
+            saldo_devedor, "_remover_arquivos_intermediarios"
+        ) as remover:
+            saldo_devedor._registrar_arquivo_final(arquivos, {}, "1", ".", str, MagicMock(), copiar, Mock())
+        return copiar, consolidar, remover
+
+    def test_varias_paginas_copiam_so_o_consolidado_para_o_destino(self):
+        copiar, _, remover = self._registrar(["p1.xlsx", "p2.xlsx"], "consolidado.xlsx")
+        copiar.assert_called_once_with({}, "consolidado.xlsx")
+        remover.assert_called_once()
+
+    def test_pagina_unica_vai_direto_para_o_destino(self):
+        copiar, consolidar, _ = self._registrar(["p1.xlsx"], None)
+        copiar.assert_called_once_with({}, "p1.xlsx")
+        consolidar.assert_not_called()
+
+    def test_consolidacao_vazia_mantem_as_paginas_como_resultado(self):
+        copiar, _, remover = self._registrar(["p1.xlsx", "p2.xlsx"], None)
+        self.assertEqual([chamada.args[1] for chamada in copiar.call_args_list], ["p1.xlsx", "p2.xlsx"])
+        remover.assert_not_called()
 
 
 if __name__ == "__main__":

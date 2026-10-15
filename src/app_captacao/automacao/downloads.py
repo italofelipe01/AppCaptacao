@@ -20,6 +20,7 @@ from app_captacao.automacao.config import (
     DOWNLOAD_STABLE_CHECK_INTERVAL,
     DOWNLOAD_STABLE_CYCLES_REQUIRED,
     DOWNLOAD_TEMP_EXTENSIONS,
+    DOWNLOAD_TEMP_STALE_SECONDS,
     DOWNLOAD_WAIT_TIMEOUT,
 )
 from app_captacao.automacao import erros
@@ -42,7 +43,13 @@ def marcar_inicio_download():
     return {"inicio_ns": time.time_ns(), "arquivos_antes": arquivos_antes}
 
 
-def renomear_download_relatorio(relatorio_config, empresa_id="", inicio_download=None):
+def renomear_download_relatorio(relatorio_config, empresa_id="", inicio_download=None, registrar_resultado=True):
+    """Espera o download, renomeia e devolve o caminho local.
+
+    Com registrar_resultado=True o arquivo tambem e copiado para o destino e entra no
+    resultado do relatorio. Relatorios paginados usam False em cada pagina e registram
+    so o arquivo final (a pagina unica ou o consolidado).
+    """
     inicio_download = inicio_download or marcar_inicio_download()
     arquivo = _aguardar_arquivo_download(inicio_download)
     if not arquivo:
@@ -75,14 +82,8 @@ def renomear_download_relatorio(relatorio_config, empresa_id="", inicio_download
         logger.exception("Nao foi possivel renomear o download %s.", arquivo)
         raise erros.DownloadProcessingError("renomeacao", f"Falha ao renomear o arquivo: {exc}") from exc
 
-    caminho_final = str(destino)
-    if str(relatorio_config.get("sharepoint_link", "") or "").strip():
-        caminho_final = copiar_download_para_sharepoint(
-            relatorio_config,
-            destino,
-            registrar_resultado=False,
-        )
-    relatorio_config.setdefault("_arquivos_finais", []).append(caminho_final)
+    if registrar_resultado:
+        copiar_download_para_sharepoint(relatorio_config, destino)
     # Os modulos de consolidacao continuam trabalhando com o arquivo local;
     # o caminho copiado e registrado separadamente como resultado final.
     return str(destino)
@@ -150,8 +151,14 @@ def _aguardar_arquivo_download(inicio_download):
 
 
 def aguardar_pasta_download_estabilizar(timeout=DOWNLOAD_WAIT_TIMEOUT):
+    """True quando nenhum download esta em andamento e nada foi gravado recentemente.
+
+    Temporario parado ha mais de SELENIUM_DOWNLOAD_STALE_TEMP_SECONDS (download
+    interrompido em outra execucao, por exemplo) nao conta como download em andamento.
+    """
     pasta = Path(DOWNLOAD_DIR)
     prazo = time.time() + timeout
+    abandonados_avisados: set[str] = set()
 
     while time.time() <= prazo:
         agora = time.time()
@@ -167,7 +174,15 @@ def aguardar_pasta_download_estabilizar(timeout=DOWNLOAD_WAIT_TIMEOUT):
                 continue
 
             if arquivo.suffix.lower() in DOWNLOAD_TEMP_EXTENSIONS:
-                downloads_em_andamento.append(arquivo)
+                if stat.st_mtime >= agora - DOWNLOAD_TEMP_STALE_SECONDS:
+                    downloads_em_andamento.append(arquivo)
+                elif arquivo.name not in abandonados_avisados:
+                    abandonados_avisados.add(arquivo.name)
+                    logger.warning(
+                        "Temporario de download parado ha mais de %ss ignorado: %s. Pode ser apagado.",
+                        DOWNLOAD_TEMP_STALE_SECONDS,
+                        arquivo,
+                    )
                 continue
 
             if stat.st_mtime >= agora - DOWNLOAD_QUIET_PERIOD_SECONDS:
@@ -238,12 +253,10 @@ def copiar_download_para_sharepoint(relatorio_config, arquivo_origem, registrar_
             relatorio_config.setdefault("_arquivos_finais", []).append(caminho_final)
         return caminho_final
 
-    destino_base = _resolver_destino_sharepoint(relatorio_config.get("sharepoint_link", ""))
-    if not destino_base:
-        raise erros.DownloadProcessingError(
-            "copia",
-            "O destino informado nao e uma pasta local sincronizada ou caminho UNC valido.",
-        )
+    motivo = mensagem_destino_invalido(destino_informado)
+    if motivo:
+        raise erros.DownloadProcessingError("copia", motivo)
+    destino_base = _resolver_destino_sharepoint(destino_informado)
 
     try:
         destino_base.mkdir(parents=True, exist_ok=True)
@@ -269,21 +282,30 @@ def copiar_download_para_sharepoint(relatorio_config, arquivo_origem, registrar_
         raise erros.DownloadProcessingError("copia", f"Falha ao copiar o arquivo para o destino: {exc}") from exc
 
 
-def _resolver_destino_sharepoint(sharepoint_link):
-    destino = str(sharepoint_link or "").strip()
+def mensagem_destino_invalido(destino) -> str:
+    """Motivo para recusar o destino informado na tela; vazio quando o destino serve.
+
+    O destino e uma pasta sincronizada do SharePoint/OneDrive ou um caminho de rede.
+    Caminho relativo cairia numa pasta relativa a de onde o app foi aberto.
+    """
+    destino = str(destino or "").strip()
     if not destino:
-        return None
-
+        return ""
     if destino.lower().startswith(("http://", "https://")):
-        logger.warning(
-            "URL web do SharePoint informada (%s), mas upload direto por URL ainda nao esta implementado. "
-            "Use uma pasta local sincronizada/UNC para copia automatica.",
-            destino,
+        return (
+            "Link do SharePoint nao e aceito como destino: informe a pasta sincronizada no "
+            "computador ou um caminho de rede (\\\\servidor\\pasta)."
         )
-        return None
+    if not Path(destino).expanduser().is_absolute():
+        return (
+            "O destino precisa ser um caminho completo, como C:\\Users\\voce\\SharePoint\\Pasta "
+            "ou \\\\servidor\\pasta."
+        )
+    return ""
 
-    caminho = Path(destino).expanduser()
-    if caminho.name.strip().lower() == "automação cap".lower():
+
+def _resolver_destino_sharepoint(destino):
+    caminho = Path(str(destino).strip()).expanduser()
+    if caminho.name.strip().lower() == "automação cap":
         return caminho
-
     return caminho / "Automação CAP"
