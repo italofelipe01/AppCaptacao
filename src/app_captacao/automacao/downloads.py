@@ -150,7 +150,7 @@ def _aguardar_arquivo_download(inicio_download):
     return ""
 
 
-def aguardar_pasta_download_estabilizar(timeout=DOWNLOAD_WAIT_TIMEOUT):
+def aguardar_pasta_download_estabilizar(timeout: float = DOWNLOAD_WAIT_TIMEOUT):
     """True quando nenhum download esta em andamento e nada foi gravado recentemente.
 
     Temporario parado ha mais de SELENIUM_DOWNLOAD_STALE_TEMP_SECONDS (download
