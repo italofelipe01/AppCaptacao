@@ -39,7 +39,14 @@ opcionalmente, a pasta de destino (`sharepoint_link`).
    4. o download é monitorado, renomeado e copiado (ver [downloads_e_destino.md](downloads_e_destino.md));
    5. o item vira `baixado` só com arquivo confirmado no destino; senão `nao_baixado`, com a etapa da falha.
 6. **Entre relatórios**: espera a pasta de downloads estabilizar. Se ela não estabilizar após uma
-   falha, os relatórios restantes viram `ignorado` para não associar o arquivo errado.
+   falha, os relatórios restantes viram `ignorado` para não associar o arquivo errado. Depois de
+   uma falha, a automação volta para a aba do Sienge; se a sessão do Selenium caiu, reconecta ao
+   Edge e refaz o login antes do próximo relatório (até 2 vezes; depois disso os restantes viram
+   `ignorado` na etapa `autenticacao`).
+   - **Na tela, durante a execução**, cada arquivo que chega ao destino aparece no relatório em
+     andamento ("N arquivo(s) salvo(s); último: caminho"). No fim, cada relatório baixado diz
+     quantos arquivos foram salvos e em qual pasta, e o resumo lista as pastas. Relatório que falha
+     no meio (por exemplo na 3ª empresa) mostra os arquivos das empresas que já tinham sido salvos.
 7. **Fim**: o job fica `concluida` com o resumo "N baixado(s); M não baixado(s)". Com
    `APP_SAVE_LOGS=true`, o resultado vai para a tabela de log de operação.
 8. **Falha inesperada no meio** (navegador derrubado, erro de programa): o que já terminou fica

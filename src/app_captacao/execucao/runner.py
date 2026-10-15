@@ -53,16 +53,6 @@ def run_execution_job(
 
 
 def _executar(job_id: str, tipo: str, email: str, senha: str, relatorios: list[dict]) -> dict:
-    if tipo == "relatorio":
-        relatorio = relatorios[0]
-        jobs.update_execution_job_item(
-            job_id,
-            relatorio.get("id"),
-            estado="em_execucao",
-            mensagem="Executando filtros e aguardando o download.",
-        )
-        return automacao.executar_relatorio(email, senha, relatorio)
-
     def on_report_event(evento, relatorio, detalhe):
         relatorio_id = relatorio.get("id") or relatorio.get("id_relatorio")
         if evento == "processando":
@@ -72,12 +62,15 @@ def _executar(job_id: str, tipo: str, email: str, senha: str, relatorios: list[d
                 estado="em_execucao",
                 mensagem="Executando filtros e aguardando o download.",
             )
+        elif evento == "progresso":
+            # Arquivo de uma empresa ja salvo: a tela mostra onde, enquanto o resto roda.
+            jobs.update_execution_job_item(job_id, relatorio_id, mensagem=detalhe.get("mensagem", ""))
         elif evento == "sucesso":
             jobs.update_execution_job_item(
                 job_id,
                 relatorio_id,
                 estado="baixado",
-                mensagem="Arquivo confirmado no destino.",
+                mensagem=detalhe.get("mensagem") or "Arquivo confirmado no destino.",
                 caminho_final=detalhe.get("caminho_final", ""),
                 arquivos=detalhe.get("arquivos", []),
             )
@@ -90,6 +83,9 @@ def _executar(job_id: str, tipo: str, email: str, senha: str, relatorios: list[d
                 etapa=detalhe.get("etapa", "execucao"),
             )
 
+    if tipo == "relatorio":
+        on_report_event("processando", relatorios[0], {})
+        return automacao.executar_relatorio(email, senha, relatorios[0], on_report_event=on_report_event)
     return automacao.executar_relatorios_em_sequencia(email, senha, relatorios, on_report_event=on_report_event)
 
 

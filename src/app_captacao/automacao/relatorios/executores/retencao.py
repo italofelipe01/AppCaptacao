@@ -3,6 +3,7 @@ import time
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from app_captacao.automacao.navegador import fechar_janelas_extras as _fechar_janelas_extras
 
 
 def executar(driver, wait, relatorio_config, contexto):
@@ -59,7 +60,7 @@ def executar(driver, wait, relatorio_config, contexto):
         inicio_download = marcar_inicio_download()
         ActionChains(driver).send_keys(Keys.ENTER).perform()
         time.sleep(default_report_wait)
-        _fechar_primeira_janela_extra(driver)
+        _fechar_janelas_extras(driver)
         renomear_download(relatorio_config, str(empresas[index]) if index < len(empresas) else "", inicio_download)
         index += 1
 
@@ -103,16 +104,3 @@ def _preencher_campo_legado(driver, wait, identificador, valor, by, logger):
     finally:
         driver.switch_to.default_content()
         time.sleep(1)
-
-
-def _fechar_primeira_janela_extra(driver):
-    main_window_handle = driver.current_window_handle
-    handles = list(driver.window_handles)
-
-    if len(handles) <= 1:
-        return
-
-    handles.remove(main_window_handle)
-    driver.switch_to.window(handles[0])
-    driver.close()
-    driver.switch_to.window(main_window_handle)

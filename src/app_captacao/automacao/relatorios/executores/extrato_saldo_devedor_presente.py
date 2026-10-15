@@ -10,6 +10,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from app_captacao.automacao.navegador import fechar_janelas_extras as _fechar_janelas_extras
 
 
 TAMANHO_PAGINA = "5000"
@@ -755,17 +756,6 @@ def _preencher_input_manual(driver, wait, identificadores, valor, logger):
         return valor_final
     finally:
         driver.switch_to.default_content()
-
-
-def _fechar_janelas_extras(driver):
-    main_window_handle = driver.current_window_handle
-    handles = list(driver.window_handles)
-    for handle in handles:
-        if handle == main_window_handle:
-            continue
-        driver.switch_to.window(handle)
-        driver.close()
-    driver.switch_to.window(main_window_handle)
 
 
 def _com_iframe(driver, wait):

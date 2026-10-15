@@ -6,9 +6,24 @@ from selenium.common.exceptions import TimeoutException
 from app_captacao.automacao import downloads, erros, execucao, login, navegador
 
 
+class _FakeSwitchTo:
+    def window(self, _handle):
+        pass
+
+    def default_content(self):
+        pass
+
+
 class _FakeDriver:
+    window_handles = ["SIENGE"]
+    current_window_handle = "SIENGE"
+
     def __init__(self):
         self.closed = False
+        self.switch_to = _FakeSwitchTo()
+
+    def execute_cdp_cmd(self, _comando, _parametros):
+        return {"targetInfos": [{"targetId": "SIENGE", "url": "https://ebm.sienge.com.br/sienge/"}]}
 
     def quit(self):
         self.closed = True
@@ -39,7 +54,7 @@ class SequenceExecutionTests(unittest.TestCase):
             {"id": 2, "nome": "Relatorio B", "operacao_nome": "Operacao X"},
         ]
 
-        def execute(_driver, _wait, report):
+        def execute(_driver, _wait, report, _evento=None):
             if report["id"] == 2:
                 raise erros.DownloadProcessingError("copia", "Destino indisponivel")
             return [r"C:\Destino\Relatorio_A.xlsx"]
@@ -73,6 +88,57 @@ class SequenceExecutionTests(unittest.TestCase):
         ), patch.object(execucao.time, "sleep"):
             result = execucao.executar_relatorios_em_sequencia("user", "password", [{"id": 1, "nome": "A"}])
         self.assertEqual(result["quantidade_baixados"], 1)
+
+
+class LoteResilienteTests(unittest.TestCase):
+    def test_sessao_que_cai_e_reaberta_e_os_relatorios_seguintes_rodam(self):
+        reports = [{"id": 1, "nome": "A"}, {"id": 2, "nome": "B"}, {"id": 3, "nome": "C"}]
+        drivers = [_FakeDriver(), _FakeDriver()]
+
+        def execute(_driver, _wait, report, _evento=None):
+            if report["id"] == 1:
+                raise erros.DownloadProcessingError("execucao", "invalid session id")
+            return [rf"C:\Downloads\Automacao CAP\{report['nome']}.xlsx"]
+
+        with patch.object(navegador, "criar_driver", side_effect=drivers) as criar, patch.object(
+            login, "fazer_login"
+        ) as logar, patch.object(navegador, "definir_janela_principal"), patch.object(
+            navegador, "voltar_para_janela_principal"
+        ), patch.object(navegador, "sessao_do_driver_ativa", side_effect=[True, False, True]), patch.object(
+            execucao, "_executar_relatorio_no_driver", side_effect=execute
+        ), patch.object(downloads, "aguardar_pasta_download_estabilizar", return_value=True), patch.object(
+            execucao.time, "sleep"
+        ):
+            result = execucao.executar_relatorios_em_sequencia("user", "password", reports)
+
+        self.assertEqual(criar.call_count, 2)
+        self.assertEqual(logar.call_count, 2)
+        self.assertEqual([item["estado"] for item in result["itens"]], ["nao_baixado", "baixado", "baixado"])
+        self.assertIn(r"C:\Downloads\Automacao CAP", result["resumo"])
+
+    def test_sem_conseguir_reconectar_os_restantes_ficam_ignorados(self):
+        reports = [{"id": 1, "nome": "A"}, {"id": 2, "nome": "B"}]
+        with patch.object(navegador, "criar_driver", side_effect=[_FakeDriver(), RuntimeError("Edge fechado")]), patch.object(
+            login, "fazer_login"
+        ), patch.object(navegador, "definir_janela_principal"), patch.object(
+            navegador, "sessao_do_driver_ativa", side_effect=[True, False]
+        ), patch.object(execucao, "_executar_relatorio_no_driver", return_value=[r"C:\D\a.xlsx"]), patch.object(
+            downloads, "aguardar_pasta_download_estabilizar", return_value=True
+        ), patch.object(execucao.time, "sleep"):
+            result = execucao.executar_relatorios_em_sequencia("user", "password", reports)
+        estados = [(item["estado"], item["etapa"]) for item in result["itens"]]
+        self.assertEqual(estados, [("baixado", ""), ("ignorado", "autenticacao")])
+
+    def test_falha_no_meio_lista_os_arquivos_de_empresas_ja_salvas(self):
+        relatorio = {"id": 1, "nome": "Analitico", "_arquivos_finais": [r"C:\D\Analitico_242_2026-10-15.xlsx"]}
+        item = execucao._item_de_falha(relatorio, erros.DownloadProcessingError("download", "sem arquivo"))
+        self.assertEqual(item["estado"], "nao_baixado")
+        self.assertEqual(item["arquivos"], [r"C:\D\Analitico_242_2026-10-15.xlsx"])
+        self.assertIn("Analitico_242_2026-10-15.xlsx", item["mensagem"])
+
+    def test_relatorio_baixado_diz_onde_os_arquivos_ficaram(self):
+        item = execucao._montar_item_resultado({"id": 1, "nome": "A"}, "baixado", arquivos=[r"C:\D\a.xlsx", r"C:\D\b.xlsx"])
+        self.assertEqual(item["mensagem"], r"2 arquivo(s) salvo(s) em C:\D: a.xlsx, b.xlsx.")
 
 
 class SingleReportExecutionTests(unittest.TestCase):

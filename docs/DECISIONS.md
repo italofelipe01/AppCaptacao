@@ -118,3 +118,20 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   console do log técnico passa a mostrar INFO com hora e os marcadores do checklist.
 - **Consequência:** a mesma pasta funciona em qualquer computador com Python 3.11+; as etapas da
   automação ficam visíveis na janela, além do arquivo de log.
+
+## D16 — Uma função de janelas para todos os executores no Edge anexado (2026-10-15)
+
+- **Contexto:** num teste real de 7 relatórios, só o primeiro arquivo foi baixado e nenhum foi
+  dado como baixado. Com o Edge anexado pela porta de depuração (desde a versão intermediária), o
+  driver enxerga o diálogo interno `edge://sync-confirmation-dialog/`. Cada executor tinha sua
+  cópia de `_fechar_janelas_extras`, que tentava fechá-lo: travava 20 s, falhava, deixava o driver
+  no diálogo, e o relatório seguinte tratava o diálogo como janela principal, fechava a aba do
+  Sienge e matava a sessão (`invalid session id`). A primeira versão não tinha o problema porque
+  abria um Edge próprio do Selenium.
+- **Decisão:** uma só `navegador.fechar_janelas_extras`, usada por todos os executores: lê a URL
+  das janelas pelo DevTools, nunca toca em janela interna e usa como referência a aba do Sienge
+  guardada depois do login. A operação reconecta ao Edge e refaz o login se a sessão cair (até 2
+  vezes). Falha ao apontar os downloads do Edge anexado para `SELENIUM_DOWNLOAD_DIR` passa a ser
+  erro. A tela mostra cada arquivo salvo durante a execução e a pasta no resultado.
+- **Consequência:** `tests/automacao/test_lote_edge_anexado.py` reproduz a operação do teste real
+  e falha contra a lógica antiga.

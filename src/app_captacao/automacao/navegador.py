@@ -12,6 +12,7 @@ import socket
 import subprocess
 import time
 import os
+import weakref
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -214,21 +215,77 @@ def _anexar_ao_edge_normal():
     )
     driver = webdriver.Edge(options=options)
 
+    pasta_downloads = str(Path(DOWNLOAD_DIR).resolve())
     try:
         driver.execute_cdp_cmd(
             "Browser.setDownloadBehavior",
-            {
-                "behavior": "allow",
-                "downloadPath": str(Path(DOWNLOAD_DIR).resolve()),
-                "eventsEnabled": True,
-            },
+            {"behavior": "allow", "downloadPath": pasta_downloads, "eventsEnabled": True},
         )
-    except Exception:
-        logger.warning("Nao foi possivel configurar downloads via CDP no Edge anexado.")
+    except Exception as exc:
+        # Sem isto o Edge baixa na pasta padrao dele e nenhum relatorio e encontrado depois.
+        raise RuntimeError(
+            f"Nao foi possivel apontar os downloads do Edge para {pasta_downloads}."
+        ) from exc
+    logger.info("Downloads do Edge apontados para %s.", pasta_downloads)
 
     _posicionar_na_aba_web(driver)
     logger.info("Selenium anexado ao Edge normal existente na porta %s.", EDGE_DEBUG_PORT)
     return driver
+
+
+# Aba do Sienge escolhida para cada driver. Guardada fora do driver porque a janela
+# "atual" do Selenium pode ficar num dialogo interno do Edge depois de uma falha.
+_janela_principal: "weakref.WeakKeyDictionary[object, str]" = weakref.WeakKeyDictionary()
+
+
+def _url_eh_interna(url) -> bool:
+    return str(url or "").strip().lower().startswith(_PREFIXOS_PAGINA_INTERNA)
+
+
+def _urls_das_janelas(driver) -> dict[str, str]:
+    """URL de cada janela, lida pelo DevTools sem trocar de janela.
+
+    No Chromium o handle da janela e o targetId do DevTools. Trocar para um dialogo
+    interno do Edge (edge://sync-confirmation-dialog/) e tentar fechar trava 20 s e
+    pode derrubar a sessao do Selenium.
+    """
+    try:
+        resposta = driver.execute_cdp_cmd("Target.getTargets", {})
+    except Exception:
+        return {}
+    if not isinstance(resposta, dict):
+        return {}
+    urls = {}
+    for alvo in resposta.get("targetInfos") or []:
+        if isinstance(alvo, dict) and alvo.get("targetId"):
+            urls[str(alvo["targetId"]).upper()] = str(alvo.get("url") or "")
+    return urls
+
+
+def _url_da_janela(driver, handle, urls) -> str | None:
+    """URL da janela; None se nao der para saber sem risco."""
+    url = urls.get(str(handle).upper())
+    if url is not None:
+        return url
+    try:
+        driver.switch_to.window(handle)
+        return str(driver.current_url or "")
+    except WebDriverException:
+        return None
+
+
+def _escolher_aba_web(driver) -> str | None:
+    host_sienge = (urlsplit(LOGIN_URL).hostname or "").lower()
+    urls = _urls_das_janelas(driver)
+    aba_web = None
+    for handle in list(driver.window_handles):
+        url = _url_da_janela(driver, handle, urls)
+        if url is None or _url_eh_interna(url):
+            continue
+        aba_web = aba_web or handle
+        if host_sienge and (urlsplit(url.lower()).hostname or "") == host_sienge:
+            return handle
+    return aba_web
 
 
 def _posicionar_na_aba_web(driver):
@@ -239,30 +296,50 @@ def _posicionar_na_aba_web(driver):
     edge://sync-confirmation-dialog/. Maximizar esse dialogo falha com
     "Browser window not found".
     """
-    host_sienge = (urlsplit(LOGIN_URL).hostname or "").lower()
-    aba_web = aba_sienge = None
-    for handle in list(driver.window_handles):
-        try:
-            driver.switch_to.window(handle)
-            url = str(driver.current_url or "").lower()
-        except WebDriverException:
-            continue
-        if url.startswith(_PREFIXOS_PAGINA_INTERNA):
-            continue
-        aba_web = aba_web or handle
-        if host_sienge and (urlsplit(url).hostname or "") == host_sienge:
-            aba_sienge = handle
-            break
-
-    if aba_sienge or aba_web:
-        driver.switch_to.window(aba_sienge or aba_web)
+    aba = _escolher_aba_web(driver)
+    if aba:
+        driver.switch_to.window(aba)
     else:
         driver.switch_to.new_window("tab")
+    _janela_principal[driver] = driver.current_window_handle
 
     try:
         driver.maximize_window()
     except WebDriverException:
         logger.warning("Nao foi possivel maximizar a janela do navegador anexado; seguindo assim mesmo.")
+
+
+def definir_janela_principal(driver) -> None:
+    """Guarda a aba atual (a do Sienge, depois do login) como a janela de trabalho."""
+    try:
+        handle = driver.current_window_handle
+    except WebDriverException:
+        return
+    if not _url_eh_interna(_urls_das_janelas(driver).get(str(handle).upper(), "")):
+        _janela_principal[driver] = handle
+
+
+def janela_principal(driver) -> str:
+    """Aba de trabalho do Sienge; se ela sumiu, escolhe outra aba web (ou abre uma)."""
+    handles = list(driver.window_handles)
+    guardada = _janela_principal.get(driver)
+    if guardada and guardada in handles:
+        return guardada
+    _posicionar_na_aba_web(driver)
+    return _janela_principal[driver]
+
+
+def voltar_para_janela_principal(driver) -> None:
+    driver.switch_to.window(janela_principal(driver))
+    driver.switch_to.default_content()
+
+
+def sessao_do_driver_ativa(driver) -> bool:
+    """False quando a sessao do Selenium caiu (invalid session id, navegador fechado)."""
+    try:
+        return bool(driver.window_handles)
+    except WebDriverException:
+        return False
 
 
 def _criar_driver_edge():
@@ -311,17 +388,26 @@ def aguardar_carregamento_da_pagina(driver, wait, timeout=DEFAULT_TIMEOUT):
 
 
 def fechar_janelas_extras(driver):
-    """Fecha as abas extras; dialogo interno do Edge (edge://...) que nao fecha e ignorado."""
-    main = driver.current_window_handle
+    """Fecha as abas web abertas pelo relatorio e volta para a aba do Sienge.
+
+    Nunca toca em janela interna do Edge (edge://, devtools://...) e nunca usa a
+    "janela atual" como referencia: depois de uma falha ela pode ser um dialogo.
+    """
+    principal = janela_principal(driver)
+    urls = _urls_das_janelas(driver)
     for handle in list(driver.window_handles):
-        if handle == main:
+        if handle == principal:
+            continue
+        url = _url_da_janela(driver, handle, urls)
+        if url is None or _url_eh_interna(url):
             continue
         try:
             driver.switch_to.window(handle)
             driver.close()
+            logger.info("Janela extra do relatorio fechada: %s", url or handle)
         except WebDriverException:
-            logger.info("Janela extra %s nao pode ser fechada; seguindo.", handle)
-    driver.switch_to.window(main)
+            logger.warning("Janela extra %s nao pode ser fechada; seguindo.", url or handle)
+    voltar_para_janela_principal(driver)
 
 
 def caminho_navegador(navegador: str = SELENIUM_BROWSER) -> str | None:

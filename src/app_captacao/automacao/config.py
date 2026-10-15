@@ -9,7 +9,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from selenium.webdriver.common.by import By
 
 from app_captacao.core.config import settings  # noqa: F401  (carrega o .env)
 from app_captacao.core.config.environment import get_writable_state_dir
@@ -75,28 +74,5 @@ DOWNLOAD_DIR = (
     or str(Path.home() / "Downloads" / "Automação CAP")
 )
 
-# ============================================================
-# IDENTIFICADORES DE CAMPOS DO SIENGE
-# ============================================================
-
-# Campos fixos para filtros de relatório
-CAMPO_EMPRESA = "filter.empresa.cdEmpresaView"
-CAMPO_EMPREENDIMENTO = "filter.empreend.cdEmpreendView"
+# true salva print e HTML da tela em <pasta de downloads>\_debug_selenium
 DEBUG_ARTIFACTS_ENABLED = os.getenv("SELENIUM_DEBUG_ARTIFACTS", "false").strip().lower() == "true"
-
-# ============================================================
-# MAPA DE LOCATORS SELENIUM
-# ============================================================
-
-# Mapeamento de tipos de localizadores para constantes Selenium
-BY_MAP = {
-    "ID": By.ID,
-    "NAME": By.NAME,
-    "XPATH": By.XPATH,
-    "CSS": By.CSS_SELECTOR,
-    "CSS_SELECTOR": By.CSS_SELECTOR,
-    "CLASS_NAME": By.CLASS_NAME,
-    "TAG_NAME": By.TAG_NAME,
-    "LINK_TEXT": By.LINK_TEXT,
-    "PARTIAL_LINK_TEXT": By.PARTIAL_LINK_TEXT,
-}
