@@ -5,7 +5,8 @@ Ferramenta independente, anterior ao AppCaptacao, que baixa em lote os PDFs da p
 
 Ela **não faz parte do app**: não é importada por `src/`, não é empacotada no executável e não
 passa pelos testes. Fica no repositório porque o fluxo de login dela (Sienge ID + SSO Microsoft)
-foi a referência copiada para `src/app_captacao/automacao/login.py`.
+foi a referência inicial do login do app; o `src/app_captacao/automacao/login.py` atual foi
+reescrito para reconhecer as telas (D14) e não segue mais este script.
 
 ## Como usar
 

@@ -28,7 +28,7 @@ Relatórios, filtros, operações e usuários vivem no **SQL Server** (tabelas `
 .\.venv\Scripts\python.exe run.py                            # checklist e app
 .\.venv\Scripts\python.exe run.py --somente-verificar        # só o checklist
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pytest                         # ~70 testes, sem rede/banco
+.\.venv\Scripts\python.exe -m pytest                         # ~130 testes, sem rede/banco
 .\.venv\Scripts\python.exe -m compileall -q src tests run.py
 npx pyright@1.1.414 --pythonpath .venv\Scripts\python.exe    # deve dar 0 erros
 node --check project\static\js\menu.js

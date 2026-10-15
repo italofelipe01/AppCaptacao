@@ -69,7 +69,7 @@ O perfil vem do banco a cada requisição; o template só esconde botões, a per
 | Jobs de execução | Memória do processo (últimos 200 concluídos) | Até reiniciar o app |
 | E-mail e destino da última execução | Memória, por sessão | Até sair ou reiniciar |
 | Senha do Sienge | Só na thread da execução | Nunca gravada |
-| Log técnico | `%LOCALAPPDATA%\AppCaptacao\logs` | Rotativo, 25 MB |
+| Log técnico | `%LOCALAPPDATA%\AppCaptacao\logs` | Rotativo: o arquivo atual e mais 5 de 5 MB (até 30 MB) |
 
 ## Executáveis
 
