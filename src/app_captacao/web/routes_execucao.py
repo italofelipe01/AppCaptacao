@@ -166,7 +166,6 @@ def relatorio_filtros_dados(relatorio_id: int):
         relatorio = relatorios_repo.buscar_relatorio_com_filtros(relatorio_id)
         if not relatorio:
             return jsonify({"error": "Relatorio nao encontrado."}), 404
-        relatorio = relatorios_repo.aplicar_filtros_fixos_relatorio(relatorio)
 
         filtros = []
         for filtro in relatorio.get("filtros", []):

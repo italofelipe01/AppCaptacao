@@ -90,9 +90,10 @@ restaurada** (D6). Edge sem fallback para Chrome (D5).
 
 ### Catálogo e executores
 
-Executor resolvido em `catalogo/regras.py`: ID do vínculo na operação → trecho da URL → ID do
-relatório → nome. Sem executor = erro de configuração, nunca clique genérico. Particularidade de
-tela vai no executor do relatório.
+Executor resolvido em `catalogo/regras.py`: trecho da URL (terminando a rota) → ID do relatório →
+nome sem acento (chave mais longa vence). Sem executor = erro de configuração, nunca clique
+genérico. Particularidade de tela vai no executor do relatório; filtro de valor fixo vai em
+`FILTROS_FIXOS_POR_EXECUTOR`.
 
 ### Downloads
 

@@ -6,13 +6,15 @@ valores enviados pela tela.
 
 from contextlib import closing
 
+from app_captacao.catalogo import regras
 from app_captacao.core.config.settings import FILTRO_CATALOGO_TABLE as FILTRO_TABLE
 from app_captacao.core.config.settings import RELATORIO_TABLE
 from app_captacao.core.database import sql
 from app_captacao.core.database.connection import get_db_connection
 from app_captacao.core.shared.texto import normalize_text
 
-# Query para buscar relatório com seus filtros associados
+# Relatorio com seus filtros ativos. O filtro de IdAtivo fica no ON: relatorio
+# ativo com todos os filtros inativos continua aparecendo (sem filtros).
 RELATORIO_COM_FILTROS_QUERY = f"""
     SELECT
         r.IdCapRecursoRelatorio,
@@ -28,54 +30,15 @@ RELATORIO_COM_FILTROS_QUERY = f"""
     FROM {RELATORIO_TABLE} r
     LEFT JOIN {FILTRO_TABLE} f
         ON f.IdCapRecursoRelatorio = r.IdCapRecursoRelatorio
+       AND f.IdAtivo = 1
     WHERE r.IdCapRecursoRelatorio = ?
       AND r.IdAtivo = 1
-      AND (f.IdFiltro IS NULL OR f.IdAtivo = 1)
     ORDER BY f.IdFiltro
 """
 
-UNIDADES_SELECAO_CAMPO = "filter.selecao"
-UNIDADES_SELECAO_VALOR = "por Empreendimento"
-
-
-def aplicar_filtros_fixos_relatorio(relatorio):
-    if not relatorio:
-        return relatorio
-
-    nome_relatorio = " ".join(str(relatorio.get("nome") or "").strip().lower().split())
-    if "unidades" not in nome_relatorio:
-        return relatorio
-
-    for filtro in relatorio.get("filtros", []):
-        campo = str(filtro.get("campo_identificador") or "").strip().lower()
-        if campo != UNIDADES_SELECAO_CAMPO:
-            continue
-
-        filtro["valor_fixo"] = UNIDADES_SELECAO_VALOR
-        filtro["valor"] = UNIDADES_SELECAO_VALOR
-        filtro["opcional"] = True
-        filtro["automatico"] = True
-        filtro["tipo_campo_valor"] = "CLICK"
-
-    return relatorio
-
 
 def buscar_relatorio_com_filtros(relatorio_id):
-    """
-    Busca configuração de relatório e seus filtros no banco.
-    
-    Args:
-        relatorio_id: ID do relatório a buscar
-    
-    Returns:
-        dict ou None: Dicionário com dados do relatório e filtros
-    
-    Example:
-        >>> relatorio = buscar_relatorio_com_filtros(1)
-        >>> print(relatorio['nome'])
-        >>> for filtro in relatorio['filtros']:
-        >>>     print(filtro['nome'])
-    """
+    """Relatorio ativo com seus filtros ativos (e os de valor fixo ja preenchidos), ou None."""
     with closing(get_db_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(RELATORIO_COM_FILTROS_QUERY, relatorio_id)
@@ -84,7 +47,6 @@ def buscar_relatorio_com_filtros(relatorio_id):
     if not rows:
         return None
 
-    # Monta estrutura do relatório
     primeira_linha = rows[0]
     relatorio = {
         "id": primeira_linha.IdCapRecursoRelatorio,
@@ -93,7 +55,6 @@ def buscar_relatorio_com_filtros(relatorio_id):
         "filtros": [],
     }
 
-    # Processa filtros encontrados
     for row in rows:
         if row.IdFiltro is None:
             continue
@@ -110,7 +71,7 @@ def buscar_relatorio_com_filtros(relatorio_id):
             }
         )
 
-    return aplicar_filtros_fixos_relatorio(relatorio)
+    return regras.aplicar_filtros_fixos(relatorio)
 
 
 def montar_payload_execucao(relatorio_id, valores_filtros):
@@ -120,25 +81,16 @@ def montar_payload_execucao(relatorio_id, valores_filtros):
 
     filtros_execucao = []
     for filtro in relatorio["filtros"]:
-        chave_padrao = f"filtro_{filtro['id']}"
-        valor = valores_filtros.get(chave_padrao)
-
-        if valor is None and filtro["nome"]:
-            valor = valores_filtros.get(filtro["nome"])
-
         filtro_execucao = dict(filtro)
-        if str(filtro_execucao.get("campo_identificador") or "").strip().lower() == UNIDADES_SELECAO_CAMPO:
-            filtro_execucao["valor"] = UNIDADES_SELECAO_VALOR
-            filtro_execucao["valor_fixo"] = UNIDADES_SELECAO_VALOR
-            filtro_execucao["opcional"] = True
-            filtro_execucao["automatico"] = True
-            filtro_execucao["tipo_campo_valor"] = "CLICK"
-        else:
+        if not filtro_execucao.get("automatico"):
+            valor = valores_filtros.get(f"filtro_{filtro['id']}")
+            if valor is None and filtro["nome"]:
+                valor = valores_filtros.get(filtro["nome"])
             filtro_execucao["valor"] = valor
         filtros_execucao.append(filtro_execucao)
 
     relatorio["filtros"] = filtros_execucao
-    return aplicar_filtros_fixos_relatorio(relatorio)
+    return relatorio
 
 
 def load_relatorios_disponiveis() -> list[dict]:

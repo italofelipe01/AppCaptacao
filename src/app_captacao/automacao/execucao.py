@@ -275,6 +275,14 @@ def _executar_relatorio_no_driver(driver, wait, relatorio_config):
             f"O relatorio '{relatorio_config.get('nome', '')}' nao possui UrlRelatorio cadastrada."
         )
 
+    executor_relatorio = regras.executor_do_relatorio(relatorio_config)
+    if not executor_relatorio:
+        raise ValueError(
+            "Relatorio sem modulo dedicado configurado: "
+            f"id={relatorio_config.get('id')} | "
+            f"nome={relatorio_config.get('nome', '')}"
+        )
+
     driver.switch_to.default_content()
     navegador.fechar_janelas_extras(driver)
 
@@ -285,24 +293,6 @@ def _executar_relatorio_no_driver(driver, wait, relatorio_config):
     )
     driver.get(relatorio_url)
     navegador.aguardar_carregamento_da_pagina(driver, wait)
-
-    url_normalizada = relatorio_url.lower()
-    if "/common/page/3012" in url_normalizada or relatorio_config.get("id") == 7:
-        executor_relatorio = "extrato_cliente_historico"
-    else:
-        executor_relatorio = regras.obter_executor_relatorio(
-            relatorio_config.get("nome", ""),
-            relatorio_config.get("id_relatorio_operacao"),
-            relatorio_config.get("id"),
-            relatorio_url,
-        )
-    if not executor_relatorio:
-        raise ValueError(
-            "Relatorio sem modulo dedicado configurado: "
-            f"id={relatorio_config.get('id')} | "
-            f"id_relatorio_operacao={relatorio_config.get('id_relatorio_operacao')} | "
-            f"nome={relatorio_config.get('nome', '')}"
-        )
 
     if executor_relatorio != "extrato_saldo_devedor_presente":
         time.sleep(6)
