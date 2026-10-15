@@ -113,6 +113,16 @@ class DestinoTests(unittest.TestCase):
                 downloads.copiar_download_para_sharepoint({"sharepoint_link": "Relatorios"}, arquivo)
         self.assertEqual(erro.exception.etapa, "copia")
 
+    def test_arquivo_final_registrado_avisa_a_tela(self):
+        avisos = []
+        relatorio = {"nome": "Vendas", "_ao_registrar_arquivo": avisos.append}
+        with tempfile.TemporaryDirectory() as pasta:
+            arquivo = Path(pasta) / "Vendas_1_2026-10-15.xlsx"
+            arquivo.write_bytes(b"conteudo")
+            downloads.copiar_download_para_sharepoint(relatorio, arquivo)
+        self.assertEqual(avisos, [str(arquivo)])
+        self.assertEqual(relatorio["_arquivos_finais"], [str(arquivo)])
+
     def test_pagina_intermediaria_nao_entra_no_resultado(self):
         with tempfile.TemporaryDirectory() as pasta:
             baixado = Path(pasta) / "export.xlsx"

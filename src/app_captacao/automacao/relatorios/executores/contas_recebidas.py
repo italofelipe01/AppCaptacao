@@ -18,6 +18,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
+from app_captacao.automacao.navegador import fechar_janelas_extras as _fechar_janelas_extras
 
 
 # Constantes de identificação dos campos
@@ -323,19 +324,6 @@ def _obter_valor_iteracao(valores, index):
         return valores[0]
 
     return ""
-
-
-def _fechar_janelas_extras(driver):
-    main_window_handle = driver.current_window_handle
-    handles = list(driver.window_handles)
-
-    for handle in handles:
-        if handle == main_window_handle:
-            continue
-        driver.switch_to.window(handle)
-        driver.close()
-
-    driver.switch_to.window(main_window_handle)
 
 
 def _normalizar_texto(valor):

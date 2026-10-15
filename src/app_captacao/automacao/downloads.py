@@ -250,7 +250,7 @@ def copiar_download_para_sharepoint(relatorio_config, arquivo_origem, registrar_
     if not destino_informado:
         caminho_final = str(arquivo_origem)
         if registrar_resultado:
-            relatorio_config.setdefault("_arquivos_finais", []).append(caminho_final)
+            _registrar_arquivo_final(relatorio_config, caminho_final)
         return caminho_final
 
     motivo = mensagem_destino_invalido(destino_informado)
@@ -270,9 +270,6 @@ def copiar_download_para_sharepoint(relatorio_config, arquivo_origem, registrar_
             raise OSError("A copia no destino nao foi confirmada ou ficou incompleta.")
         logger.info("Download copiado para SharePoint/local | origem=%s | destino=%s", arquivo_origem, destino_arquivo)
         caminho_final = str(destino_arquivo)
-        if registrar_resultado:
-            relatorio_config.setdefault("_arquivos_finais", []).append(caminho_final)
-        return caminho_final
     except OSError as exc:
         logger.exception(
             "Nao foi possivel copiar o arquivo %s para o destino SharePoint/local '%s'.",
@@ -280,6 +277,20 @@ def copiar_download_para_sharepoint(relatorio_config, arquivo_origem, registrar_
             destino_base,
         )
         raise erros.DownloadProcessingError("copia", f"Falha ao copiar o arquivo para o destino: {exc}") from exc
+    if registrar_resultado:
+        _registrar_arquivo_final(relatorio_config, caminho_final)
+    return caminho_final
+
+
+def _registrar_arquivo_final(relatorio_config, caminho_final):
+    """Arquivo confirmado no destino: entra no resultado e e avisado na tela."""
+    relatorio_config.setdefault("_arquivos_finais", []).append(caminho_final)
+    avisar = relatorio_config.get("_ao_registrar_arquivo")
+    if callable(avisar):
+        try:
+            avisar(caminho_final)
+        except Exception:
+            logger.warning("Nao foi possivel atualizar o andamento na tela.", exc_info=True)
 
 
 def mensagem_destino_invalido(destino) -> str:

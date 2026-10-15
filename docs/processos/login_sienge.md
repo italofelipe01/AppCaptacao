@@ -73,6 +73,17 @@ ficam `ignorado` na etapa `autenticacao`, com o motivo na mensagem.
 - Ao anexar, o driver escolhe a aba web (de preferência a do Sienge). Num Windows ligado ao Entra
   ID, o perfil novo entra sozinho na conta e abre o diálogo `edge://sync-confirmation-dialog/`, que
   também aparece como janela.
+- Janelas: depois do login a aba do Sienge fica guardada como **janela principal**
+  (`navegador.definir_janela_principal`). `fechar_janelas_extras` lê a URL de cada janela pelo
+  DevTools (`Target.getTargets`), fecha só as abas web abertas pelo relatório e **nunca** toca em
+  janela interna (`edge://`, `devtools://`...): tentar fechar o diálogo trava 20 s e pode derrubar a
+  sessão do Selenium. A referência é sempre a janela principal guardada, nunca a "janela atual",
+  que depois de uma falha pode ser o diálogo. Todos os executores usam essa mesma função.
+- Os downloads do Edge anexado são apontados para `SELENIUM_DOWNLOAD_DIR` pelo DevTools
+  (`Browser.setDownloadBehavior`); se isso falhar, a execução para com erro claro em vez de baixar
+  na pasta padrão do Edge.
+- Se a sessão do Selenium cair no meio de uma operação (`invalid session id`), a automação se
+  reconecta ao Edge e refaz o login antes do próximo relatório (até 2 vezes por operação).
 - Chrome só com `SELENIUM_BROWSER=chrome`. Falha do Edge **não** cai para o Chrome (D5).
 
 ## Como diagnosticar

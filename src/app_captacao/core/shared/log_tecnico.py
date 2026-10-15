@@ -35,6 +35,22 @@ class _MarcadorDoChecklist(logging.Filter):
         return True
 
 
+class _FormatoConsole(logging.Formatter):
+    """Console sem traceback: so o tipo e a primeira linha do erro. O arquivo guarda o resto."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        if not record.exc_info:
+            return super().format(record)
+        resumo = record.exc_info[1]
+        primeira_linha = str(resumo or "").strip().splitlines()[0] if str(resumo or "").strip() else ""
+        copia = logging.makeLogRecord(record.__dict__)
+        copia.msg = f"{record.getMessage()} ({type(resumo).__name__}: {primeira_linha.removeprefix('Message: ')})"
+        copia.args = None
+        copia.exc_info = None
+        copia.exc_text = None
+        return super().format(copia)
+
+
 def pasta_de_logs() -> Path:
     return get_writable_state_dir().parent / "logs"
 
@@ -48,6 +64,8 @@ def configurar_log_tecnico(console: bool = True) -> Path:
     arquivo.parent.mkdir(parents=True, exist_ok=True)
     logger_app = logging.getLogger("app_captacao")
     logger_app.setLevel(logging.INFO)
+    # O waitress chama logging.basicConfig(): sem isto cada linha sairia duas vezes no console.
+    logger_app.propagate = False
 
     em_arquivo = RotatingFileHandler(
         arquivo, maxBytes=TAMANHO_MAXIMO_BYTES, backupCount=ARQUIVOS_MANTIDOS, encoding="utf-8"
@@ -59,7 +77,7 @@ def configurar_log_tecnico(console: bool = True) -> Path:
         no_console = logging.StreamHandler()
         no_console.setLevel(logging.INFO)
         no_console.addFilter(_MarcadorDoChecklist())
-        no_console.setFormatter(logging.Formatter(FORMATO_CONSOLE, datefmt="%H:%M:%S"))
+        no_console.setFormatter(_FormatoConsole(FORMATO_CONSOLE, datefmt="%H:%M:%S"))
         _handlers.append(no_console)
 
     for handler in _handlers:
@@ -73,3 +91,4 @@ def desligar_log_tecnico() -> None:
         logger_app.removeHandler(handler)
         handler.close()
     _handlers.clear()
+    logger_app.propagate = True

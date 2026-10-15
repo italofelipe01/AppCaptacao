@@ -1,6 +1,7 @@
 """Preenchimento de campos do Sienge oferecido aos executores de relatorio.
 
-Inclui o preenchimento legado em iframe, autocomplete MUI e normalizacao de datas.
+Inclui o autocomplete MUI e a normalizacao de datas. Campos dos formularios
+antigos (em iframe) sao preenchidos por cada executor.
 """
 
 from __future__ import annotations
@@ -14,42 +15,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 
-from app_captacao.automacao.config import BY_MAP
-
 logger = logging.getLogger(__name__)
-
-
-def preencher_campo_legado(driver, wait, filtro):
-    iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
-    driver.switch_to.frame(iframe)
-
-    tipo_campo = (filtro.get("tipo_campo") or "ID").upper()
-    campo_identificador = (filtro.get("campo_identificador") or "").strip()
-    by = BY_MAP.get(tipo_campo, By.ID)
-    valor = normalizar_valor_automacao(filtro)
-
-    logger.info(
-        "Preenchimento legado | nome=%s | tipo=%s | campo=%s | valor=%s",
-        filtro.get("nome", ""),
-        tipo_campo,
-        campo_identificador,
-        valor,
-    )
-
-    try:
-        campo = driver.find_element(by, campo_identificador)
-        campo.clear()
-        time.sleep(1)
-        campo.send_keys(valor, Keys.TAB)
-        time.sleep(1)
-        valor_final = (campo.get_attribute("value") or "").strip()
-        logger.info(
-            "Preenchimento legado concluido | campo=%s | valor_final=%s",
-            campo_identificador,
-            valor_final,
-        )
-    finally:
-        driver.switch_to.default_content()
 
 
 def preencher_autocomplete_com_enter(
