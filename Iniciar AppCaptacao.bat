@@ -112,8 +112,8 @@ goto pausar
 echo.
 echo ==============================================================
 echo   [ERRO ] O AppCaptacao terminou com erro (codigo %CODIGO%).
-echo           Leia as mensagens acima. Detalhes no log tecnico:
-echo           %%LOCALAPPDATA%%\AppCaptacao\logs\appcaptacao.log
+echo           Leia as mensagens acima. Detalhes no log tecnico, no caminho
+echo           mostrado em "Log tecnico:" no inicio desta janela.
 echo ==============================================================
 goto pausar
 

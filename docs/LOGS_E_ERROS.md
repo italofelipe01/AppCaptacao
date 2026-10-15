@@ -14,7 +14,10 @@
 `%LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log` — tudo de `app_captacao.*` a partir de INFO,
 com rotação a cada 5 MB: o arquivo atual e mais 5 anteriores (até 30 MB). O console (janela do `Iniciar AppCaptacao.bat`) mostra as
 mesmas mensagens com a hora e os marcadores do checklist: `[INFO ]` para as etapas da automação,
-`[AVISO]` e `[ERRO ]`. O `run.py` imprime o caminho do arquivo ao iniciar.
+`[AVISO]` e `[ERRO ]`. No console cada erro ocupa uma linha (mensagem, tipo e primeira linha do
+erro); o traceback completo fica só no arquivo. O `run.py` imprime o caminho do arquivo ao iniciar
+("Log tecnico: ..."): com o Python da Microsoft Store o Windows redireciona `%LOCALAPPDATA%` para
+`%LOCALAPPDATA%\Packages\PythonSoftwareFoundation.Python.3.x_...\LocalCache\Local\AppCaptacao`.
 
 ## Logs no banco
 
