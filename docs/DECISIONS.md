@@ -94,3 +94,16 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
 - **Contexto:** herdado: `APP_SAVE_LOGS=false` por padrão.
 - **Decisão:** mantido; o log técnico em arquivo cobre o diagnóstico.
 - **Consequência:** a tela Logs fica vazia até `APP_SAVE_LOGS=true`.
+
+## D14 — Login do Sienge reconhece a tela em vez de seguir passos fixos (2026-10-15)
+
+- **Contexto:** o login esperava sempre e-mail → `loginfmt` → senha. Mapeado no Sienge real: a
+  partir da 2ª execução o Sienge ID mostra a lista de contas lembradas; num Windows ligado ao Entra
+  ID a Microsoft mostra "escolha uma conta" e entra sem senha; o Sienge pede para encerrar a sessão
+  aberta em outro navegador. O código antigo perdia minutos nessas telas e chegava a dar o login por
+  concluído na lista de contas do Sienge ID.
+- **Decisão:** `login.py` identifica a tela a cada ciclo e age nela, só com elementos visíveis.
+  Usuário já conectado → **Prosseguir** (encerra a outra sessão do mesmo usuário). A senha é
+  enviada no máximo uma vez. Sessão ativa exige o host do `SIENGE_LOGIN_URL`.
+- **Consequência:** tela nova do Sienge/Microsoft vira `carregando` e cai no login interativo com o
+  nome da tela no log; o mapa de seletores fica em `docs/processos/login_sienge.md`.
