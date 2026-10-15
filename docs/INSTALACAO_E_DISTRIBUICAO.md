@@ -15,8 +15,21 @@ Dois jeitos de rodar o AppCaptacao. Fonte original: `MANUAL_INSTALACAO_SEGURA.md
 1. Instale o Python 3.11+ marcando **Add python.exe to PATH**.
 2. Copie `.env.example` para `.env` e preencha os dados do banco e a `FLASK_SECRET_KEY`.
 3. Dê duplo clique em `Iniciar AppCaptacao.bat`. Na primeira vez ele cria o `.venv` e instala as
-   bibliotecas (precisa de internet).
+   bibliotecas (precisa de internet). A janela mostra cada etapa e, no fim, com sucesso ou com
+   erro, espera uma tecla para fechar.
 4. (Opcional) `scripts\criar_atalho.bat` cria o atalho na Área de Trabalho.
+
+### Levar para outro computador
+
+- O `.bat` não usa caminho fixo: funciona em qualquer pasta, inclusive com espaços, acentos ou na
+  rede (`\\servidor\...`).
+- O `.venv` guarda o caminho do Python do computador que o criou. Se ele for copiado junto, o
+  `.bat` detecta que não roda e recria com o Python do computador novo. O melhor é não copiá-lo.
+- **Nunca** copie `.env`, `.config\` ou `*.env.enc` para outra pessoa: o `.env` tem a senha do
+  banco em texto puro, e os `.enc` são cifrados com DPAPI para o usuário que os criou (não abrem
+  em outro computador). Em cada computador, crie o `.env` a partir do `.env.example`.
+- Prefira pastas com caminho curto (por exemplo `C:\AppCaptacao`): o Windows limita caminhos a 260
+  caracteres e a instalação das bibliotecas pode falhar em pastas muito profundas.
 
 O checklist pode ser rodado sem abrir o app:
 

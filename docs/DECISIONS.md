@@ -107,3 +107,14 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   enviada no máximo uma vez. Sessão ativa exige o host do `SIENGE_LOGIN_URL`.
 - **Consequência:** tela nova do Sienge/Microsoft vira `carregando` e cai no login interativo com o
   nome da tela no log; o mapa de seletores fica em `docs/processos/login_sienge.md`.
+
+## D15 — Inicializador portátil e janela que mostra tudo (2026-10-15)
+
+- **Contexto:** o projeto foi levado em `.zip` com o `.venv`, que guarda o caminho do Python do
+  computador de origem e não abre em outro. O `.bat` só checava se o `python.exe` existia. A janela
+  fechava sozinha no fim normal e o console mostrava só avisos e erros.
+- **Decisão:** o `.bat` testa o Python do `.venv` e o recria se não rodar, usa `pushd` (pasta na
+  rede), numera as etapas e sempre espera uma tecla no fim, com o resultado (OK ou ERRO). O
+  console do log técnico passa a mostrar INFO com hora e os marcadores do checklist.
+- **Consequência:** a mesma pasta funciona em qualquer computador com Python 3.11+; as etapas da
+  automação ficam visíveis na janela, além do arquivo de log.
