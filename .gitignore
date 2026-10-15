@@ -1,12 +1,13 @@
 # ===== CONFIGURACAO E SEGREDOS (NUNCA FAZER COMMIT) =====
 # Configuracao real fica fora do git: .env na raiz em desenvolvimento e
 # configuracao criptografada por DPAPI no perfil do usuario em producao.
-.env
-.env.enc
+# *.env cobre tambem o .env da raiz; o .env.example nao casa e segue versionado.
 *.env
 *.env.enc
 .config/
-!.env.example
+
+# Copias compactadas da pasta levam .env, .config e .venv junto.
+*.zip
 
 # ===== BUILD (PyInstaller) =====
 build/
@@ -21,10 +22,16 @@ screenshots/
 *.crdownload
 *.tmp
 *.part
+# Relatorios exportados do Sienge e prints/HTML de diagnostico: dados da empresa.
+*.xlsx
+*.xls
+*.csv
+_debug_selenium/
 
 # ===== PYTHON =====
 __pycache__/
 *.py[cod]
+*.egg-info/
 venv/
 .venv/
 .mypy_cache/
