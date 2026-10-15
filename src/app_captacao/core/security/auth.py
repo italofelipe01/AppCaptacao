@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 import os
 from functools import wraps
 
@@ -10,14 +11,16 @@ from werkzeug.security import check_password_hash
 
 
 def verify_password(raw_password: str, stored_password: str) -> bool:
+    """Hash werkzeug ou senha legada em texto puro (tabela compartilhada com outro sistema)."""
     if not stored_password:
         return False
-    try:
-        if stored_password.startswith(("pbkdf2:", "scrypt:")):
+    if stored_password.startswith(("pbkdf2:", "scrypt:")):
+        try:
             return check_password_hash(stored_password, raw_password)
-    except ValueError:
-        pass
-    return stored_password == raw_password
+        except ValueError:
+            # Hash corrompido nao cai para a comparacao em texto puro.
+            return False
+    return hmac.compare_digest(stored_password.encode("utf-8"), raw_password.encode("utf-8"))
 
 
 def bootstrap_admin_profile() -> dict | None:
