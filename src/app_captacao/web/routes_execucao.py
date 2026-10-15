@@ -76,12 +76,12 @@ def processar():
     if motivo_destino:
         flash(motivo_destino, "error")
         return redirect(url_for("main"))
-    jobs.clear_execution_result_for_current_session()
 
     current_job = jobs.get_current_execution_job()
-    if current_job and current_job.get("estado") in {"pendente", "em_execucao"}:
+    if current_job and current_job.get("estado") in jobs.ESTADOS_EM_ANDAMENTO:
         flash("Ja existe uma execucao em andamento para esta sessao.", "error")
         return redirect(url_for("main"))
+    jobs.clear_execution_result_for_current_session()
 
     try:
         if modo == "completo":
@@ -143,6 +143,9 @@ def processar():
             return redirect(url_for("main"))
 
         flash("Selecione um modo de execucao valido.", "error")
+    except jobs.ExecucaoEmAndamentoError as exc:
+        # Outra sessao (ou aba) ja esta usando o Edge e a pasta de downloads deste computador.
+        flash(str(exc), "error")
     except Exception as exc:
         logs_repo.registrar_log_operacao(
             g.current_user["login"],

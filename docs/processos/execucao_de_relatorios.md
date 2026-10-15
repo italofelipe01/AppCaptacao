@@ -17,16 +17,20 @@ opcionalmente, a pasta de destino (`sharepoint_link`).
 ## Passo a passo
 
 1. **Validação** ([routes_execucao.py](../../src/app_captacao/web/routes_execucao.py)):
-   e-mail e senha obrigatórios; uma execução por sessão por vez; filtros obrigatórios
-   preenchidos ([regras.filtros_obrigatorios_sem_valor](../../src/app_captacao/catalogo/regras.py)).
+   e-mail e senha obrigatórios; destino vazio ou com caminho completo (pasta sincronizada ou
+   UNC); filtros obrigatórios preenchidos
+   ([regras.filtros_obrigatorios_sem_valor](../../src/app_captacao/catalogo/regras.py)).
 2. **Job em segundo plano** ([execucao/jobs.py](../../src/app_captacao/execucao/jobs.py)):
-   cria o job com um item por relatório (`pendente`) e dispara uma thread
+   **uma automação por vez no computador**, qualquer que seja a sessão: o Edge da automação (porta
+   de depuração) e a pasta de downloads são compartilhados. Com outra execução em andamento, o
+   pedido é recusado com aviso. Cria o job com um item por relatório (`pendente`) e dispara uma thread
    ([execucao/runner.py](../../src/app_captacao/execucao/runner.py)). A tela consulta
    `/execucoes/atual` para mostrar o andamento.
 3. **Navegador** ([automacao/navegador.py](../../src/app_captacao/automacao/navegador.py)):
    abre o Edge (ou Chrome, se `SELENIUM_BROWSER=chrome`). Não existe troca automática de navegador.
 4. **Login no Sienge** ([automacao/login.py](../../src/app_captacao/automacao/login.py)): ver
-   [login_sienge.md](login_sienge.md). Se o login falhar, todos os relatórios terminam como `ignorado`.
+   [login_sienge.md](login_sienge.md). Se o navegador ou o login falhar, todos os relatórios
+   terminam como `ignorado` na etapa `autenticacao`, tanto no relatório avulso quanto na operação.
 5. **Para cada relatório**, na mesma sessão autenticada
    ([automacao/execucao.py](../../src/app_captacao/automacao/execucao.py)):
    1. abre a `UrlRelatorio` cadastrada;
@@ -38,6 +42,10 @@ opcionalmente, a pasta de destino (`sharepoint_link`).
    falha, os relatórios restantes viram `ignorado` para não associar o arquivo errado.
 7. **Fim**: o job fica `concluida` com o resumo "N baixado(s); M não baixado(s)". Com
    `APP_SAVE_LOGS=true`, o resultado vai para a tabela de log de operação.
+8. **Falha inesperada no meio** (navegador derrubado, erro de programa): o que já terminou fica
+   como estava; o relatório em andamento vira `nao_baixado` e os que não começaram viram
+   `ignorado`, os dois na etapa `execucao`. A tela mostra uma mensagem genérica; o detalhe vai
+   para o log técnico.
 
 ## Estados de cada relatório
 
@@ -47,7 +55,7 @@ opcionalmente, a pasta de destino (`sharepoint_link`).
 | `em_execucao` | Filtros sendo preenchidos ou download em andamento |
 | `baixado` | Arquivo confirmado no destino final |
 | `nao_baixado` | Falhou; `etapa` diz onde: `execucao`, `download`, `renomeacao`, `copia`, `preenchimento_modal` |
-| `ignorado` | Não foi tentado: login falhou (`autenticacao`) ou a pasta de downloads ficou instável (`download`) |
+| `ignorado` | Não foi tentado: login falhou (`autenticacao`), a pasta de downloads ficou instável (`download`) ou a automação parou antes dele por falha inesperada (`execucao`) |
 
 ## Regras que não podem ser quebradas
 

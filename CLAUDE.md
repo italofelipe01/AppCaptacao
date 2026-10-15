@@ -78,8 +78,9 @@ packaging/ scripts/ tools/ docs/
 
 `/processar` → valida filtros (`regras.filtros_obrigatorios_sem_valor`) → `execucao.jobs` cria o
 job → thread `execucao.runner` → `automacao.executar_relatorio(s)`. Estados por relatório:
-`pendente`, `em_execucao`, `baixado`, `nao_baixado` (com `etapa`), `ignorado`. Uma execução por
-sessão. A tela faz polling em `/execucoes/atual`.
+`pendente`, `em_execucao`, `baixado`, `nao_baixado` (com `etapa`), `ignorado`. Uma automação por
+vez no processo (o Edge e a pasta de downloads são do computador): `jobs.create_execution_job`
+recusa com `ExecucaoEmAndamentoError`. A tela faz polling em `/execucoes/atual`.
 
 ### Login no Sienge
 

@@ -48,6 +48,14 @@ class ProcessarTests(unittest.TestCase):
         criar = self._processar(sharepoint_link=r"\\servidor\captacao")
         criar.assert_called_once()
 
+    def test_automacao_de_outra_sessao_rodando_e_avisada_sem_virar_erro(self):
+        with patch.object(relatorios, "montar_payload_execucao", return_value=dict(PAYLOAD)), patch.object(
+            jobs, "create_execution_job", side_effect=jobs.ExecucaoEmAndamentoError("Ja existe uma execucao em andamento neste computador.")
+        ), patch("app_captacao.web.routes_execucao.threading.Thread") as thread:
+            self.client.post("/processar", data={"email": "a@b.com", "senha": "x", "modo": "completo", "relatorio": "3"})
+        thread.assert_not_called()
+        self.assertIn("Ja existe uma execucao em andamento neste computador.", self._flashes())
+
 
 if __name__ == "__main__":
     unittest.main()

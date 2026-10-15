@@ -2,6 +2,9 @@
 
 Guarda as preferencias de execucao (email e destino), o ultimo resultado e o job
 em andamento. O estado vive so no processo: reiniciar o app limpa o historico.
+
+So uma automacao roda por vez no processo: o Edge da automacao (porta de
+depuracao) e a pasta de downloads sao do computador, nao da sessao.
 """
 
 from __future__ import annotations
@@ -22,6 +25,11 @@ _execution_jobs_lock = threading.Lock()
 # Jobs concluidos alem deste limite sao descartados (os mais antigos primeiro),
 # para o processo nao acumular memoria em sessoes longas.
 MAX_JOBS_CONCLUIDOS = 200
+ESTADOS_EM_ANDAMENTO = {"pendente", "em_execucao"}
+
+
+class ExecucaoEmAndamentoError(ValueError):
+    """Ja existe uma automacao rodando neste computador."""
 
 
 def _descartar_jobs_antigos() -> None:
@@ -99,7 +107,14 @@ def get_current_execution_job() -> dict | None:
         return deepcopy(job) if job else None
 
 
+def get_execution_job(job_id: str) -> dict | None:
+    with _execution_jobs_lock:
+        job = _execution_jobs.get(job_id)
+        return deepcopy(job) if job else None
+
+
 def create_execution_job(tipo: str, relatorios: list[dict], operacao_nome: str = "") -> str:
+    """Cria o job e o liga a sessao; recusa se outra automacao ainda estiver rodando."""
     job_id = uuid.uuid4().hex
     itens = [
         {
@@ -115,6 +130,10 @@ def create_execution_job(tipo: str, relatorios: list[dict], operacao_nome: str =
         for relatorio in relatorios
     ]
     with _execution_jobs_lock:
+        if any(job.get("estado") in ESTADOS_EM_ANDAMENTO for job in _execution_jobs.values()):
+            raise ExecucaoEmAndamentoError(
+                "Ja existe uma execucao em andamento neste computador. Aguarde ela terminar."
+            )
         _descartar_jobs_antigos()
         _execution_jobs[job_id] = {
             "id": job_id,
