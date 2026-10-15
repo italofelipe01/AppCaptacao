@@ -51,18 +51,37 @@ class SessionStateTests(unittest.TestCase):
         self.assertFalse(sessao.sessao_sienge_ativa(driver))
 
     def test_session_is_active_only_on_loaded_sienge_page_without_login_controls(self):
-        driver = MagicMock()
-        driver.current_window_handle = "tab-2"
-        driver.window_handles = ["tab-1", "tab-2"]
-        driver.current_url = "https://ebm.sienge.com.br/sienge/8/index.html"
-        driver.execute_script.return_value = "complete"
-        driver.find_elements.return_value = []
+        driver = _driver_na_url(f"https://{_host_sienge()}/sienge/8/index.html")
 
         self.assertTrue(sessao.sessao_sienge_ativa(driver))
+
+    def test_sienge_id_choose_account_screen_is_not_an_active_session(self):
+        # A lista de contas do Sienge ID fica em sienge.com.br e nao tem campo de login.
+        driver = _driver_na_url("https://v-login.sienge.com.br/?chooseAccount=true")
+
+        self.assertFalse(sessao.sessao_sienge_ativa(driver))
+
+    def test_user_already_connected_prompt_is_not_an_active_session(self):
+        driver = _driver_na_url(f"https://{_host_sienge()}/sienge/index.jsp")
+        driver.find_elements.side_effect = lambda by, value: (
+            [object()] if "removerUsuarioLogadoServlet" in value else []
+        )
+
+        self.assertFalse(sessao.sessao_sienge_ativa(driver))
 
 
 def _host_sienge():
     return urlsplit(config.LOGIN_URL).hostname
+
+
+def _driver_na_url(url):
+    driver = MagicMock()
+    driver.current_window_handle = "tab-2"
+    driver.window_handles = ["tab-1", "tab-2"]
+    driver.current_url = url
+    driver.execute_script.return_value = "complete"
+    driver.find_elements.return_value = []
+    return driver
 
 
 class BrowserSelectionTests(unittest.TestCase):
