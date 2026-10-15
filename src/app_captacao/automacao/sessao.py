@@ -11,6 +11,7 @@ import pickle
 import tempfile
 import time
 from hashlib import md5
+from urllib.parse import urlsplit
 
 from selenium.webdriver.common.by import By
 
@@ -134,6 +135,11 @@ def restaurar_sessao_sienge(driver, email):
 
 
 def sessao_sienge_ativa(driver):
+    """Sessao logada: pagina carregada no host do SIENGE_LOGIN_URL e sem tela de login.
+
+    O host precisa ser o do Sienge do cliente: o Sienge ID (v-login.sienge.com.br)
+    tambem fica em sienge.com.br e, na tela "escolher conta", nao tem campo de login.
+    """
     try:
         if driver.current_window_handle not in driver.window_handles:
             return False
@@ -142,17 +148,20 @@ def sessao_sienge_ativa(driver):
     except Exception:
         return False
 
-    if not url_atual or url_atual in {"about:blank", "edge://newtab/", "chrome://newtab/"}:
+    host_sienge = _host_sienge()
+    if not host_sienge or (urlsplit(url_atual).hostname or "") != host_sienge:
         return False
 
     if estado_documento != "complete":
         return False
 
-    if any(token in url_atual for token in ("login.microsoftonline.com", "/oauth", "/signin")):
+    if any(token in url_atual for token in ("/oauth", "/signin", "/auth/sso/")):
         return False
 
     autenticacao_locators = (
         (By.ID, "btnEntrarComSiengeID"),
+        # "Usuario ja conectado ao sistema": link PROSSEGUIR/CANCELAR, ainda sem sessao.
+        (By.CSS_SELECTOR, "a[href*='removerUsuarioLogadoServlet']"),
         (By.NAME, "loginfmt"),
         (By.NAME, "passwd"),
         (By.NAME, "email"),
@@ -165,7 +174,8 @@ def sessao_sienge_ativa(driver):
         except Exception:
             return False
 
-    if "sienge.com.br" not in url_atual:
-        return False
-
     return True
+
+
+def _host_sienge():
+    return (urlsplit(LOGIN_URL).hostname or "").lower()

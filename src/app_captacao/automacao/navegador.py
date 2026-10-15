@@ -13,9 +13,10 @@ import subprocess
 import time
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
 
 from app_captacao.automacao.config import (
@@ -38,6 +39,8 @@ from app_captacao.automacao.config import (
 )
 
 logger = logging.getLogger(__name__)
+
+_PREFIXOS_PAGINA_INTERNA = ("edge://", "chrome://", "devtools://", "chrome-extension://", "extension://")
 
 
 def _configurar_browser_options(options):
@@ -136,13 +139,10 @@ def _anexar_ao_chrome_normal():
     driver = webdriver.Chrome(options=options)
 
     try:
-        handles = list(driver.window_handles)
-        if handles:
-            driver.switch_to.window(handles[-1])
+        _posicionar_na_aba_web(driver)
         driver.get(LOGIN_URL)
-        driver.maximize_window()
         logger.info(
-            "Driver anexado ao Chrome e posicionado na ultima aba com a URL de login do Sienge."
+            "Driver anexado ao Chrome e posicionado na aba web com a URL de login do Sienge."
         )
     except Exception:
         logger.exception("Falha ao posicionar o driver anexado na aba correta do Chrome.")
@@ -226,12 +226,43 @@ def _anexar_ao_edge_normal():
     except Exception:
         logger.warning("Nao foi possivel configurar downloads via CDP no Edge anexado.")
 
-    handles = list(driver.window_handles)
-    if handles:
-        driver.switch_to.window(handles[-1])
-    driver.maximize_window()
+    _posicionar_na_aba_web(driver)
     logger.info("Selenium anexado ao Edge normal existente na porta %s.", EDGE_DEBUG_PORT)
     return driver
+
+
+def _posicionar_na_aba_web(driver):
+    """Coloca o driver numa aba de pagina web, de preferencia a do Sienge, e maximiza.
+
+    O navegador anexado tambem expoe dialogos internos como janelas: num Windows
+    ligado ao Entra ID, o perfil novo do Edge entra sozinho na conta e abre
+    edge://sync-confirmation-dialog/. Maximizar esse dialogo falha com
+    "Browser window not found".
+    """
+    host_sienge = (urlsplit(LOGIN_URL).hostname or "").lower()
+    aba_web = aba_sienge = None
+    for handle in list(driver.window_handles):
+        try:
+            driver.switch_to.window(handle)
+            url = str(driver.current_url or "").lower()
+        except WebDriverException:
+            continue
+        if url.startswith(_PREFIXOS_PAGINA_INTERNA):
+            continue
+        aba_web = aba_web or handle
+        if host_sienge and (urlsplit(url).hostname or "") == host_sienge:
+            aba_sienge = handle
+            break
+
+    if aba_sienge or aba_web:
+        driver.switch_to.window(aba_sienge or aba_web)
+    else:
+        driver.switch_to.new_window("tab")
+
+    try:
+        driver.maximize_window()
+    except WebDriverException:
+        logger.warning("Nao foi possivel maximizar a janela do navegador anexado; seguindo assim mesmo.")
 
 
 def _criar_driver_edge():

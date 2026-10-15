@@ -1,28 +1,61 @@
 # Login no Sienge
 
 A parte mais frágil da automação. Código em
-[automacao/login.py](../../src/app_captacao/automacao/login.py) e
-[automacao/sessao.py](../../src/app_captacao/automacao/sessao.py).
+[automacao/login.py](../../src/app_captacao/automacao/login.py),
+[automacao/sessao.py](../../src/app_captacao/automacao/sessao.py) e, para a escolha da janela do
+Edge, [automacao/navegador.py](../../src/app_captacao/automacao/navegador.py).
 
-## Fluxo automático
+E-mail e senha vêm da tela principal (campos `email` e `senha`, não armazenados) e chegam ao login
+por `/processar` → `execucao/runner.py` → `automacao.executar_relatorio(s)`.
 
-1. Abre `SIENGE_LOGIN_URL` (padrão `https://ebm.sienge.com.br/sienge/`).
-2. Clica em **Entrar com Sienge ID** (`#btnEntrarComSiengeID`).
-3. Preenche o e-mail no primeiro campo que aparecer: `email` ou `username`, e clica em **Continuar**.
-4. Se a tela da Microsoft aparecer (`loginfmt`), preenche o e-mail de novo e avança.
-5. Preenche a senha (`passwd`, `password` ou `input[type=password]`) e clica em **Entrar**
-   (`#idSIButton9`); sem o botão, tenta um botão alternativo e, por fim, ENTER.
-6. Espera `SELENIUM_MICROSOFT_MFA_WAIT_SECONDS` (padrão 60 s) para o MFA/token.
-7. Se aparecer "Continuar conectado?", responde **Não** (`#idBtn_Back`).
-8. Exige sessão estável: 4 confirmações seguidas na mesma URL do domínio Sienge, página carregada
-   e nenhum controle de login na tela.
+## Como o login anda
+
+O login não segue passos fixos. A cada ciclo, `identificar_tela` reconhece a tela aberta e o login
+age nela, até a sessão ficar estável no Sienge. Só elementos **visíveis** contam: a Microsoft deixa
+um campo de senha oculto na tela de e-mail e um de e-mail oculto na tela de senha.
+
+As telas variam conforme o navegador e a máquina. Mapa levantado no Sienge da EBM (out/2026):
+
+| Tela (`TELA_*`) | Como é reconhecida | Ação |
+| --- | --- | --- |
+| Sienge: entrar | `#btnEntrarComSiengeID` | clica |
+| Sienge ID: e-mail | `input[name=email]` | preenche e clica em **Continuar** |
+| Sienge ID: escolher conta | `[data-testid=sign-in-v2-choose-account-container]` | clica no usuário atual ou no e-mail lembrado; senão, **Usar outra conta** |
+| Sienge ID: senha (conta local) | `input[name=password]` | preenche uma vez e continua |
+| Microsoft: escolha uma conta | `#tilesHolder` | clica na conta do e-mail (`[data-test-id]`); senão, `#otherTile` |
+| Microsoft: e-mail | `input[name=loginfmt]` visível | preenche e clica em **Avançar** (`#idSIButton9`) |
+| Microsoft: senha | `input[name=passwd]` visível | preenche **uma vez** e clica em **Entrar** |
+| Microsoft: MFA | `#idDiv_SAOTCAS_Title` / `#idRichContext_DisplaySign` | espera a aprovação; o número vai para o log |
+| Microsoft: continuar conectado? | `#KmsiCheckboxField` ou URL `/kmsi` | responde **Não** (`#idBtn_Back`) |
+| Sienge: usuário já conectado | link `removerUsuarioLogadoServlet?acao=S` | **Prosseguir**: encerra a outra sessão do usuário |
+| Sienge: logado | host do `SIENGE_LOGIN_URL`, página carregada, sem tela de login | 4 confirmações na mesma URL |
+
+Por que as telas mudam:
+
+- **Sienge ID "escolher conta"**: o Sienge ID lembra os e-mails no `localStorage`
+  (`remembered-logins`) do perfil do navegador. O perfil da automação é persistente, então a partir
+  da segunda execução a tela de e-mail dá lugar à lista de contas.
+- **Microsoft "escolha uma conta"**: o Sienge pede `prompt=select_account`. Num Windows ligado ao
+  Entra ID, a Microsoft lista a conta do Windows ("Conectado ao Windows") e entra sem senha nem MFA.
+  Sem essa ligação aparecem e-mail, senha e MFA.
+- **Usuário já conectado**: o Sienge aceita uma sessão por usuário. Se o usuário estiver logado em
+  outro navegador, a automação encerra aquela sessão para entrar.
+
+A senha nunca é enviada duas vezes: repetir uma senha recusada pode bloquear a conta no Entra ID.
+
+## Prazos
+
+- Tela sem ação (carregando ou desconhecida): até `max(SELENIUM_DEFAULT_TIMEOUT, 30)` segundos.
+- Tela de MFA: até `SELENIUM_MICROSOFT_MFA_WAIT_SECONDS` (padrão 60 s) para a aprovação.
+- Cada ação é repetida no máximo 3 vezes na mesma tela (a senha, 1 vez).
 
 ## Quando o automático falha
 
-Qualquer falha do fluxo acima (frame do SSO desanexado, campo ausente, MFA não concluído) cai no
-**login interativo**: a mesma janela fica aberta por até `SIENGE_INTERACTIVE_LOGIN_TIMEOUT_SECONDS`
-(padrão 180 s, nunca menos que a espera do MFA) para o usuário concluir o login e o token à mão.
-Concluído, a sessão é salva (se `SIENGE_SESSION_REUSE_ENABLED=true`).
+Senha recusada, MFA não aprovado no prazo, tela que não avança ou tela desconhecida (layout novo)
+caem no **login interativo**: a mesma janela fica aberta por até
+`SIENGE_INTERACTIVE_LOGIN_TIMEOUT_SECONDS` (padrão 180 s) para o usuário concluir à mão. Concluído,
+a sessão é salva (se `SIENGE_SESSION_REUSE_ENABLED=true`). Se não concluir, todos os relatórios
+ficam `ignorado` na etapa `autenticacao`, com o motivo na mensagem.
 
 ## Sessão salva
 
@@ -35,12 +68,18 @@ Concluído, a sessão é salva (se `SIENGE_SESSION_REUSE_ENABLED=true`).
 
 - Padrão: Edge, anexado por porta de depuração (`SELENIUM_ATTACH_NORMAL_EDGE=true`, porta 9223)
   com perfil exclusivo da automação em `%LOCALAPPDATA%\AppCaptacao\state\edge_automation_profile`.
+  O Edge continua aberto entre execuções; com a sessão do Sienge ainda válida, o login termina na
+  primeira verificação.
+- Ao anexar, o driver escolhe a aba web (de preferência a do Sienge). Num Windows ligado ao Entra
+  ID, o perfil novo entra sozinho na conta e abre o diálogo `edge://sync-confirmation-dialog/`, que
+  também aparece como janela.
 - Chrome só com `SELENIUM_BROWSER=chrome`. Falha do Edge **não** cai para o Chrome (D5).
 
 ## Como diagnosticar
 
-- O passo a passo fica no log técnico (`%LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log`).
+- O log técnico (`%LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log`) registra cada tela reconhecida
+  (`Login Sienge: tela ...`) e cada escolha de conta.
+- Uma tela que fica em `carregando` até o prazo indica layout novo: compare o HTML da tela com os
+  seletores do mapa acima e ajuste `automacao/login.py`, nunca com exceção por usuário.
 - Com `SELENIUM_DEBUG_ARTIFACTS=true`, os executores salvam print e HTML da tela em
   `<pasta de downloads>\_debug_selenium\`.
-- Mudança de layout do SSO ou do Sienge exige ajuste nos seletores deste módulo, nunca uma
-  exceção por usuário.
