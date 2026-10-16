@@ -26,3 +26,5 @@ antes do código.
   repetida, e consolidado conferido com os totais do Sienge.
 - [frontend-css-gerado.md](frontend-css-gerado.md) — CSS gerado a partir dos templates (fatia 1
   da revisão do frontend).
+- [frontend-estrutura-acessibilidade.md](frontend-estrutura-acessibilidade.md) — menu fixo,
+  andamento no topo, tabelas sem esconder ações, rótulos, senhas e modais pelo teclado (fatia 2).

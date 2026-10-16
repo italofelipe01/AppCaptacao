@@ -34,7 +34,7 @@
                     {% if mensagens %}
                         <div class="mb-6 space-y-3">
                             {% for categoria, mensagem in mensagens %}
-                                <div class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">
+                                <div {% if categoria == 'success' %}role="status"{% else %}role="alert"{% endif %} class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">
                                     {{ mensagem }}
                                 </div>
                             {% endfor %}
@@ -95,29 +95,30 @@
                         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
                             <thead class="bg-slate-50 dark:bg-slate-800/60">
                                 <tr>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Login</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Email</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Area</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acesso</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Status</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acoes</th>
+                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Login</th>
+                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Email</th>
+                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Area</th>
+                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acesso</th>
+                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Status</th>
+                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acoes</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
                                 {% if usuarios_lista %}
                                     {% for usuario in usuarios_lista %}
                                     <tr>
-                                        <td class="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ usuario.login }}</td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ usuario.email }}</td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ usuario.area }}</td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ usuario.perfil }}</td>
-                                        <td class="px-6 py-4 text-sm">
-                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {% if usuario.ativo %}bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                        <td class="px-4 py-4 2xl:px-6 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ usuario.login }}</td>
+                                        {# O e-mail quebra onde precisar: inteiro, empurrava a coluna Acoes para fora da tela em 1366. #}
+                                        <td class="px-4 py-4 2xl:px-6 text-sm text-slate-500 [overflow-wrap:anywhere] dark:text-slate-300">{{ usuario.email }}</td>
+                                        <td class="px-4 py-4 2xl:px-6 text-sm text-slate-500 dark:text-slate-300">{{ usuario.area }}</td>
+                                        <td class="px-4 py-4 2xl:px-6 text-sm text-slate-500 dark:text-slate-300">{{ usuario.perfil }}</td>
+                                        <td class="px-4 py-4 2xl:px-6 text-sm">
+                                            <span class="inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {% if usuario.ativo %}bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
                                                 {{ usuario.status }}
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4">
-                                            <div class="flex flex-wrap gap-2">
+                                        <td class="whitespace-nowrap px-4 py-4 2xl:px-6">
+                                            <div class="flex gap-2">
                                                 <button
                                                     type="button"
                                                     data-modal-edicao
@@ -174,16 +175,16 @@
     </div>
 </section>
 
-<div id="modal-usuario-criar" class="app-modal-overlay fixed inset-0 z-50 hidden bg-slate-950/55" role="dialog" aria-modal="true">
+<div id="modal-usuario-criar" class="app-modal-overlay fixed inset-0 z-50 hidden bg-slate-950/55" role="dialog" aria-modal="true" aria-labelledby="modal-usuario-criar-titulo">
     <div class="app-modal-panel max-w-3xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
         <div class="app-modal-header border-b border-slate-200 px-7 py-6 dark:border-slate-800">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300">Cadastro</p>
-                    <h2 class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Novo usuario</h2>
+                    <h2 id="modal-usuario-criar-titulo" class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Novo usuario</h2>
                 </div>
                 <button type="button" onclick="fecharModal('modal-usuario-criar')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
                 </button>
             </div>
         </div>
@@ -195,7 +196,7 @@
                 </div>
                 <div class="flex flex-col">
                     <label for="criar-login" class="text-sm font-medium text-slate-700 dark:text-slate-200">Login</label>
-                    <input id="criar-login" name="login_usuario" type="text" value="{{ modal_usuario_login or '' }}" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                    <input id="criar-login" name="login_usuario" type="text" value="{{ modal_usuario_login or '' }}" required autocomplete="off" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                 </div>
                 <div class="flex flex-col">
                     <label for="criar-area" class="text-sm font-medium text-slate-700 dark:text-slate-200">Area</label>
@@ -220,11 +221,12 @@
                 </div>
                 <div class="flex flex-col">
                     <label for="criar-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha</label>
-                    <input id="criar-senha" name="senha" type="password" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                    {# new-password: sem ele o Edge preenche a senha do administrador logado no usuario novo. #}
+                    <input id="criar-senha" name="senha" type="password" required autocomplete="new-password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                 </div>
                 <div class="flex flex-col">
                     <label for="criar-confirmar-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Confirmar senha</label>
-                    <input id="criar-confirmar-senha" name="confirmar_senha" type="password" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                    <input id="criar-confirmar-senha" name="confirmar_senha" type="password" required autocomplete="new-password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                 </div>
             </div>
             <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-slate-800">
@@ -235,16 +237,16 @@
     </div>
 </div>
 
-<div id="modal-usuario-editar" class="app-modal-overlay fixed inset-0 z-50 hidden bg-slate-950/55" role="dialog" aria-modal="true">
+<div id="modal-usuario-editar" class="app-modal-overlay fixed inset-0 z-50 hidden bg-slate-950/55" role="dialog" aria-modal="true" aria-labelledby="modal-usuario-editar-titulo">
     <div class="app-modal-panel max-w-3xl overflow-hidden rounded-[32px] border border-white/60 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
         <div class="app-modal-header border-b border-slate-200 px-7 py-6 dark:border-slate-800">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-300">Edicao</p>
-                    <h2 class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Editar usuario</h2>
+                    <h2 id="modal-usuario-editar-titulo" class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Editar usuario</h2>
                 </div>
                 <button type="button" onclick="fecharModal('modal-usuario-editar')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
                 </button>
             </div>
         </div>
@@ -282,11 +284,11 @@
                 </div>
                 <div class="flex flex-col">
                     <label for="editar-usuario-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nova senha</label>
-                    <input id="editar-usuario-senha" name="senha" type="password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                    <input id="editar-usuario-senha" name="senha" type="password" autocomplete="new-password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                 </div>
                 <div class="flex flex-col">
                     <label for="editar-usuario-confirmar-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Confirmar nova senha</label>
-                    <input id="editar-usuario-confirmar-senha" name="confirmar_senha" type="password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                    <input id="editar-usuario-confirmar-senha" name="confirmar_senha" type="password" autocomplete="new-password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                 </div>
             </div>
             <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-slate-800">
@@ -308,22 +310,7 @@
     "modal_usuario_id_acesso": modal_usuario_id_acesso,
 }|tojson }}</script>
 <script>
-    function abrirModal(modalId) {
-        const modal = document.getElementById(modalId);
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
-        document.body.classList.add("modal-open");
-    }
-
-    function fecharModal(modalId) {
-        const modal = document.getElementById(modalId);
-        modal.classList.add("hidden");
-        modal.classList.remove("flex");
-        if (!document.querySelector(".app-modal-overlay.flex")) {
-            document.body.classList.remove("modal-open");
-        }
-    }
-
+    // abrirModal e fecharModal (foco, Tab, Esc e clique fora) vem de static/js/modal.js.
     function abrirModalCriacao() {
         abrirModal("modal-usuario-criar");
     }
@@ -379,21 +366,6 @@
                 modalUsuarioIdAcesso || "",
             );
         }
-    });
-
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") {
-            ["modal-usuario-criar", "modal-usuario-editar"].forEach((modalId) => fecharModal(modalId));
-        }
-    });
-
-    document.addEventListener("click", (event) => {
-        ["modal-usuario-criar", "modal-usuario-editar"].forEach((modalId) => {
-            const modal = document.getElementById(modalId);
-            if (event.target === modal) {
-                fecharModal(modalId);
-            }
-        });
     });
 </script>
 {% endblock %}

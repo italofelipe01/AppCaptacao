@@ -47,9 +47,10 @@
 
                     <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Usuario</label>
+                            <label for="filtro-usuario" class="text-sm font-medium text-slate-700 dark:text-slate-200">Usuario</label>
                             <input
                                 type="text"
+                                id="filtro-usuario"
                                 name="usuario"
                                 value="{{ filtros.usuario }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -57,8 +58,9 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Tipo de evento</label>
+                            <label for="filtro-tipo-evento" class="text-sm font-medium text-slate-700 dark:text-slate-200">Tipo de evento</label>
                             <select
+                                id="filtro-tipo-evento"
                                 name="tipo_evento"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
                             >
@@ -75,9 +77,10 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicio</label>
+                            <label for="filtro-data-inicio" class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicio</label>
                             <input
                                 type="date"
+                                id="filtro-data-inicio"
                                 name="data_inicio"
                                 value="{{ filtros.data_inicio }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -85,9 +88,10 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data fim</label>
+                            <label for="filtro-data-fim" class="text-sm font-medium text-slate-700 dark:text-slate-200">Data fim</label>
                             <input
                                 type="date"
+                                id="filtro-data-fim"
                                 name="data_fim"
                                 value="{{ filtros.data_fim }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -121,9 +125,10 @@
 
                     <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operacao</label>
+                            <label for="filtro-nome-operacao" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operacao</label>
                             <input
                                 type="text"
+                                id="filtro-nome-operacao"
                                 name="nome_operacao"
                                 value="{{ filtros.nome_operacao }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -131,8 +136,9 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Status</label>
+                            <label for="filtro-status" class="text-sm font-medium text-slate-700 dark:text-slate-200">Status</label>
                             <select
+                                id="filtro-status"
                                 name="status"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
                             >
@@ -145,9 +151,10 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Responsavel</label>
+                            <label for="filtro-responsavel" class="text-sm font-medium text-slate-700 dark:text-slate-200">Responsavel</label>
                             <input
                                 type="text"
+                                id="filtro-responsavel"
                                 name="responsavel"
                                 value="{{ filtros.responsavel }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -155,9 +162,10 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicio</label>
+                            <label for="filtro-data-inicio" class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicio</label>
                             <input
                                 type="date"
+                                id="filtro-data-inicio"
                                 name="data_inicio"
                                 value="{{ filtros.data_inicio }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -224,7 +232,7 @@
                                             <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">{{ registro.nome_relatorio }}</p>
                                         </td>
                                         <td class="px-6 py-4 text-sm">
-                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {% if registro.status == 'sucesso' %}bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300{% elif registro.status == 'erro' %}bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                            <span class="inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {% if registro.status == 'sucesso' %}bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300{% elif registro.status == 'erro' %}bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
                                                 {{ registro.status }}
                                             </span>
                                         </td>

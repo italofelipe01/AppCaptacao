@@ -45,11 +45,15 @@ html.dark body.app-shell {
         linear-gradient(180deg, #020617 0%, #0f172a 48%, #111827 100%);
 }
 
+/* Fixo na altura da janela: acompanhando a pagina, levava Tema e Sair para o fim dela. */
 .app-sidebar {
-    position: relative;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
     z-index: 10;
     width: 17rem;
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
     overflow: visible;
     transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
@@ -154,6 +158,17 @@ html.dark img.logo-placa {
 .app-sidebar.is-collapsed .sidebar-nav a,
 .app-sidebar.is-collapsed .sidebar-footer :is(a, button) {
     padding-inline: 0;
+}
+
+/* Janela baixa (1366x768 e 1920 a 150% com o Edge maximizado): o menu aberto pedia 602 px e o
+   ultimo item ficava fora da lista. Menos respiro vertical, mesmo desenho. */
+@media (max-height: 700px) {
+    .app-sidebar .sidebar-header { padding-block: 0.75rem; }
+    .app-sidebar .sidebar-nav { padding-block: 0.75rem; }
+    .app-sidebar .sidebar-footer { padding-block: 0.5rem; }
+    .app-sidebar .sidebar-footer button { margin-bottom: 0.25rem; }
+    .app-sidebar :is(.sidebar-nav a, .sidebar-footer a, .sidebar-footer button) { padding-block: 0.5rem; }
+    .app-sidebar.is-collapsed .sidebar-toggle { top: 4.65rem; }
 }
 
 body.app-shell,

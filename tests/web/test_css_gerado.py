@@ -41,10 +41,19 @@ def classes_dos_templates() -> dict[str, str]:
     return encontradas
 
 
+# Escape de CSS: hexadecimal (".\32xl\:px-6" = "2xl:px-6", classe que comeca com digito) ou literal.
+_ESCAPE_CSS = re.compile(r"\\([0-9a-fA-F]{1,6}) ?|\\(.)")
+
+
+def _desescapar(nome: str) -> str:
+    return _ESCAPE_CSS.sub(lambda m: chr(int(m.group(1), 16)) if m.group(1) else m.group(2), nome)
+
+
 def classes_com_regra(*arquivos: Path) -> set[str]:
     css = "".join(arquivo.read_text(encoding="utf-8") for arquivo in arquivos)
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
-    return {re.sub(r"\\(.)", r"\1", nome) for nome in re.findall(r"\.((?:\\.|[A-Za-z0-9_-])+)", css)}
+    nomes = re.findall(r"\.((?:\\[0-9a-fA-F]{1,6} ?|\\.|[A-Za-z0-9_-])+)", css)
+    return {_desescapar(nome) for nome in nomes}
 
 
 class CssGeradoTests(unittest.TestCase):

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AppCaptação</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-local.css', v='20261016-1') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='20261016-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-local.css', v='20261016-2') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='20261016-2') }}">
     <script>
         (() => {
             const savedTheme = localStorage.getItem("theme");
@@ -45,7 +45,7 @@
                 {# No canto, e nao numa linha propria: assim o Entrar cabe na tela de um notebook 1366x768. #}
                 <div class="absolute right-8 top-8 sm:right-12 sm:top-12">
                     <button type="button" onclick="toggleTheme()" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v2.5"></path><path d="M12 18.5V21"></path><path d="M3 12h2.5"></path><path d="M18.5 12H21"></path><circle cx="12" cy="12" r="3.5"></circle></svg>
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3v2.5"></path><path d="M12 18.5V21"></path><path d="M3 12h2.5"></path><path d="M18.5 12H21"></path><circle cx="12" cy="12" r="3.5"></circle></svg>
                         <span id="login-theme-label">Tema escuro</span>
                     </button>
                 </div>
@@ -57,12 +57,12 @@
                 </div>
                 {% with mensagens = get_flashed_messages(with_categories=true) %}
                     {% if mensagens %}<div class="mb-6 space-y-3">
-                        {% for categoria, mensagem in mensagens %}<div class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">{{ mensagem }}</div>{% endfor %}
+                        {% for categoria, mensagem in mensagens %}<div {% if categoria == 'success' %}role="status"{% else %}role="alert"{% endif %} class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">{{ mensagem }}</div>{% endfor %}
                     </div>{% endif %}
                 {% endwith %}
                 <form action="{{ url_for('login') }}" method="POST" class="space-y-6">
-                    <div class="flex flex-col"><label class="text-sm font-medium text-slate-700 dark:text-slate-200">Usuário</label><input type="text" name="login" required autocomplete="username" class="mt-2 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></div>
-                    <div class="flex flex-col"><label class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha</label><input type="password" name="senha" required autocomplete="current-password" class="mt-2 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></div>
+                    <div class="flex flex-col"><label for="login-usuario" class="text-sm font-medium text-slate-700 dark:text-slate-200">Usuário</label><input type="text" id="login-usuario" name="login" required autocomplete="username" class="mt-2 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></div>
+                    <div class="flex flex-col"><label for="login-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha</label><input type="password" id="login-senha" name="senha" required autocomplete="current-password" class="mt-2 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></div>
                     <button type="submit" class="tech-primary-button w-full rounded-xl bg-slate-950 px-4 py-4 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">Entrar</button>
                 </form>
             </div>

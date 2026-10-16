@@ -187,3 +187,27 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   regra (lembrar de rodar o script). No escuro, as falhas de contraste medidas caíram de 33 para
   10. No login, o botão de tema foi para o canto do cartão para o Entrar continuar visível num
   notebook 1366×768 (o espaçamento que passou a valer o empurrava 62 px para baixo).
+
+## D20 — Estrutura das telas e modais num script só (2026-10-16)
+
+- **Contexto:** medido nas áreas úteis reais do Edge, o andamento da execução começava em
+  y=1201 (abaixo do formulário), o menu levava Tema e Sair para o fim da página, os botões das
+  tabelas empilhavam e a coluna Ações de Usuários sumia a partir de 1366. Usuários e Operações
+  tinham cada um a sua cópia de `abrirModal`/`fecharModal`. Nelas o foco não entrava no modal, Esc
+  fechava tudo (até na busca do combobox) e Esc ou clique fora descartavam o que foi digitado.
+- **Decisão:** o menu é `sticky` na altura da janela, e só a lista do meio rola. O estado
+  recolhido é aplicado por um script logo depois do `<aside>`, antes da primeira pintura. Na tela
+  de execução, o andamento e o resultado vêm antes do formulário, e só o resumo é `aria-live`.
+  O comportamento de modal fica em `project/static/js/modal.js`, carregado pelo layout:
+  - o foco vai para o primeiro campo e volta para quem abriu;
+  - o Tab fica preso no modal;
+  - Esc e clique fora fecham o modal de cima, com confirmação se algo mudou.
+
+  Os templates não redefinem essas funções. Um componente dentro do modal que use Esc (o combobox)
+  chama `stopPropagation`.
+- **Consequência:** `tests/web/test_estrutura_frontend.py` cobre rótulos, `autocomplete` das senhas,
+  a ordem da tela de execução, `aria-live`, títulos dos modais e o script único. Foco, Tab e Esc
+  foram conferidos no Edge, porque não há navegador nos testes. Para as ações caberem em 1280, as
+  células das duas tabelas usam 16 px de respiro lateral abaixo de 1536 px, e "Adicionar
+  relatorios" virou "Relatórios". O leitor de CSS do teste de classes passou a decodificar escape
+  hexadecimal (`.\32xl\:px-6`).

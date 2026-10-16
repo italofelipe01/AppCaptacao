@@ -208,6 +208,18 @@ table {
   }
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .pointer-events-none {
   pointer-events: none;
 }
@@ -427,6 +439,10 @@ table {
 
 .max-h-72 {
   max-height: 18rem;
+}
+
+.min-h-0 {
+  min-height: 0px;
 }
 
 .min-h-\[650px\] {
@@ -660,6 +676,10 @@ table {
   border-color: rgb(226 232 240 / var(--tw-divide-opacity, 1));
 }
 
+.self-start {
+  align-self: flex-start;
+}
+
 .overflow-hidden {
   overflow: hidden;
 }
@@ -675,6 +695,10 @@ table {
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.whitespace-nowrap {
   white-space: nowrap;
 }
 
@@ -1316,6 +1340,10 @@ table {
   transition-duration: 300ms;
 }
 
+.\[overflow-wrap\:anywhere\] {
+  overflow-wrap: anywhere;
+}
+
 /* Reset do app: o do arquivo antigo, mais borda padrao e botao sem o fundo do navegador. */
 
 .hover\:bg-amber-600:hover {
@@ -1363,9 +1391,80 @@ table {
   color: rgb(15 23 42 / var(--tw-text-opacity, 1));
 }
 
+.focus\:not-sr-only:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+.focus\:fixed:focus {
+  position: fixed;
+}
+
+.focus\:left-4:focus {
+  left: 1rem;
+}
+
+.focus\:top-4:focus {
+  top: 1rem;
+}
+
+.focus\:z-50:focus {
+  z-index: 50;
+}
+
+.focus\:rounded-xl:focus {
+  border-radius: 0.75rem;
+}
+
 .focus\:border-slate-400:focus {
   --tw-border-opacity: 1;
   border-color: rgb(148 163 184 / var(--tw-border-opacity, 1));
+}
+
+.focus\:bg-white:focus {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+
+.focus\:px-4:focus {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.focus\:py-3:focus {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.focus\:text-sm:focus {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.focus\:font-semibold:focus {
+  font-weight: 600;
+}
+
+.focus\:text-slate-900:focus {
+  --tw-text-opacity: 1;
+  color: rgb(15 23 42 / var(--tw-text-opacity, 1));
+}
+
+.focus\:shadow-soft:focus {
+  --tw-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  --tw-shadow-colored: 0 20px 50px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.focus\:outline-none:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
 }
 
 .focus\:ring-2:focus {
@@ -1735,5 +1834,12 @@ table {
 @media (min-width: 1280px) {
   .xl\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1536px) {
+  .\32xl\:px-6 {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 }
