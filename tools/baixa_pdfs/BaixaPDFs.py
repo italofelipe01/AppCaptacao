@@ -1,3 +1,7 @@
+# Pillow, requests e pandas sao instalados pelo proprio script (instalar_dependencias) e nao
+# fazem parte do .venv do AppCaptacao; ver tools/baixa_pdfs/README.md.
+# pyright: reportMissingImports=false, reportMissingModuleSource=false
+
 # ================= INSTALAÇÃO AUTOMÁTICA DE DEPENDÊNCIAS =================
 import subprocess
 import sys
@@ -47,10 +51,8 @@ logging.basicConfig(
 
 # ================= UTILITÁRIOS =================
 def recurso_caminho(relativo):
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
+    # _MEIPASS so existe no executavel do PyInstaller (pasta onde ele extrai os arquivos).
+    base_path = getattr(sys, "_MEIPASS", os.path.abspath("."))
     return os.path.join(base_path, relativo)
 
 def sanitizar_nome_arquivo(nome):
@@ -138,8 +140,8 @@ def importar_excel():
     if caminho_arquivo:
         try:
             df = pd.read_excel(caminho_arquivo, usecols=[0], header=None)
-            lista_codigos = df[0].dropna().astype(str).tolist()
-            lista_codigos = [c.split('.')[0].strip() for c in lista_codigos]
+            # str(): o Excel entrega 101 como 101.0; o codigo e o que vem antes do ponto.
+            lista_codigos = [str(c).split('.')[0].strip() for c in df[0].dropna().tolist()]
             texto_formatado = ", ".join(lista_codigos)
             entry_empresa.delete(0, tk.END)
             entry_empresa.insert(0, texto_formatado)
@@ -221,7 +223,7 @@ def _clicar_elemento_com_fallback(driver, locator, descricao=None):
             time.sleep(0.5)
 
     logging.error("Nao foi possivel clicar no elemento %s apos varias tentativas: %s", descricao or "elemento", ultimo_erro)
-    raise ultimo_erro
+    raise ultimo_erro or RuntimeError(f"Nao foi possivel clicar em {descricao or 'elemento'}.")
 
 
 def login_sienge(email, senha):
@@ -487,9 +489,9 @@ root.resizable(False, False)
 try:
     img = Image.open(recurso_caminho("ebm.png"))
     img = img.resize((150, int(150 * img.size[1] / img.size[0])))
+    # img_tk fica numa variavel do modulo: o Tk nao guarda referencia e, coletada, a imagem some.
     img_tk = ImageTk.PhotoImage(img)
     lbl = tk.Label(root, image=img_tk)
-    lbl.image = img_tk
     lbl.pack(pady=(15, 5))
 except: pass
 
