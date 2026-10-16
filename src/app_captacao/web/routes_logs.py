@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from flask import g, jsonify, render_template, request
 
+from app_captacao.core.config import settings
 from app_captacao.core.database import sql
 from app_captacao.core.persistence import logs as logs_repo
 from app_captacao.core.security.auth import access_required, login_required
@@ -47,7 +48,10 @@ def _carregar_registros(aba: str) -> tuple[dict, list[dict]]:
 def logs():
     aba = _aba_permitida()
     filtros, registros = _carregar_registros(aba)
-    return render_template("logs.html", aba=aba, filtros=filtros, registros=registros)
+    # Lista vazia: a tela diz se e filtro sem resultado ou gravacao desligada (APP_SAVE_LOGS).
+    return render_template(
+        "logs.html", aba=aba, filtros=filtros, registros=registros, logs_gravados=settings.SAVE_LOGS
+    )
 
 
 @rotas.get("/logs/exportar")

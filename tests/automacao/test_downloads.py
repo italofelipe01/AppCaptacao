@@ -116,12 +116,65 @@ class DestinoTests(unittest.TestCase):
     def test_arquivo_final_registrado_avisa_a_tela(self):
         avisos = []
         relatorio = {"nome": "Vendas", "_ao_registrar_arquivo": avisos.append}
-        with tempfile.TemporaryDirectory() as pasta:
+        with tempfile.TemporaryDirectory() as pasta, patch.object(downloads, "DOWNLOAD_DIR", pasta):
             arquivo = Path(pasta) / "Vendas_1_2026-10-15.xlsx"
             arquivo.write_bytes(b"conteudo")
             downloads.copiar_download_para_sharepoint(relatorio, arquivo)
-        self.assertEqual(avisos, [str(arquivo)])
-        self.assertEqual(relatorio["_arquivos_finais"], [str(arquivo)])
+            final = Path(pasta) / "Vendas" / "Vendas_1_2026-10-15.xlsx"
+        self.assertEqual(avisos, [str(final)])
+        self.assertEqual(relatorio["_arquivos_finais"], [str(final)])
+
+    def test_sem_destino_o_arquivo_e_movido_para_a_pasta_do_relatorio(self):
+        with tempfile.TemporaryDirectory() as pasta, patch.object(downloads, "DOWNLOAD_DIR", pasta):
+            arquivo = Path(pasta) / "Unidades_92_2026-10-16.xlsx"
+            arquivo.write_bytes(b"conteudo")
+            final = downloads.copiar_download_para_sharepoint({"nome": "Unidades"}, arquivo)
+            self.assertEqual(Path(final), Path(pasta) / "Unidades" / "Unidades_92_2026-10-16.xlsx")
+            self.assertTrue(Path(final).exists())
+            self.assertFalse(arquivo.exists())
+
+    def test_destino_igual_a_pasta_de_downloads_nao_deixa_arquivo_repetido(self):
+        # Caso real: destino e pasta de downloads eram a mesma pasta e cada arquivo saia duas vezes (_2).
+        with tempfile.TemporaryDirectory() as raiz:
+            pasta_downloads = Path(raiz) / "Automação CAP"
+            pasta_downloads.mkdir()
+            arquivo = pasta_downloads / "Mapa de Vendas_242_2026-10-16.xlsx"
+            arquivo.write_bytes(b"conteudo")
+            destino_escrito_diferente = str(pasta_downloads).upper() + "\\"
+            relatorio = {"nome": "Mapa de Vendas", "sharepoint_link": destino_escrito_diferente}
+            with patch.object(downloads, "DOWNLOAD_DIR", str(pasta_downloads)):
+                final = downloads.copiar_download_para_sharepoint(relatorio, arquivo)
+            todos = sorted(p.relative_to(pasta_downloads).as_posix() for p in pasta_downloads.rglob("*.xlsx"))
+        self.assertEqual(todos, ["Mapa de Vendas/Mapa de Vendas_242_2026-10-16.xlsx"])
+        self.assertEqual(relatorio["_arquivos_finais"], [final])
+
+    def test_destino_em_outra_pasta_recebe_copia_na_pasta_do_relatorio(self):
+        with tempfile.TemporaryDirectory() as raiz:
+            pasta_downloads = Path(raiz) / "downloads"
+            pasta_downloads.mkdir()
+            arquivo = pasta_downloads / "Vendas_242_2026-10-16.xlsx"
+            arquivo.write_bytes(b"conteudo")
+            relatorio = {"nome": "Relatório de Vendas", "sharepoint_link": str(Path(raiz) / "SharePoint")}
+            with patch.object(downloads, "DOWNLOAD_DIR", str(pasta_downloads)):
+                final = downloads.copiar_download_para_sharepoint(relatorio, arquivo)
+            esperado = Path(raiz) / "SharePoint" / "Automação CAP" / "Relatório de Vendas" / arquivo.name
+            self.assertEqual(Path(final), esperado)
+            self.assertEqual(esperado.read_bytes(), b"conteudo")
+            self.assertTrue(arquivo.exists())
+
+    def test_renomear_sem_destino_devolve_o_arquivo_na_pasta_do_relatorio(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            baixado = Path(pasta) / "export.xlsx"
+            baixado.write_bytes(b"relatorio")
+            relatorio = {"nome": "Unidades"}
+            with patch.object(downloads, "DOWNLOAD_DIR", pasta), patch.object(
+                downloads, "_aguardar_arquivo_download", return_value=baixado
+            ):
+                caminho = downloads.renomear_download_relatorio(relatorio, "92", {})
+            self.assertTrue(Path(caminho).exists())
+            self.assertEqual(Path(caminho).parent, Path(pasta) / "Unidades")
+            self.assertEqual(relatorio["_arquivos_finais"], [caminho])
+            self.assertEqual(list(Path(pasta).glob("*.xlsx")), [])
 
     def test_pagina_intermediaria_nao_entra_no_resultado(self):
         with tempfile.TemporaryDirectory() as pasta:

@@ -1,4 +1,5 @@
 {% extends "layout_base.html" %}
+{% import "components/rotulos.html" as rotulos %}
 {% block title %}Perfil{% endblock %}
 
 {% block content %}
@@ -24,7 +25,7 @@
                     {% if mensagens %}
                         <div class="mb-6 space-y-3">
                             {% for categoria, mensagem in mensagens %}
-                                <div class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">
+                                <div {% if categoria == 'success' %}role="status"{% else %}role="alert"{% endif %} class="rounded-2xl border px-4 py-3 text-sm font-medium {% if categoria == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300{% else %}border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300{% endif %}">
                                     {{ mensagem }}
                                 </div>
                             {% endfor %}
@@ -35,30 +36,31 @@
                 {% if perfil_usuario %}
                 <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                     <div class="rounded-[28px] border border-slate-200 bg-slate-50/80 p-6 dark:border-slate-700 dark:bg-slate-800/60">
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Dados do usuario</h2>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Dados do usuário</h2>
                         <div class="mt-6 grid gap-5 md:grid-cols-2">
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Login</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Login</p>
                                 <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.login }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Email</p>
-                                <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.email }}</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">E-mail</p>
+                                {# Quebra onde precisar: inteiro, o e-mail saia do cartao em 1024 px. #}
+                                <p class="mt-2 text-sm font-semibold text-slate-900 [overflow-wrap:anywhere] dark:text-slate-100">{{ perfil_usuario.email }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Area</p>
-                                <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.area }}</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Área</p>
+                                <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ rotulos.areas.get(perfil_usuario.area, perfil_usuario.area) }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Acesso</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Acesso</p>
                                 <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.perfil }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Status</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Status</p>
                                 <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.status }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Criado em</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Criado em</p>
                                 <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.data_criacao }}</p>
                             </div>
                         </div>
@@ -69,15 +71,15 @@
                         <form method="POST" action="{{ url_for('atualizar_minha_senha') }}" class="mt-6 space-y-5">
                             <div class="flex flex-col">
                                 <label for="senha_atual" class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha atual</label>
-                                <input id="senha_atual" name="senha_atual" type="password" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                                <input id="senha_atual" name="senha_atual" type="password" required autocomplete="current-password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                             </div>
                             <div class="flex flex-col">
                                 <label for="nova_senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nova senha</label>
-                                <input id="nova_senha" name="nova_senha" type="password" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                                <input id="nova_senha" name="nova_senha" type="password" required autocomplete="new-password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                             </div>
                             <div class="flex flex-col">
                                 <label for="confirmar_senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Confirmar nova senha</label>
-                                <input id="confirmar_senha" name="confirmar_senha" type="password" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                                <input id="confirmar_senha" name="confirmar_senha" type="password" required autocomplete="new-password" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                             </div>
                             <div class="flex justify-end border-t border-slate-200 pt-5 dark:border-slate-800">
                                 <button type="submit" class="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">

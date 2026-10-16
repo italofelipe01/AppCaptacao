@@ -32,7 +32,13 @@ def _violacoes(pasta: str, proibidos: tuple[str, ...]) -> list[str]:
 
 class FronteirasTests(unittest.TestCase):
     def test_core_nao_depende_das_camadas_de_cima(self):
-        self.assertEqual(_violacoes("core", ("catalogo", "automacao", "execucao", "web", "app")), [])
+        self.assertEqual(
+            _violacoes("core", ("catalogo", "automacao", "consolidacao", "execucao", "web", "app")), []
+        )
+
+    def test_consolidacao_so_depende_do_core(self):
+        # Recebe o executor e os caminhos dos arquivos: nada de driver, catalogo ou job.
+        self.assertEqual(_violacoes("consolidacao", ("catalogo", "automacao", "execucao", "web", "app")), [])
 
     def test_catalogo_nao_depende_de_automacao_execucao_ou_web(self):
         self.assertEqual(_violacoes("catalogo", ("automacao", "execucao", "web", "app")), [])

@@ -13,8 +13,12 @@ web/            rotas Flask: validam a requisição e orquestram
         ├── catalogo/        relatórios, filtros, operações, roteamento de executor (SQL + regras)
         └── execucao/        job em memória + thread de execução
                  │
-                 ▼
-          automacao/          Selenium: navegador → login Sienge → executor dedicado → download
+                 ├──────────────────────────┐
+                 ▼                          ▼
+          automacao/                 consolidacao/   no fim: planilha única por relatório,
+          Selenium: navegador →      conferida com os totais do Sienge (só lê arquivos)
+          login Sienge → executor
+          dedicado → download
                  │
                  ▼
           Sienge (web)  +  pasta de downloads  +  destino (pasta sincronizada/UNC)
@@ -25,7 +29,7 @@ core/database   conexão SQL Server (pyodbc, fallback pymssql)
 
 ## Fronteiras (verificáveis por grep)
 
-1. `core/` não importa de `catalogo/`, `automacao/`, `execucao/` nem `web/`.
+1. `core/` não importa de `catalogo/`, `automacao/`, `consolidacao/`, `execucao/` nem `web/`.
 2. `catalogo/` não importa de `automacao/`, `execucao/` nem `web/`.
 3. `automacao/` não importa de `execucao/` nem `web/`; executores recebem o que precisam pelo `contexto`.
 4. Rotas não escrevem SQL; persistência não lê `flask.g` (o usuário chega como parâmetro).
@@ -33,6 +37,8 @@ core/database   conexão SQL Server (pyodbc, fallback pymssql)
    `automacao/config.py`, que carregam o `.env` antes.
 6. Endpoints mantêm o nome da função (sem Blueprint): `url_for` e `request.endpoint` nos
    templates dependem disso ([web/registro.py](../src/app_captacao/web/registro.py)).
+7. `consolidacao/` só importa de `core/`: recebe o executor e os caminhos dos arquivos, nunca o
+   driver, o catálogo ou o job.
 
 ## Fluxo de uma requisição
 
@@ -48,7 +54,8 @@ core/database   conexão SQL Server (pyodbc, fallback pymssql)
 
 Ver [processos/execucao_de_relatorios.md](processos/execucao_de_relatorios.md). Resumo:
 `/processar` → `execucao.jobs.create_execution_job` → thread `execucao.runner.run_execution_job`
-→ `automacao.executar_relatorio(s)` → resultado no job (e no log do banco, se ativo).
+→ `automacao.executar_relatorio(s)` → `consolidacao.consolidar` para cada relatório baixado →
+resultado no job (e no log do banco, se ativo).
 
 ## Perfis de acesso (`IdAcesso`)
 

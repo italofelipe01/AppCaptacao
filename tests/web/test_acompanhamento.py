@@ -35,7 +35,7 @@ class OperationCreationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         with self.client.session_transaction() as session:
             messages = [message for _, message in session.get("_flashes", [])]
-        self.assertTrue(any("pelo menos um relatorio" in message for message in messages))
+        self.assertTrue(any("pelo menos um relatório" in message for message in messages))
 
     def test_creates_operation_and_links_in_submitted_order(self):
         connection = FakeConnection()

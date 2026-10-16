@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-MENSAGEM_ERRO_INESPERADO = "erro inesperado; os detalhes foram registrados no log tecnico"
+MENSAGEM_ERRO_INESPERADO = "erro inesperado; os detalhes ficaram no log técnico"
 
 
 def mensagem_para_usuario(exc: Exception, contexto: str) -> str:

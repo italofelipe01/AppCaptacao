@@ -98,7 +98,7 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                     reconexoes,
                     MAX_RECONEXOES,
                 )
-                _encerrar_driver(driver)
+                _encerrar_driver(driver, fechar_navegador=False)
                 driver = None
                 try:
                     driver, wait = _abrir_sessao(email, senha)
@@ -217,7 +217,7 @@ def _resultado_final(tipo_execucao, itens, resumo=""):
     sucessos = [item for item in itens if item.get("estado") == "baixado"]
     falhas = [item for item in itens if item.get("estado") != "baixado"]
     if not resumo:
-        resumo = f"{len(sucessos)} relatorio(s) baixado(s); {len(falhas)} nao baixado(s)."
+        resumo = f"{len(sucessos)} relatório(s) baixado(s); {len(falhas)} não baixado(s)."
         pastas = _pastas_dos_arquivos(arquivo for item in itens for arquivo in item.get("arquivos", []))
         if pastas:
             resumo += f" Arquivos em: {'; '.join(pastas)}."
@@ -246,10 +246,13 @@ def _descrever_arquivos(arquivos) -> str:
     return f"{len(nomes)} arquivo(s) salvo(s) em {'; '.join(_pastas_dos_arquivos(arquivos))}: {lista}."
 
 
-def _encerrar_driver(driver):
-    """Fecha o navegador sem perder o resultado: falha aqui so vai para o log."""
+def _encerrar_driver(driver, fechar_navegador=True):
+    """Fecha o navegador sem perder o resultado: falha aqui so vai para o log.
+
+    fechar_navegador=False so desconecta: a sessao caiu e o mesmo Edge vai ser reanexado.
+    """
     try:
-        driver.quit()
+        navegador.encerrar_driver(driver, fechar_edge_anexado=fechar_navegador)
     except Exception:
         logger.warning("Nao foi possivel encerrar o navegador da automacao.", exc_info=True)
 

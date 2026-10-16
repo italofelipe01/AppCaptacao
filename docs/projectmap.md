@@ -16,16 +16,18 @@ AppCaptacao/
 │   │   ├── database/           connection.py (pyodbc + pymssql), sql.py (execute, fetch, introspecção)
 │   │   ├── security/           auth.py, perfis.py, sessao_usuario.py, network_auth.py (não ligado)
 │   │   ├── persistence/        usuarios.py, logs.py
-│   │   └── shared/             texto.py, navegador_local.py, log_tecnico.py
+│   │   └── shared/             texto.py, arquivos.py (nome/pasta), navegador_local.py, log_tecnico.py
 │   ├── catalogo/               relatorios.py, regras.py, operacoes.py, operacao_relatorios.py
 │   ├── automacao/              config, navegador, login, sessao, campos, downloads, erros, execucao
 │   │   └── relatorios/         registro.py + executores/<relatorio>.py (17 executores)
-│   ├── execucao/               jobs.py (estado), runner.py (thread)
+│   ├── consolidacao/           layouts.py (7 relatórios), leitura.py, consolidador.py (conferência + planilha)
+│   ├── execucao/               jobs.py (estado), runner.py (thread + consolidação no fim)
 │   ├── inicializacao/          dependencias.py, verificacoes.py (checklist do run.py)
 │   ├── web/                    routes_auth, routes_execucao, routes_usuarios,
 │   │                           routes_acompanhamento, routes_logs, registro, erros, auditoria
 │   └── desktop/                desktop_app.py (janela do .exe), config_installer.py
-├── project/                    FRONTEND: templates/ e static/ (não alterar sem pedido)
+├── project/                    FRONTEND: templates/ e static/ (não alterar sem pedido);
+│                               static/css/tailwind-local.css é gerado (scripts/gerar_css.ps1)
 ├── tests/                      espelha src/: core, catalogo, web, automacao, execucao, ...
 ├── packaging/                  .spec do PyInstaller e ícone
 ├── scripts/                    gerar_executaveis.ps1, criar_atalho.bat/.ps1
@@ -39,6 +41,10 @@ AppCaptacao/
 | --- | --- |
 | Nova variável de ambiente | `core/config/settings.py` (app) ou `automacao/config.py` (Selenium) + `.env.example` |
 | Nova tela ou rota | `web/routes_<tela>.py` + registrar em `app.py`; template em `project/templates/` |
+| Classe de estilo nova ou mudada num template | Rodar `scripts\gerar_css.ps1` (gera `tailwind-local.css`; nunca editar à mão). Estilo próprio do app vai em `project/static/css/app.css`; reset e opacidades extras em `scripts/css/` |
+| Abrir/fechar modal, foco, Tab e Esc | `project/static/js/modal.js` (um só para todas as telas; o template não redefine `abrirModal`/`fecharModal`) |
+| Nome exibido de área, evento, status, estado ou etapa | `project/templates/components/rotulos.html` (o valor gravado não muda) |
+| Menu lateral (recolher, dicas, menu fixo) | `components/menu.html` (estado inicial), `static/js/menu.js`, `.app-sidebar` em `app.css` |
 | Mudar permissão | decorator `access_required(...)` na rota; perfis em `core/security/perfis.py` |
 | SQL de usuário | `core/persistence/usuarios.py` |
 | SQL de catálogo/operação | `catalogo/relatorios.py`, `catalogo/operacoes.py`, `catalogo/operacao_relatorios.py` |
@@ -47,7 +53,8 @@ AppCaptacao/
 | Novo relatório do Sienge | `automacao/relatorios/executores/<nome>.py` + `registro.py` + `regras.py` ([guia](processos/relatorios_e_filtros.md#como-adicionar-um-relatório-novo)) |
 | Seletores do login Sienge/Microsoft | `automacao/login.py` |
 | Abertura do Edge/Chrome | `automacao/navegador.py` |
-| Detecção, nome ou cópia de download | `automacao/downloads.py` |
+| Detecção, nome ou cópia de download | `automacao/downloads.py` (regras de nome em `core/shared/arquivos.py`) |
+| Consolidar um relatório novo ou ajustar a conferência | `consolidacao/layouts.py` + planilha sintética em `tests/consolidacao/planilhas_sienge.py` ([guia](processos/consolidacao_de_relatorios.md#como-adicionar-um-relatório)) |
 | Preenchimento de campo comum (autocomplete, iframe) | `automacao/campos.py` |
 | Estados e resumo da execução | `automacao/execucao.py` e `execucao/runner.py` |
 | Checklist de inicialização | `inicializacao/verificacoes.py` |
@@ -60,9 +67,10 @@ AppCaptacao/
 | --- | --- |
 | `tests/core/` | configuração, conexão, senha, sessão/usuário, log técnico |
 | `tests/catalogo/` | escolha do executor, filtros obrigatórios e fixos, consulta do catálogo |
-| `tests/web/` | rotas (usuários, acompanhamento, erros) e scripts dos templates |
+| `tests/web/` | rotas (usuários, acompanhamento, erros), scripts dos templates, classes de estilo sem regra no CSS gerado e estrutura e textos das telas (rótulos, senhas, ordem da execução, modais, acentos); telas renderizadas em `paginas.py` |
 | `tests/automacao/` | execução em sequência, login, downloads, executor do saldo devedor |
-| `tests/execucao/` | job em segundo plano e limite de memória |
+| `tests/execucao/` | job em segundo plano, limite de memória e consolidação no fim |
+| `tests/consolidacao/` | leitura do layout do Sienge, conferência e planilha gerada (planilhas sintéticas) |
 | `tests/inicializacao/` | checklist e leitura do requirements |
 | `tests/desktop/` | janela desktop (com customtkinter simulado) |
 | `tests/test_fronteiras.py` | fronteiras entre camadas |

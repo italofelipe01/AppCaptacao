@@ -70,7 +70,7 @@ O arquivo `.enc` usa DPAPI: só funciona no mesmo usuário e na mesma máquina e
 | `%LOCALAPPDATA%\AppCaptacao\app_captacao.env.enc` | Configuração cifrada |
 | `%LOCALAPPDATA%\AppCaptacao\state\` | Perfil do Edge da automação e sessões Sienge salvas (cifradas) |
 | `%LOCALAPPDATA%\AppCaptacao\logs\` | Log técnico |
-| `Downloads\Automação CAP\` | Relatórios baixados (padrão) |
+| `Downloads\Automação CAP\<Relatório>\` | Relatórios baixados e o consolidado de cada um (padrão) |
 
 Para remover a configuração: **Remover configuração** no configurador, ou apague os itens acima.
 

@@ -61,10 +61,10 @@ def cadastrar_usuario():
         "modal_usuario_id_acesso": raw_id_acesso,
     }
     if not all([login_usuario, email, area, raw_id_acesso, senha, confirmar]):
-        flash("Preencha todos os campos obrigatorios do cadastro.", "error")
+        flash("Preencha todos os campos obrigatórios do cadastro.", "error")
         return redirect(url_for("usuarios", **modal_params))
     if senha != confirmar:
-        flash("Senha e confirmacao nao conferem.", "error")
+        flash("A senha e a confirmação precisam ser iguais.", "error")
         return redirect(url_for("usuarios", **modal_params))
 
     try:
@@ -72,20 +72,20 @@ def cadastrar_usuario():
     except ValueError:
         id_acesso = 0
     if id_acesso not in {1, 2, 3}:
-        flash("Selecione um nivel de acesso valido.", "error")
+        flash("Selecione um nível de acesso válido.", "error")
         return redirect(url_for("usuarios", **modal_params))
 
     try:
         usuarios_repo.criar_usuario(login_usuario, email, area, id_acesso, senha)
-        auditoria.log_config("usuario_criacao", f"Usuario {login_usuario} criado.", {"email": email, "area": area})
-        flash("Usuario cadastrado com sucesso.", "success")
+        auditoria.log_config("usuario_criacao", f"Usuário {login_usuario} criado.", {"email": email, "area": area})
+        flash("Usuário cadastrado.", "success")
         return redirect(url_for("usuarios"))
     except ValueError as exc:
         flash(str(exc), "error")
         return redirect(url_for("usuarios", **modal_params))
     except Exception:
         logger.exception("Falha ao cadastrar usuario.")
-        flash("Nao foi possivel cadastrar o usuario no banco.", "error")
+        flash("Não foi possível cadastrar o usuário no banco.", "error")
         return redirect(url_for("usuarios", **modal_params))
 
 
@@ -110,11 +110,11 @@ def editar_usuario(id_login: int):
     }
 
     if not all([email, area, raw_id_acesso]):
-        flash("Preencha email, area e nivel de acesso.", "error")
+        flash("Preencha e-mail, área e nível de acesso.", "error")
         return redirect(url_for("usuarios", **modal_params))
 
     if senha != confirmar:
-        flash("A nova senha e a confirmacao nao conferem.", "error")
+        flash("A nova senha e a confirmação precisam ser iguais.", "error")
         return redirect(url_for("usuarios", **modal_params))
 
     try:
@@ -122,7 +122,7 @@ def editar_usuario(id_login: int):
     except ValueError:
         id_acesso = 0
     if id_acesso not in {1, 2, 3}:
-        flash("Selecione um nivel de acesso valido.", "error")
+        flash("Selecione um nível de acesso válido.", "error")
         return redirect(url_for("usuarios", **modal_params))
 
     try:
@@ -135,15 +135,15 @@ def editar_usuario(id_login: int):
             senha,
             alterado_por=g.current_user["id"] if g.get("current_user") else None,
         )
-        auditoria.log_config("usuario_edicao", f"Usuario {id_login} atualizado.")
-        flash("Usuario atualizado com sucesso.", "success")
+        auditoria.log_config("usuario_edicao", f"Usuário {id_login} atualizado.")
+        flash("Usuário atualizado.", "success")
         return redirect(url_for("usuarios"))
     except ValueError as exc:
         flash(str(exc), "error")
         return redirect(url_for("usuarios", **modal_params))
     except Exception:
         logger.exception("Falha ao atualizar usuario %s.", id_login)
-        flash("Nao foi possivel atualizar o usuario no banco.", "error")
+        flash("Não foi possível atualizar o usuário no banco.", "error")
         return redirect(url_for("usuarios", **modal_params))
 
 
@@ -152,15 +152,15 @@ def editar_usuario(id_login: int):
 @access_required(1)
 def inativar_usuario_route(id_login: int):
     if g.current_user["id"] == id_login:
-        flash("Voce nao pode inativar o proprio usuario.", "error")
+        flash("Você não pode inativar o próprio usuário.", "error")
         return redirect(url_for("usuarios"))
     try:
         usuarios_repo.inativar_usuario(id_login, alterado_por=g.current_user["id"])
-        auditoria.log_config("usuario_inativacao", f"Usuario {id_login} inativado.")
-        flash("Usuario inativado com sucesso.", "success")
+        auditoria.log_config("usuario_inativacao", f"Usuário {id_login} inativado.")
+        flash("Usuário inativado.", "success")
     except ValueError as exc:
         flash(str(exc), "error")
     except Exception:
         logger.exception("Falha ao inativar usuario %s.", id_login)
-        flash("Nao foi possivel inativar o usuario no banco.", "error")
+        flash("Não foi possível inativar o usuário no banco.", "error")
     return redirect(url_for("usuarios"))

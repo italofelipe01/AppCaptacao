@@ -68,8 +68,10 @@ ficam `ignorado` na etapa `autenticacao`, com o motivo na mensagem.
 
 - Padrão: Edge, anexado por porta de depuração (`SELENIUM_ATTACH_NORMAL_EDGE=true`, porta 9223)
   com perfil exclusivo da automação em `%LOCALAPPDATA%\AppCaptacao\state\edge_automation_profile`.
-  O Edge continua aberto entre execuções; com a sessão do Sienge ainda válida, o login termina na
-  primeira verificação.
+  No fim da execução o Edge é fechado (D17): anexado, `quit()` só desconectaria o msedgedriver, então
+  `navegador.encerrar_driver` manda `Browser.close` pelo DevTools antes. Com
+  `SELENIUM_KEEP_BROWSER_OPEN=true` ele fica aberto e, com a sessão do Sienge ainda válida, o login
+  seguinte termina na primeira verificação.
 - Ao anexar, o driver escolhe a aba web (de preferência a do Sienge). Num Windows ligado ao Entra
   ID, o perfil novo entra sozinho na conta e abre o diálogo `edge://sync-confirmation-dialog/`, que
   também aparece como janela.

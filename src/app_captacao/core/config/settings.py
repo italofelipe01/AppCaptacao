@@ -27,3 +27,6 @@ LOG_OPERACAO_TABLE = os.getenv("LOG_OPERACAO_TABLE", "dbo.CapRecursoLogOperacao"
 
 # Pausa temporaria da persistencia de logs. Defina APP_SAVE_LOGS=true para reativar.
 SAVE_LOGS = os.getenv("APP_SAVE_LOGS", "false").strip().lower() == "true"
+
+# Consolidado por relatorio no fim da execucao (docs/specs/consolidacao-relatorios.md).
+CONSOLIDAR_RELATORIOS = os.getenv("APP_CONSOLIDAR_RELATORIOS", "true").strip().lower() == "true"

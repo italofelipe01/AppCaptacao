@@ -1,4 +1,5 @@
 {% extends "layout_base.html" %}
+{% import "components/rotulos.html" as rotulos %}
 {% block title %}Logs{% endblock %}
 
 {% block content %}
@@ -9,7 +10,7 @@
                 <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-300">
-                            Historico
+                            Histórico
                         </p>
                         <h1 class="mt-2 text-3xl font-extrabold text-slate-950 dark:text-slate-100">
                             Logs
@@ -22,14 +23,14 @@
                             href="{{ url_for('logs', aba='adm') }}"
                             class="rounded-xl px-4 py-2 text-sm font-semibold transition {{ 'bg-slate-950 text-white dark:bg-cyan-400 dark:text-slate-950' if aba == 'adm' else 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100' }}"
                         >
-                            Log Configuracao
+                            Log de configuração
                         </a>
                         {% endif %}
                         <a
                             href="{{ url_for('logs', aba='operacao') }}"
                             class="rounded-xl px-4 py-2 text-sm font-semibold transition {{ 'bg-slate-950 text-white dark:bg-cyan-400 dark:text-slate-950' if aba == 'operacao' else 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100' }}"
                         >
-                            Log Automacao
+                            Log da automação
                         </a>
                     </div>
                 </div>
@@ -41,15 +42,16 @@
                     <input type="hidden" name="aba" value="adm">
 
                     <div class="flex items-center justify-between gap-3">
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Filtros do log de configuracao</h2>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Filtros do log de configuração</h2>
                         <a href="{{ url_for('exportar_logs_json', aba='adm', usuario=filtros.usuario, tipo_evento=filtros.tipo_evento, data_inicio=filtros.data_inicio, data_fim=filtros.data_fim) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Baixar JSON</a>
                     </div>
 
                     <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Usuario</label>
+                            <label for="filtro-usuario" class="text-sm font-medium text-slate-700 dark:text-slate-200">Usuário</label>
                             <input
                                 type="text"
+                                id="filtro-usuario"
                                 name="usuario"
                                 value="{{ filtros.usuario }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -57,27 +59,22 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Tipo de evento</label>
+                            <label for="filtro-tipo-evento" class="text-sm font-medium text-slate-700 dark:text-slate-200">Tipo de evento</label>
                             <select
+                                id="filtro-tipo-evento"
                                 name="tipo_evento"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
                             >
                                 <option value="">Todos</option>
-                                <option value="login" {% if filtros.tipo_evento == 'login' %}selected{% endif %}>Login</option>
-                                <option value="logout" {% if filtros.tipo_evento == 'logout' %}selected{% endif %}>Logout</option>
-                                <option value="login_falha" {% if filtros.tipo_evento == 'login_falha' %}selected{% endif %}>Falha de login</option>
-                                <option value="operacao_criacao" {% if filtros.tipo_evento == 'operacao_criacao' %}selected{% endif %}>Criacao de operacao</option>
-                                <option value="operacao_edicao" {% if filtros.tipo_evento == 'operacao_edicao' %}selected{% endif %}>Edicao de operacao</option>
-                                <option value="operacao_inativacao" {% if filtros.tipo_evento == 'operacao_inativacao' %}selected{% endif %}>Inativacao de operacao</option>
-                                <option value="operacao_relatorio_vinculo" {% if filtros.tipo_evento == 'operacao_relatorio_vinculo' %}selected{% endif %}>Vinculo de relatorio</option>
-                                <option value="operacao_filtros_atualizacao" {% if filtros.tipo_evento == 'operacao_filtros_atualizacao' %}selected{% endif %}>Atualizacao de filtros</option>
+                                {% for valor, nome in rotulos.eventos.items() %}<option value="{{ valor }}" {% if filtros.tipo_evento == valor %}selected{% endif %}>{{ nome }}</option>{% endfor %}
                             </select>
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicio</label>
+                            <label for="filtro-data-inicio" class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicial</label>
                             <input
                                 type="date"
+                                id="filtro-data-inicio"
                                 name="data_inicio"
                                 value="{{ filtros.data_inicio }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -85,9 +82,10 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data fim</label>
+                            <label for="filtro-data-fim" class="text-sm font-medium text-slate-700 dark:text-slate-200">Data final</label>
                             <input
                                 type="date"
+                                id="filtro-data-fim"
                                 name="data_fim"
                                 value="{{ filtros.data_fim }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -115,15 +113,16 @@
                     <input type="hidden" name="aba" value="operacao">
 
                     <div class="flex items-center justify-between gap-3">
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Filtros do log da automacao</h2>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Filtros do log da automação</h2>
                         <a href="{{ url_for('exportar_logs_json', aba='operacao', nome_operacao=filtros.nome_operacao, status=filtros.status, responsavel=filtros.responsavel, data_inicio=filtros.data_inicio) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Baixar JSON</a>
                     </div>
 
                     <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operacao</label>
+                            <label for="filtro-nome-operacao" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operação</label>
                             <input
                                 type="text"
+                                id="filtro-nome-operacao"
                                 name="nome_operacao"
                                 value="{{ filtros.nome_operacao }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -131,8 +130,9 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Status</label>
+                            <label for="filtro-status" class="text-sm font-medium text-slate-700 dark:text-slate-200">Status</label>
                             <select
+                                id="filtro-status"
                                 name="status"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
                             >
@@ -145,9 +145,10 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Responsavel</label>
+                            <label for="filtro-responsavel" class="text-sm font-medium text-slate-700 dark:text-slate-200">Responsável</label>
                             <input
                                 type="text"
+                                id="filtro-responsavel"
                                 name="responsavel"
                                 value="{{ filtros.responsavel }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -155,9 +156,10 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicio</label>
+                            <label for="filtro-data-inicio" class="text-sm font-medium text-slate-700 dark:text-slate-200">Data inicial</label>
                             <input
                                 type="date"
+                                id="filtro-data-inicio"
                                 name="data_inicio"
                                 value="{{ filtros.data_inicio }}"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
@@ -188,15 +190,15 @@
                             <thead class="bg-slate-50 dark:bg-slate-800/60">
                                 <tr>
                                     {% if aba == 'adm' %}
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Usuario</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Usuário</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Evento</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Data</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Detalhe</th>
                                     {% else %}
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Operacao</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Operação</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Status</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Responsavel</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Atualizacao</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Responsável</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Atualização</th>
                                     {% endif %}
                                 </tr>
                             </thead>
@@ -206,7 +208,7 @@
                                     <tr>
                                         {% if aba == 'adm' %}
                                         <td class="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ registro.usuario }}</td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ registro.evento }}</td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ rotulos.eventos.get(registro.evento, registro.evento) }}</td>
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ registro.data_evento }}</td>
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">
                                             <p>{{ registro.detalhe }}</p>
@@ -220,12 +222,12 @@
                                         {% else %}
                                         <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">
                                             <p class="font-semibold">{{ registro.nome_operacao }}</p>
-                                            <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{{ registro.tipo_execucao }}</p>
+                                            <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{{ rotulos.tipos_execucao.get(registro.tipo_execucao, registro.tipo_execucao) }}</p>
                                             <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">{{ registro.nome_relatorio }}</p>
                                         </td>
                                         <td class="px-6 py-4 text-sm">
-                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {% if registro.status == 'sucesso' %}bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300{% elif registro.status == 'erro' %}bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
-                                                {{ registro.status }}
+                                            <span class="inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {% if registro.status == 'sucesso' %}bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300{% elif registro.status == 'erro' %}bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                                {{ rotulos.status_log.get(registro.status, registro.status) }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-300">{{ registro.responsavel }}</td>
@@ -270,7 +272,7 @@
                                     <tr>
                                         <td colspan="4" class="px-6 py-16 text-center">
                                             <div class="mx-auto flex max-w-md flex-col items-center">
-                                                <div class="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                                <div class="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-400">
                                                     <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                                         <path d="M6 3h9l3 3v15H6z"></path>
                                                         <path d="M15 3v4h4"></path>
@@ -283,7 +285,9 @@
                                                     Nenhum log encontrado
                                                 </p>
                                                 <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                                                    A grade ficara preenchida assim que os registros do banco forem conectados.
+                                                    {% if filtros.values()|select|list %}Nenhum registro com estes filtros. Limpe os filtros para ver todos.
+                                                    {% elif not logs_gravados %}A gravação de logs no banco está desligada nesta instalação (APP_SAVE_LOGS).
+                                                    {% else %}Ainda não há registros.{% endif %}
                                                 </p>
                                             </div>
                                         </td>

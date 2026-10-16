@@ -47,9 +47,15 @@ opcionalmente, a pasta de destino (`sharepoint_link`).
      andamento ("N arquivo(s) salvo(s); último: caminho"). No fim, cada relatório baixado diz
      quantos arquivos foram salvos e em qual pasta, e o resumo lista as pastas. Relatório que falha
      no meio (por exemplo na 3ª empresa) mostra os arquivos das empresas que já tinham sido salvos.
-7. **Fim**: o job fica `concluida` com o resumo "N baixado(s); M não baixado(s)". Com
-   `APP_SAVE_LOGS=true`, o resultado vai para a tabela de log de operação.
-8. **Falha inesperada no meio** (navegador derrubado, erro de programa): o que já terminou fica
+7. **Navegador no fim**: o Edge da automação é fechado, salvo com
+   `SELENIUM_KEEP_BROWSER_OPEN=true`; quando a sessão cai no meio, o driver só é desconectado,
+   porque o mesmo Edge é reanexado.
+8. **Consolidação** ([consolidacao_de_relatorios.md](consolidacao_de_relatorios.md)): cada
+   relatório `baixado` com layout conhecido ganha o consolidado na pasta dele, conferido com os
+   totais do Sienge. Não muda o estado: o resultado entra na mensagem do relatório.
+9. **Fim**: o job fica `concluida` com o resumo "N baixado(s); M não baixado(s)", mais quantos
+   consolidados saíram. Com `APP_SAVE_LOGS=true`, o resultado vai para a tabela de log de operação.
+10. **Falha inesperada no meio** (navegador derrubado, erro de programa): o que já terminou fica
    como estava; o relatório em andamento vira `nao_baixado` e os que não começaram viram
    `ignorado`, os dois na etapa `execucao`. A tela mostra uma mensagem genérica; o detalhe vai
    para o log técnico.

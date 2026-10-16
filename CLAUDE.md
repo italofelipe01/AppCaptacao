@@ -28,10 +28,11 @@ Relatórios, filtros, operações e usuários vivem no **SQL Server** (tabelas `
 .\.venv\Scripts\python.exe run.py                            # checklist e app
 .\.venv\Scripts\python.exe run.py --somente-verificar        # só o checklist
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pytest                         # ~130 testes, sem rede/banco
+.\.venv\Scripts\python.exe -m pytest                         # ~190 testes, sem rede/banco
 .\.venv\Scripts\python.exe -m compileall -q src tests run.py
 npx pyright@1.1.414 --pythonpath .venv\Scripts\python.exe    # deve dar 0 erros
-node --check project\static\js\menu.js
+node --check project\static\js\menu.js; node --check project\static\js\modal.js
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\gerar_css.ps1     # após mudar classes nos templates
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\gerar_executaveis.ps1 -Limpar
 ```
 
@@ -45,23 +46,26 @@ src/app_captacao/
 │   ├── database/            connection.py (DbConnection), sql.py (execute/fetch/column_exists)
 │   ├── security/            auth.py, perfis.py, sessao_usuario.py, network_auth.py (não ligado)
 │   ├── persistence/         usuarios.py, logs.py
-│   └── shared/              texto.py, navegador_local.py, log_tecnico.py
+│   └── shared/              texto.py, arquivos.py (nome/pasta), navegador_local.py, log_tecnico.py
 ├── catalogo/                relatorios.py, regras.py (executor por ID/URL/nome), operacoes.py,
 │                            operacao_relatorios.py — SQL e regras do catálogo
 ├── automacao/               config, navegador, login, sessao, campos, downloads, erros, execucao
 │   └── relatorios/          registro.py + executores/<relatorio>.py (17)
-├── execucao/                jobs.py (estado em memória por sessão), runner.py (thread)
+├── consolidacao/            layouts.py (7 relatórios), leitura.py, consolidador.py — consolidado
+│                            conferido com os totais do Sienge
+├── execucao/                jobs.py (estado em memória por sessão), runner.py (thread + consolidação)
 ├── inicializacao/           checklist do run.py (dependencias.py só usa stdlib)
 ├── web/                     routes_*.py, registro.py (RegistroRotas), erros.py, auditoria.py
 └── desktop/                 desktop_app.py (.exe), config_installer.py (configurador)
-project/                     FRONTEND (templates + static) — não mudar sem pedido explícito
+project/                     FRONTEND (templates + static) — não mudar sem pedido explícito;
+                             static/css/tailwind-local.css é gerado: nunca editar à mão (D19)
 tests/                       espelha src/; tests/fakes.py tem os dublês de banco
 packaging/ scripts/ tools/ docs/
 ```
 
 ## Fronteiras invioláveis
 
-1. `core/` não importa de `catalogo/`, `automacao/`, `execucao/`, `web/`.
+1. `core/` não importa de `catalogo/`, `automacao/`, `consolidacao/`, `execucao/`, `web/`.
 2. `catalogo/` não importa de `automacao/`, `execucao/`, `web/`.
 3. `automacao/` não importa de `execucao/` nem `web/`.
 4. Rotas não escrevem SQL; persistência não lê `flask.g` (usuário vem por parâmetro).
@@ -69,8 +73,9 @@ packaging/ scripts/ tools/ docs/
 6. Endpoints sem Blueprint: o nome da função é o endpoint que os templates usam.
 7. Frontend (`project/`) é contrato: rotas, nomes de campo de formulário e endpoints não mudam.
 8. Senha do Sienge nunca é gravada; `.env`, `.config/` e `*.env.enc` nunca entram no git.
+9. `consolidacao/` só importa de `core/` (recebe executor e caminhos, nunca driver ou job).
 
-`tests/test_fronteiras.py` verifica 1–5.
+`tests/test_fronteiras.py` verifica 1–5 e 9.
 
 ## Domínios
 
@@ -99,8 +104,18 @@ genérico. Particularidade de tela vai no executor do relatório; filtro de valo
 ### Downloads
 
 Arquivo novo (posterior à marca), sem temporário, tamanho estável por 3 ciclos; nome
-`<relatório>_<empresa>_<data>` sem sobrescrever; cópia para `<destino>\Automação CAP` só em pasta
-local/UNC. Sucesso só com arquivo confirmado no destino.
+`<relatório>_<empresa>_<data>` sem sobrescrever; vai para `<base>\<Relatório>\`, onde a base é
+`<destino>\Automação CAP` (só pasta local/UNC) ou a pasta de downloads. Base igual à pasta de
+downloads: o arquivo é movido, nunca copiado ao lado (D18). Sucesso só com arquivo confirmado no
+destino.
+
+### Consolidação
+
+No fim da execução, `execucao.runner` chama `consolidacao.consolidar` para cada relatório
+`baixado` com layout em `consolidacao/layouts.py`: tabela plana (filtros do Sienge viram colunas)
+e abas Origem e Conferência, em `<Relatório>_consolidado_<data>.xlsx` na pasta do relatório. Cada
+arquivo é conferido com os totais impressos pelo Sienge (R$ 0,005 por linha; contagem exata);
+divergência não gera consolidado e não muda o estado. `APP_CONSOLIDAR_RELATORIOS=false` desliga.
 
 ### Usuários e permissões
 

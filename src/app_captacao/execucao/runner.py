@@ -7,8 +7,11 @@ depende do contexto do Flask.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
-from app_captacao import automacao
+from app_captacao import automacao, consolidacao
+from app_captacao.catalogo import regras
+from app_captacao.core.config import settings
 from app_captacao.core.persistence import logs as logs_repo
 from app_captacao.execucao import jobs
 
@@ -16,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 MENSAGEM_FALHA_INESPERADA = "Falha inesperada na automacao; os detalhes foram registrados no log tecnico."
 MENSAGEM_NAO_EXECUTADO = "Nao executado: a automacao parou antes deste relatorio."
+MOTIVO_ERRO_NA_CONSOLIDACAO = "erro inesperado; os detalhes foram registrados no log tecnico"
 
 
 def run_execution_job(
@@ -32,7 +36,7 @@ def run_execution_job(
         "tipo_execucao": tipo,
         "nome_operacao": operacao_nome,
         "nome_relatorio": relatorios[0].get("nome", "") if tipo == "relatorio" and relatorios else "",
-        "observacao": "Execucao em segundo plano concluida.",
+        "observacao": "Execução em segundo plano concluída.",
     }
     try:
         jobs.update_execution_job(job_id, estado="em_execucao", resumo="Execucao em andamento.")
@@ -41,6 +45,11 @@ def run_execution_job(
         logger.exception("Falha inesperada no trabalho de execucao %s.", job_id)
         resultado = _resultado_apos_falha(job_id, relatorios, operacao_nome)
         payload_entrada["observacao"] = "Execucao interrompida por falha inesperada."
+
+    try:
+        _consolidar_relatorios(job_id, resultado, relatorios)
+    except Exception:
+        logger.exception("Falha inesperada na consolidacao; o resultado da execucao foi mantido.")
 
     jobs.finish_execution_job(job_id, resultado)
     logs_repo.registrar_log_operacao(
@@ -89,6 +98,56 @@ def _executar(job_id: str, tipo: str, email: str, senha: str, relatorios: list[d
     return automacao.executar_relatorios_em_sequencia(email, senha, relatorios, on_report_event=on_report_event)
 
 
+def _consolidar_relatorios(job_id: str, resultado: dict, relatorios: list[dict]) -> None:
+    """Consolidado de cada relatorio baixado com layout conhecido.
+
+    Nunca muda o estado do relatorio: o consolidado (ou o motivo de nao ter saido) entra na
+    mensagem, e o arquivo gerado vira o arquivo final mostrado na tela. Relatorio que falhou
+    no meio nao e consolidado, para nao parecer completo.
+    """
+    if not settings.CONSOLIDAR_RELATORIOS:
+        return
+    por_id = {str(relatorio.get("id") or relatorio.get("id_relatorio")): relatorio for relatorio in relatorios}
+    pendentes = []
+    for item in resultado.get("itens") or []:
+        if item.get("estado") != "baixado" or not item.get("arquivos"):
+            continue
+        relatorio = por_id.get(str(item.get("relatorio_id")), {"nome": item.get("relatorio_nome", "")})
+        executor = regras.executor_do_relatorio(relatorio)
+        if consolidacao.suporta(executor):
+            pendentes.append((item, executor))
+
+    gerados = nao_gerados = 0
+    for indice, (item, executor) in enumerate(pendentes, start=1):
+        nome = item.get("relatorio_nome", "")
+        jobs.update_execution_job(job_id, resumo=f"Consolidando {nome} ({indice}/{len(pendentes)}).")
+        try:
+            consolidado = consolidacao.consolidar(executor, nome, item["arquivos"])
+        except Exception:
+            logger.exception("Falha inesperada ao consolidar o relatorio %s.", nome)
+            consolidado = consolidacao.ResultadoConsolidacao(False, motivo=MOTIVO_ERRO_NA_CONSOLIDACAO)
+
+        mensagem = str(item.get("mensagem") or "")
+        if consolidado.gerado:
+            gerados += 1
+            item["arquivos"] = [*item["arquivos"], consolidado.caminho]
+            item["caminho_final"] = consolidado.caminho
+            conferencia = (
+                "conferido com os totais do Sienge" if consolidado.conferido else "sem total do Sienge para conferir"
+            )
+            item["mensagem"] = (
+                f"{mensagem} Consolidado: {Path(consolidado.caminho).name}, "
+                f"{consolidado.linhas} linha(s), {conferencia}."
+            ).strip()
+        else:
+            nao_gerados += 1
+            item["mensagem"] = f"{mensagem} Consolidado não gerado: {consolidado.motivo}.".strip()
+
+    if pendentes:
+        resumo = f"{gerados} consolidado(s)" + (f", {nao_gerados} não gerado(s)" if nao_gerados else "")
+        resultado["resumo"] = f"{resultado.get('resumo', '')} {resumo}.".strip()
+
+
 def _resultado_apos_falha(job_id: str, relatorios: list[dict], operacao_nome: str) -> dict:
     """Resultado de uma execucao que parou no meio: o que ja terminou fica como esta.
 
@@ -123,5 +182,5 @@ def _resultado_apos_falha(job_id: str, relatorios: list[dict], operacao_nome: st
         "quantidade_relatorios": len(itens),
         "quantidade_baixados": len(sucessos),
         "quantidade_nao_baixados": len(falhas),
-        "resumo": f"{len(sucessos)} relatorio(s) baixado(s); {len(falhas)} nao baixado(s).",
+        "resumo": f"{len(sucessos)} relatório(s) baixado(s); {len(falhas)} não baixado(s).",
     }

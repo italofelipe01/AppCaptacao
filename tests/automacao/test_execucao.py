@@ -34,6 +34,22 @@ class _DriverQueFalhaAoFechar(_FakeDriver):
         raise RuntimeError("browser already closed")
 
 
+class _EdgeAnexadoFake(_FakeDriver):
+    """Driver ligado ao Edge da automacao pela porta de depuracao: registra os comandos do DevTools."""
+
+    def __init__(self, falha_ao_fechar_edge=False):
+        super().__init__()
+        self.comandos = []
+        self._falha_ao_fechar_edge = falha_ao_fechar_edge
+        navegador._drivers_edge_anexado.add(self)
+
+    def execute_cdp_cmd(self, comando, parametros):
+        self.comandos.append(comando)
+        if comando == "Browser.close" and self._falha_ao_fechar_edge:
+            raise RuntimeError("disconnected: not connected to DevTools")
+        return super().execute_cdp_cmd(comando, parametros)
+
+
 class ExecutionErrorMessageTests(unittest.TestCase):
     def test_remove_stacktrace_do_webdriver_da_mensagem_visivel(self):
         erro = TimeoutException("Message: campo indisponivel\nStacktrace:\nmsedgedriver!GetHandleVerifier")
@@ -158,6 +174,67 @@ class SingleReportExecutionTests(unittest.TestCase):
             result = execucao.executar_relatorio("user", "password", {"id": 1, "nome": "A"})
         item = result["itens"][0]
         self.assertEqual((item["estado"], item["etapa"]), ("nao_baixado", "download"))
+
+
+class EncerramentoDoEdgeTests(unittest.TestCase):
+    """No Edge anexado quit() so desconecta; o fim da execucao precisa fechar o Edge da automacao."""
+
+    def _executar_operacao(self, drivers, reports, sessao_ativa=None):
+        with patch.object(navegador, "criar_driver", side_effect=drivers), patch.object(login, "fazer_login"), patch.object(
+            navegador, "definir_janela_principal"
+        ), patch.object(navegador, "voltar_para_janela_principal"), patch.object(
+            navegador, "sessao_do_driver_ativa", side_effect=sessao_ativa or [True] * len(reports)
+        ), patch.object(execucao, "_executar_relatorio_no_driver", return_value=[r"C:\D\a.xlsx"]), patch.object(
+            downloads, "aguardar_pasta_download_estabilizar", return_value=True
+        ), patch.object(execucao.time, "sleep"):
+            return execucao.executar_relatorios_em_sequencia("user", "password", reports)
+
+    def test_fim_da_operacao_fecha_o_edge_anexado(self):
+        driver = _EdgeAnexadoFake()
+        result = self._executar_operacao([driver], [{"id": 1, "nome": "A"}])
+        self.assertEqual(result["quantidade_baixados"], 1)
+        self.assertIn("Browser.close", driver.comandos)
+        self.assertTrue(driver.closed)
+
+    def test_fim_do_relatorio_avulso_fecha_o_edge_anexado(self):
+        driver = _EdgeAnexadoFake()
+        with patch.object(navegador, "criar_driver", return_value=driver), patch.object(login, "fazer_login"), patch.object(
+            navegador, "definir_janela_principal"
+        ), patch.object(execucao, "_executar_relatorio_no_driver", return_value=[r"C:\D\a.xlsx"]), patch.object(
+            downloads, "aguardar_pasta_download_estabilizar", return_value=True
+        ), patch.object(execucao.time, "sleep"):
+            result = execucao.executar_relatorio("user", "password", {"id": 1, "nome": "A"})
+        self.assertEqual(result["quantidade_baixados"], 1)
+        self.assertIn("Browser.close", driver.comandos)
+
+    def test_sessao_que_cai_so_desconecta_e_o_edge_e_fechado_no_fim(self):
+        caiu, reaberto = _EdgeAnexadoFake(), _EdgeAnexadoFake()
+        reports = [{"id": 1, "nome": "A"}, {"id": 2, "nome": "B"}]
+        result = self._executar_operacao([caiu, reaberto], reports, sessao_ativa=[True, False])
+        self.assertEqual([item["estado"] for item in result["itens"]], ["baixado", "baixado"])
+        self.assertNotIn("Browser.close", caiu.comandos)
+        self.assertTrue(caiu.closed)
+        self.assertIn("Browser.close", reaberto.comandos)
+
+    def test_falha_ao_fechar_o_edge_ainda_encerra_a_sessao_e_mantem_o_resultado(self):
+        driver = _EdgeAnexadoFake(falha_ao_fechar_edge=True)
+        result = self._executar_operacao([driver], [{"id": 1, "nome": "A"}])
+        self.assertEqual(result["quantidade_baixados"], 1)
+        self.assertTrue(driver.closed)
+
+    def test_navegador_proprio_do_selenium_nao_recebe_browser_close(self):
+        driver = _FakeDriver()
+        with patch.object(driver, "execute_cdp_cmd", wraps=driver.execute_cdp_cmd) as cdp:
+            self._executar_operacao([driver], [{"id": 1, "nome": "A"}])
+        self.assertNotIn("Browser.close", [chamada.args[0] for chamada in cdp.call_args_list])
+        self.assertTrue(driver.closed)
+
+    def test_keep_browser_open_deixa_o_edge_aberto(self):
+        driver = _EdgeAnexadoFake()
+        with patch.object(execucao, "KEEP_BROWSER_OPEN", True):
+            self._executar_operacao([driver], [{"id": 1, "nome": "A"}])
+        self.assertNotIn("Browser.close", driver.comandos)
+        self.assertFalse(driver.closed)
 
 
 if __name__ == "__main__":

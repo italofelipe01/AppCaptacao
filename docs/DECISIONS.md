@@ -135,3 +135,102 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   erro. A tela mostra cada arquivo salvo durante a execução e a pasta no resultado.
 - **Consequência:** `tests/automacao/test_lote_edge_anexado.py` reproduz a operação do teste real
   e falha contra a lógica antiga.
+
+## D17 — Fechar o Edge anexado no fim da execução (2026-10-16)
+
+- **Contexto:** depois de baixar os relatórios, a página do Sienge ficava aberta. Com o Edge
+  anexado pela porta de depuração (D16), `driver.quit()` só desconecta o msedgedriver; quem fechava
+  o navegador era o Selenium, quando o Edge era dele. Confirmado num Edge real: depois do `quit()` a
+  porta de depuração segue aberta.
+- **Decisão:** `navegador.encerrar_driver` manda `Browser.close` pelo DevTools antes do `quit()`,
+  só para drivers anexados ao Edge da automação (perfil exclusivo, nunca o Edge pessoal). Chrome
+  anexado pode ser o perfil pessoal e continua só desconectado. Quando a sessão cai no meio da
+  operação, o driver é só desconectado, porque o mesmo Edge é reanexado. Falha no `Browser.close` vai
+  para o log e não muda o resultado.
+- **Consequência:** a próxima execução abre um Edge novo e refaz o login, com MFA se a Microsoft
+  pedir. Quem preferir manter a sessão entre execuções usa `SELENIUM_KEEP_BROWSER_OPEN=true`.
+
+## D18 — Pasta por relatório e consolidado conferido com o Sienge (2026-10-16)
+
+- **Contexto:** uma operação real com 7 relatórios e 3 empresas deixou 58 arquivos misturados
+  numa pasta, cada um duas vezes: o destino era a própria pasta de downloads e a cópia caía ao
+  lado do original com `_2`. O nome não identifica o empreendimento (a empresa 242 tinha três), e
+  juntar os arquivos exigia limpar à mão o layout de impressão do Sienge.
+- **Decisão:** cada arquivo vai para `<base>\<Relatório>\`; com a base igual à pasta de downloads
+  ele é movido, não copiado. No fim da execução, o runner chama `consolidacao/`, que lê cada
+  arquivo pelo layout do relatório (7 executores com arquivo real visto), confere a soma ou a
+  contagem com os totais impressos pelo Sienge (tolerância de R$ 0,005 por linha, o
+  arredondamento da exportação) e grava `<Relatório>_consolidado_<data>.xlsx` com as abas Dados,
+  Origem e Conferência. Divergência não gera consolidado, e o relatório continua `baixado`.
+  `consolidacao/` só depende de `core/`; as regras de nome foram para `core/shared/arquivos.py`.
+- **Consequência:** nos 29 arquivos reais, os 7 consolidados saíram com as 65 conferências
+  batendo. Quem lia a raiz de `Automação CAP` passa a ler as subpastas. Os outros 10 executores
+  precisam de um arquivo real antes de ganhar layout. `APP_CONSOLIDAR_RELATORIOS=false` desliga a
+  consolidação. `tests/conftest.py` aponta a pasta de downloads para uma pasta temporária: sem
+  destino, os testes moveriam arquivos para a pasta real do usuário.
+
+## D19 — CSS de utilitários gerado a partir dos templates (2026-10-16)
+
+- **Contexto:** `tailwind-local.css` era escrito à mão imitando o Tailwind. Das classes usadas nos
+  templates, 21% não existiam nele e o navegador as ignorava sem aviso: login com metade vazia,
+  indicador de andamento com 0×0 px, menu com fundos brancos e textos invisíveis (1:1) no tema
+  escuro, indicadores empilhados. O reset não zerava o fundo de `<button>` (cinza do Edge) e o
+  logo azul-marinho ficava sobre placa escura.
+- **Decisão:** o arquivo é gerado pelo Tailwind v3.4.17 standalone (sem Node; SHA-256 fixado em
+  `scripts/gerar_css.ps1`) a partir dos templates e do JS estático. v3 porque as cores do arquivo
+  antigo eram as da paleta v3 (o v4 recalcula a paleta). Sem o preflight: o reset é o do arquivo
+  antigo mais borda padrão, fundo transparente em botão e `fieldset` sem margem; o preflight zeraria
+  as margens de textos e mudaria o espaçamento de todas as telas. O logo usa `.logo-placa` (fundo
+  branco nos dois temas). Onde o arquivo antigo clareava de propósito (`dark:text-slate-500` com a
+  cor do slate-400), o template passou a usar a classe da cor que já aparecia.
+- **Consequência:** `tests/web/test_css_gerado.py` falha quando uma classe dos templates fica sem
+  regra (lembrar de rodar o script). No escuro, as falhas de contraste medidas caíram de 33 para
+  10. No login, o botão de tema foi para o canto do cartão para o Entrar continuar visível num
+  notebook 1366×768 (o espaçamento que passou a valer o empurrava 62 px para baixo).
+
+## D20 — Estrutura das telas e modais num script só (2026-10-16)
+
+- **Contexto:** medido nas áreas úteis reais do Edge, o andamento da execução começava em
+  y=1201 (abaixo do formulário), o menu levava Tema e Sair para o fim da página, os botões das
+  tabelas empilhavam e a coluna Ações de Usuários sumia a partir de 1366. Usuários e Operações
+  tinham cada um a sua cópia de `abrirModal`/`fecharModal`. Nelas o foco não entrava no modal, Esc
+  fechava tudo (até na busca do combobox) e Esc ou clique fora descartavam o que foi digitado.
+- **Decisão:** o menu é `sticky` na altura da janela, e só a lista do meio rola. O estado
+  recolhido é aplicado por um script logo depois do `<aside>`, antes da primeira pintura. Na tela
+  de execução, o andamento e o resultado vêm antes do formulário, e só o resumo é `aria-live`.
+  O comportamento de modal fica em `project/static/js/modal.js`, carregado pelo layout:
+  - o foco vai para o primeiro campo e volta para quem abriu;
+  - o Tab fica preso no modal;
+  - Esc e clique fora fecham o modal de cima, com confirmação se algo mudou.
+
+  Os templates não redefinem essas funções. Um componente dentro do modal que use Esc (o combobox)
+  chama `stopPropagation`.
+- **Consequência:** `tests/web/test_estrutura_frontend.py` cobre rótulos, `autocomplete` das senhas,
+  a ordem da tela de execução, `aria-live`, títulos dos modais e o script único. Foco, Tab e Esc
+  foram conferidos no Edge, porque não há navegador nos testes. Para as ações caberem em 1280, as
+  células das duas tabelas usam 16 px de respiro lateral abaixo de 1536 px, e "Adicionar
+  relatorios" virou "Relatórios". O leitor de CSS do teste de classes passou a decodificar escape
+  hexadecimal (`.\32xl\:px-6`).
+
+## D21 — Textos com acento e valores gravados pelo nome (2026-10-16)
+
+- **Contexto:** as telas e as mensagens das rotas misturavam texto acentuado com "execucao",
+  "relatorio" e "Usuario ou senha invalidos". Parte do texto contradizia o sistema: "sessão
+  protegida, reutilizada", "conta corporativa", Logs "assim que o banco for conectado". Áreas,
+  eventos, status e estados apareciam pelo código gravado. Na medição, 28 textos ficavam abaixo da
+  WCAG AA no claro e 10 no escuro, entre eles o "EBM" do menu, com 1,36:1.
+- **Decisão:**
+  - **Acentos:** o texto exibido usa português com acentos. Isso vale para os templates, os
+    `flash` das rotas, os detalhes da auditoria, os `ValueError` de regra de negócio que vão para
+    a tela, os resumos do job e o rótulo dos perfis.
+  - **Códigos:** códigos gravados viram nome por `project/templates/components/rotulos.html`,
+    importado nas telas. Os valores enviados ao backend e gravados no banco não mudam.
+  - **Nome do app:** é "AppCaptação" no menu, no login e no título das abas.
+  - **Logs vazios:** a tela recebe `logs_gravados` (`APP_SAVE_LOGS`) para dizer por que a lista
+    está vazia.
+  - **Mensagens dos executores:** ficaram de fora. Elas descrevem a tela do Sienge e mudam
+    junto com os seletores.
+- **Consequência:** `tests/web/test_textos_frontend.py` procura palavras sem acento no texto
+  visível. Os testes que conferiam mensagem foram atualizados, e o que conferia a ausência do
+  sucesso passou a conferir o texto novo, para não passar sempre. Registros de log antigos mantêm
+  o texto da época. Valor sem nome na tabela aparece cru.

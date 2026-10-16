@@ -28,9 +28,18 @@ o nome já existir, ganha `_2`, `_3`... nada é sobrescrito. Falha ao renomear v
 
 ## Destino final
 
-- Sem destino informado na tela: o arquivo fica na pasta de downloads.
-- Com destino: é copiado para `<destino>\Automação CAP\` (ou para o próprio destino, se a pasta
-  já se chamar "Automação CAP"). A cópia é conferida pelo tamanho; falha vira etapa `copia`.
+Cada arquivo vai para a pasta do relatório: `<base>\<nome do relatório>\`.
+
+- Sem destino informado na tela: a base é a pasta de downloads, e o arquivo é **movido** para a
+  pasta do relatório.
+- Com destino: a base é `<destino>\Automação CAP\` (ou o próprio destino, se a pasta já se chamar
+  "Automação CAP"), e o arquivo é copiado para lá.
+- Se a base for a própria pasta de downloads (destino escrito igual ou com outras maiúsculas e
+  barra no fim), o arquivo também é movido. Antes ele era copiado ao lado do original e cada
+  relatório aparecia duas vezes (`_2`).
+- O arquivo é conferido pelo tamanho no destino; falha vira etapa `copia`.
+- No fim da execução, a pasta do relatório recebe o consolidado (ver
+  [consolidacao_de_relatorios.md](consolidacao_de_relatorios.md)).
 - O destino precisa ser **pasta local sincronizada do SharePoint/OneDrive ou caminho UNC**, com
   caminho completo (`C:\...` ou `\\servidor\...`). Link `http(s)://` do SharePoint e caminho
   relativo são recusados no `/processar`, antes de abrir o navegador

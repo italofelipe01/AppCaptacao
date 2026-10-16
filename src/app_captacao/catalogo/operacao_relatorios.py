@@ -212,11 +212,11 @@ def insert_operation_report_link(
     )
     vinculo_existente = cursor.fetchone()
     if vinculo_existente and vinculo_existente.Total:
-        raise ValueError("Este relatorio ja esta vinculado a operacao.")
+        raise ValueError("Este relatório já faz parte da operação.")
 
     relatorio = relatorios_repo.buscar_relatorio_com_filtros(relatorio_id)
     if not relatorio:
-        raise ValueError(f"Relatorio {relatorio_id} nao encontrado ou inativo.")
+        raise ValueError(f"Relatório {relatorio_id} não encontrado ou inativo.")
 
     proximo_id = sql.get_next_id(connection, RELATORIO_X_OPERACAO_TABLE, "IdCapRecursoRelatorioOperacao")
     possui_login_criacao = sql.column_exists(connection, RELATORIO_X_OPERACAO_TABLE, "IdLoginCriacao")
@@ -372,7 +372,7 @@ def atualizar_valores_filtros(
     with closing(sql.db_connection()) as connection:
         coluna_valor = get_filter_value_column(connection)
         if not coluna_valor:
-            raise ValueError("A tabela de filtros da operacao nao possui coluna de valor configurada.")
+            raise ValueError("A tabela de filtros da operação não tem coluna de valor configurada.")
         coluna_relatorio_existe = sql.column_exists(connection, FILTRO_X_OPERACAO_TABLE, "IdCapRecursoRelatorio")
         possui_login_alteracao = sql.column_exists(connection, FILTRO_X_OPERACAO_TABLE, "IdLoginAlteracao")
         possui_data_alteracao = sql.column_exists(connection, FILTRO_X_OPERACAO_TABLE, "DataAlteracao")

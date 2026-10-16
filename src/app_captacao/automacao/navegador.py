@@ -178,6 +178,10 @@ def _configurar_edge_profile(options):
     return options
 
 
+# Drivers ligados ao Edge da automacao pela porta de depuracao: neles quit() so desconecta.
+_drivers_edge_anexado: "weakref.WeakSet[object]" = weakref.WeakSet()
+
+
 def _anexar_ao_edge_normal():
     edge_path = _get_edge_path()
     if not edge_path:
@@ -214,6 +218,7 @@ def _anexar_ao_edge_normal():
         f"{EDGE_DEBUG_HOST}:{EDGE_DEBUG_PORT}",
     )
     driver = webdriver.Edge(options=options)
+    _drivers_edge_anexado.add(driver)
 
     pasta_downloads = str(Path(DOWNLOAD_DIR).resolve())
     try:
@@ -340,6 +345,23 @@ def sessao_do_driver_ativa(driver) -> bool:
         return bool(driver.window_handles)
     except WebDriverException:
         return False
+
+
+def encerrar_driver(driver, fechar_edge_anexado: bool = True) -> None:
+    """Encerra a sessao do Selenium; no Edge anexado tambem fecha o Edge da automacao.
+
+    Anexado pela porta de depuracao, quit() so desconecta o msedgedriver e o Edge fica
+    aberto na pagina do Sienge. Browser.close fecha essa instancia, que usa o perfil
+    exclusivo da automacao, nunca o Edge pessoal. Chrome anexado pode estar no perfil
+    pessoal e so e desconectado.
+    """
+    if fechar_edge_anexado and driver in _drivers_edge_anexado:
+        try:
+            driver.execute_cdp_cmd("Browser.close", {})
+            logger.info("Edge da automacao fechado.")
+        except Exception:
+            logger.warning("Nao foi possivel fechar o Edge da automacao pelo DevTools.", exc_info=True)
+    driver.quit()
 
 
 def _criar_driver_edge():
