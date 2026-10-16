@@ -7,12 +7,14 @@ confirmado no destino final.
 from __future__ import annotations
 
 import logging
-import re
+import os
 import shutil
 import time
 from datetime import datetime
 from pathlib import Path
 
+from app_captacao.core.shared.arquivos import montar_caminho_unico as montar_caminho_download_unico
+from app_captacao.core.shared.arquivos import sanitizar_nome_arquivo
 from app_captacao.automacao.config import (
     DEBUG_ARTIFACTS_ENABLED,
     DOWNLOAD_DIR,
@@ -44,11 +46,11 @@ def marcar_inicio_download():
 
 
 def renomear_download_relatorio(relatorio_config, empresa_id="", inicio_download=None, registrar_resultado=True):
-    """Espera o download, renomeia e devolve o caminho local.
+    """Espera o download, renomeia e devolve onde o arquivo esta agora.
 
-    Com registrar_resultado=True o arquivo tambem e copiado para o destino e entra no
-    resultado do relatorio. Relatorios paginados usam False em cada pagina e registram
-    so o arquivo final (a pagina unica ou o consolidado).
+    Com registrar_resultado=True o arquivo tambem vai para a pasta do relatorio e entra no
+    resultado (sem destino, ele e movido para la). Relatorios paginados usam False em cada
+    pagina e registram so o arquivo final (a pagina unica ou o consolidado).
     """
     inicio_download = inicio_download or marcar_inicio_download()
     arquivo = _aguardar_arquivo_download(inicio_download)
@@ -83,7 +85,9 @@ def renomear_download_relatorio(relatorio_config, empresa_id="", inicio_download
         raise erros.DownloadProcessingError("renomeacao", f"Falha ao renomear o arquivo: {exc}") from exc
 
     if registrar_resultado:
-        copiar_download_para_sharepoint(relatorio_config, destino)
+        caminho_final = copiar_download_para_sharepoint(relatorio_config, destino)
+        if not destino.exists():
+            return caminho_final
     # Os modulos de consolidacao continuam trabalhando com o arquivo local;
     # o caminho copiado e registrado separadamente como resultado final.
     return str(destino)
@@ -201,16 +205,6 @@ def aguardar_pasta_download_estabilizar(timeout: float = DOWNLOAD_WAIT_TIMEOUT):
     return False
 
 
-def montar_caminho_download_unico(pasta, nome_base, extensao):
-    destino = pasta / f"{nome_base}{extensao}"
-    contador = 2
-
-    while destino.exists():
-        destino = pasta / f"{nome_base}_{contador}{extensao}"
-        contador += 1
-
-    return destino
-
 
 def capture_debug_snapshot(driver, nome):
     if not DEBUG_ARTIFACTS_ENABLED:
@@ -237,49 +231,63 @@ def capture_debug_snapshot(driver, nome):
     return {"png": str(png_path), "html": str(html_path)}
 
 
-def sanitizar_nome_arquivo(valor):
-    valor = str(valor or "").strip()
-    valor = re.sub(r'[<>:"/\\|?*]+', " ", valor)
-    valor = re.sub(r"\s+", " ", valor).strip()
-    return valor or "sem_nome"
-
-
 def copiar_download_para_sharepoint(relatorio_config, arquivo_origem, registrar_resultado=True):
+    """Entrega o arquivo em `<base>\\<relatorio>\\` e devolve o caminho final.
+
+    A base e `<destino>\\Automacao CAP` ou, sem destino, a pasta de downloads. Base igual a
+    pasta de downloads: o arquivo e movido, senao a copia ficaria ao lado do original.
+    """
     arquivo_origem = Path(arquivo_origem)
     destino_informado = str(relatorio_config.get("sharepoint_link", "") or "").strip()
-    if not destino_informado:
-        caminho_final = str(arquivo_origem)
-        if registrar_resultado:
-            _registrar_arquivo_final(relatorio_config, caminho_final)
-        return caminho_final
-
-    motivo = mensagem_destino_invalido(destino_informado)
-    if motivo:
-        raise erros.DownloadProcessingError("copia", motivo)
-    destino_base = _resolver_destino_sharepoint(destino_informado)
+    if destino_informado:
+        motivo = mensagem_destino_invalido(destino_informado)
+        if motivo:
+            raise erros.DownloadProcessingError("copia", motivo)
+        destino_base = _resolver_destino_sharepoint(destino_informado)
+    else:
+        destino_base = Path(DOWNLOAD_DIR)
+    pasta_relatorio = destino_base / sanitizar_nome_arquivo(relatorio_config.get("nome") or "relatorio")
+    mover = mesma_pasta(destino_base, DOWNLOAD_DIR)
 
     try:
-        destino_base.mkdir(parents=True, exist_ok=True)
+        pasta_relatorio.mkdir(parents=True, exist_ok=True)
         destino_arquivo = montar_caminho_download_unico(
-            destino_base,
+            pasta_relatorio,
             arquivo_origem.stem,
             arquivo_origem.suffix,
         )
-        shutil.copy2(arquivo_origem, destino_arquivo)
-        if not destino_arquivo.exists() or destino_arquivo.stat().st_size != arquivo_origem.stat().st_size:
-            raise OSError("A copia no destino nao foi confirmada ou ficou incompleta.")
-        logger.info("Download copiado para SharePoint/local | origem=%s | destino=%s", arquivo_origem, destino_arquivo)
+        tamanho_origem = arquivo_origem.stat().st_size
+        if mover:
+            shutil.move(arquivo_origem, destino_arquivo)
+        else:
+            shutil.copy2(arquivo_origem, destino_arquivo)
+        if not destino_arquivo.exists() or destino_arquivo.stat().st_size != tamanho_origem:
+            raise OSError("O arquivo no destino nao foi confirmado ou ficou incompleto.")
+        logger.info(
+            "Download %s para a pasta do relatorio | origem=%s | destino=%s",
+            "movido" if mover else "copiado",
+            arquivo_origem,
+            destino_arquivo,
+        )
         caminho_final = str(destino_arquivo)
     except OSError as exc:
         logger.exception(
-            "Nao foi possivel copiar o arquivo %s para o destino SharePoint/local '%s'.",
+            "Nao foi possivel levar o arquivo %s para a pasta do relatorio '%s'.",
             arquivo_origem,
-            destino_base,
+            pasta_relatorio,
         )
         raise erros.DownloadProcessingError("copia", f"Falha ao copiar o arquivo para o destino: {exc}") from exc
     if registrar_resultado:
         _registrar_arquivo_final(relatorio_config, caminho_final)
     return caminho_final
+
+
+def mesma_pasta(pasta_a, pasta_b) -> bool:
+    """Mesmo caminho no Windows, ignorando maiusculas e barra no fim."""
+    try:
+        return os.path.normcase(str(Path(pasta_a).resolve())) == os.path.normcase(str(Path(pasta_b).resolve()))
+    except OSError:
+        return False
 
 
 def _registrar_arquivo_final(relatorio_config, caminho_final):

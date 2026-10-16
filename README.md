@@ -21,8 +21,9 @@ Escolhe relatório     ──▶     Busca os filtros cadastrados no banco
 e filtros                     Abre o Edge e faz login (Sienge ID + MFA) ──▶ Tela de login
                               Preenche os filtros do relatório         ──▶ Tela do relatório
                               Exporta e espera o arquivo terminar      ◀── Planilha
-Vê o resultado        ◀──     Renomeia e copia para a pasta de destino
-de cada relatório
+                              Renomeia e põe na pasta do relatório
+Vê o resultado        ◀──     Junta os arquivos de cada relatório num
+de cada relatório             consolidado conferido com os totais do Sienge
 ```
 
 - **Relatório avulso:** um relatório, com os filtros que você digita na hora.
@@ -141,9 +142,16 @@ nele, sem iniciar uma segunda cópia.
 
 ### Onde ficam os arquivos
 
-- Pasta de downloads: `Downloads\Automação CAP` (ou a definida em `SELENIUM_DOWNLOAD_DIR`).
+- Cada relatório tem a sua pasta: `Downloads\Automação CAP\<Relatório>\` (ou a pasta definida em
+  `SELENIUM_DOWNLOAD_DIR`). Com destino informado, a pasta fica em
+  `<destino>\Automação CAP\<Relatório>\`.
 - Nome: `<relatório>_<empresa>_<data>.xlsx`. Arquivo com o mesmo nome nunca é sobrescrito.
-- Com destino informado, uma cópia vai para `<destino>\Automação CAP\`.
+- No fim, a pasta ganha `<Relatório>_consolidado_<data>.xlsx`, com todas as empresas e
+  empreendimentos numa tabela só (aba **Dados**), a lista de arquivos (aba **Origem**) e a
+  conferência com os totais do Sienge (aba **Conferência**). Se algum total não bater, o
+  consolidado não é gerado e a tela diz o motivo; os arquivos de cada empresa continuam lá.
+  Hoje são consolidados: Analítico de apropriações, Extrato cliente histórico, Mapa de vendas,
+  Preço total de vendas, Títulos distratados, Vendas e Unidades.
 
 ## Quando algo dá errado
 
@@ -154,6 +162,7 @@ nele, sem iniciar uma segunda cópia.
 | `[ERRO ] ... timeout` no banco | Rede/VPN desligada ou `DB_HOST` errado |
 | Relatório **não baixado** na etapa `download` | O Sienge não gerou o arquivo a tempo; tente de novo ou aumente `SELENIUM_DOWNLOAD_WAIT_TIMEOUT_SECONDS` |
 | Etapa `copia` | O destino precisa ser pasta sincronizada ou caminho de rede |
+| "Consolidado nao gerado" | Um total do Sienge não bateu ou o layout mudou; os arquivos de cada empresa estão na pasta do relatório |
 | Todos **ignorados** na etapa `autenticacao` | Login no Sienge não concluiu: confira a senha e aprove o MFA a tempo |
 
 Detalhes técnicos de cada falha ficam no log:

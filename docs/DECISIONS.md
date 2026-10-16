@@ -149,3 +149,22 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   para o log e não muda o resultado.
 - **Consequência:** a próxima execução abre um Edge novo e refaz o login, com MFA se a Microsoft
   pedir. Quem preferir manter a sessão entre execuções usa `SELENIUM_KEEP_BROWSER_OPEN=true`.
+
+## D18 — Pasta por relatório e consolidado conferido com o Sienge (2026-10-16)
+
+- **Contexto:** uma operação real com 7 relatórios e 3 empresas deixou 58 arquivos misturados
+  numa pasta, cada um duas vezes: o destino era a própria pasta de downloads e a cópia caía ao
+  lado do original com `_2`. O nome não identifica o empreendimento (a empresa 242 tinha três), e
+  juntar os arquivos exigia limpar à mão o layout de impressão do Sienge.
+- **Decisão:** cada arquivo vai para `<base>\<Relatório>\`; com a base igual à pasta de downloads
+  ele é movido, não copiado. No fim da execução, o runner chama `consolidacao/`, que lê cada
+  arquivo pelo layout do relatório (7 executores com arquivo real visto), confere a soma ou a
+  contagem com os totais impressos pelo Sienge (tolerância de R$ 0,005 por linha, o
+  arredondamento da exportação) e grava `<Relatório>_consolidado_<data>.xlsx` com as abas Dados,
+  Origem e Conferência. Divergência não gera consolidado, e o relatório continua `baixado`.
+  `consolidacao/` só depende de `core/`; as regras de nome foram para `core/shared/arquivos.py`.
+- **Consequência:** nos 29 arquivos reais, os 7 consolidados saíram com as 65 conferências
+  batendo. Quem lia a raiz de `Automação CAP` passa a ler as subpastas. Os outros 10 executores
+  precisam de um arquivo real antes de ganhar layout. `APP_CONSOLIDAR_RELATORIOS=false` desliga a
+  consolidação. `tests/conftest.py` aponta a pasta de downloads para uma pasta temporária: sem
+  destino, os testes moveriam arquivos para a pasta real do usuário.

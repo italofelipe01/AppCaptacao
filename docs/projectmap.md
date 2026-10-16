@@ -16,11 +16,12 @@ AppCaptacao/
 │   │   ├── database/           connection.py (pyodbc + pymssql), sql.py (execute, fetch, introspecção)
 │   │   ├── security/           auth.py, perfis.py, sessao_usuario.py, network_auth.py (não ligado)
 │   │   ├── persistence/        usuarios.py, logs.py
-│   │   └── shared/             texto.py, navegador_local.py, log_tecnico.py
+│   │   └── shared/             texto.py, arquivos.py (nome/pasta), navegador_local.py, log_tecnico.py
 │   ├── catalogo/               relatorios.py, regras.py, operacoes.py, operacao_relatorios.py
 │   ├── automacao/              config, navegador, login, sessao, campos, downloads, erros, execucao
 │   │   └── relatorios/         registro.py + executores/<relatorio>.py (17 executores)
-│   ├── execucao/               jobs.py (estado), runner.py (thread)
+│   ├── consolidacao/           layouts.py (7 relatórios), leitura.py, consolidador.py (conferência + planilha)
+│   ├── execucao/               jobs.py (estado), runner.py (thread + consolidação no fim)
 │   ├── inicializacao/          dependencias.py, verificacoes.py (checklist do run.py)
 │   ├── web/                    routes_auth, routes_execucao, routes_usuarios,
 │   │                           routes_acompanhamento, routes_logs, registro, erros, auditoria
@@ -47,7 +48,8 @@ AppCaptacao/
 | Novo relatório do Sienge | `automacao/relatorios/executores/<nome>.py` + `registro.py` + `regras.py` ([guia](processos/relatorios_e_filtros.md#como-adicionar-um-relatório-novo)) |
 | Seletores do login Sienge/Microsoft | `automacao/login.py` |
 | Abertura do Edge/Chrome | `automacao/navegador.py` |
-| Detecção, nome ou cópia de download | `automacao/downloads.py` |
+| Detecção, nome ou cópia de download | `automacao/downloads.py` (regras de nome em `core/shared/arquivos.py`) |
+| Consolidar um relatório novo ou ajustar a conferência | `consolidacao/layouts.py` + planilha sintética em `tests/consolidacao/planilhas_sienge.py` ([guia](processos/consolidacao_de_relatorios.md#como-adicionar-um-relatório)) |
 | Preenchimento de campo comum (autocomplete, iframe) | `automacao/campos.py` |
 | Estados e resumo da execução | `automacao/execucao.py` e `execucao/runner.py` |
 | Checklist de inicialização | `inicializacao/verificacoes.py` |
@@ -62,7 +64,8 @@ AppCaptacao/
 | `tests/catalogo/` | escolha do executor, filtros obrigatórios e fixos, consulta do catálogo |
 | `tests/web/` | rotas (usuários, acompanhamento, erros) e scripts dos templates |
 | `tests/automacao/` | execução em sequência, login, downloads, executor do saldo devedor |
-| `tests/execucao/` | job em segundo plano e limite de memória |
+| `tests/execucao/` | job em segundo plano, limite de memória e consolidação no fim |
+| `tests/consolidacao/` | leitura do layout do Sienge, conferência e planilha gerada (planilhas sintéticas) |
 | `tests/inicializacao/` | checklist e leitura do requirements |
 | `tests/desktop/` | janela desktop (com customtkinter simulado) |
 | `tests/test_fronteiras.py` | fronteiras entre camadas |

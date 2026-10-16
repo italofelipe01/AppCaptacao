@@ -65,8 +65,8 @@ class LoteNoEdgeAnexadoTests(unittest.TestCase):
             with patch.object(navegador, "criar_driver", return_value=driver), patch.object(login, "fazer_login"), patch.object(
                 relatorios_dedicados, "executar_relatorio_dedicado", side_effect=executor_com_popup
             ), patch.object(downloads, "aguardar_pasta_download_estabilizar", return_value=True), patch.object(
-                execucao.time, "sleep"
-            ):
+                downloads, "DOWNLOAD_DIR", pasta
+            ), patch.object(execucao.time, "sleep"):
                 resultado = execucao.executar_relatorios_em_sequencia("ana@ebm.com.br", "x", relatorios)
 
         self.assertEqual(resultado["quantidade_baixados"], 7, [item["mensagem"] for item in resultado["falhas"]])
