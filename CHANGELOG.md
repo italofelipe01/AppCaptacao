@@ -7,6 +7,14 @@ geradas pelo `python-semantic-release` a partir dos commits (Conventional Commit
 
 <!-- version list -->
 
+## v1.1.1 (2026-10-16)
+
+### Bug Fixes
+
+- **automacao**: Fechar a janela do relatorio so depois do download
+  ([`f735f99`](https://github.com/italofelipe01/AppCaptacao/commit/f735f99281e79a84fdc2c1f2f4ea5f01cb3e1d49))
+
+
 ## v1.1.0 (2026-10-16)
 
 ### Bug Fixes
