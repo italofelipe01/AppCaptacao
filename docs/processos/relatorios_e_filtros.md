@@ -92,7 +92,8 @@ Acompanhamento e o payload da operação usam a mesma tabela.
 ## Como adicionar um relatório novo
 
 1. Cadastrar o relatório e os filtros nas tabelas do catálogo.
-2. Criar `automacao/relatorios/executores/<nome>.py` com `executar(...)`.
+2. Criar `automacao/relatorios/executores/<nome>.py` com `executar(...)`. Depois de exportar,
+   esperar o arquivo (`renomear_download`) e só então `fechar_janelas_extras` (D22).
 3. Registrar em `automacao/relatorios/registro.py` e mapear ID/URL/nome em `catalogo/regras.py`.
 4. Se algum filtro for opcional, incluir em `eh_filtro_opcional_relatorio`.
 5. Testar o roteamento (executor escolhido) e o preenchimento com dublês, sem rede.

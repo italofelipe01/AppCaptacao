@@ -92,8 +92,8 @@ def executar(driver, wait, relatorio_config, contexto):
         inicio_download = marcar_inicio_download()
         ActionChains(driver).send_keys(Keys.ENTER).perform()
         time.sleep(default_report_wait)
-        _fechar_janelas_extras(driver)
         renomear_download(relatorio_config, empresas[index] if index < len(empresas) else "", inicio_download)
+        _fechar_janelas_extras(driver)
 
 
 def _obter_filtro_por_campo(filtros, *campos_identificadores):

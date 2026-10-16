@@ -87,8 +87,8 @@ def executar(driver, wait, relatorio_config, contexto):
         inicio_download = marcar_inicio_download()
         _clicar_botao_visualizar(driver, wait, logger)
         time.sleep(default_report_wait)
-        _fechar_janelas_extras(driver)
         renomear_download(relatorio_config, _obter_valor_iteracao(empresas, index), inicio_download)
+        _fechar_janelas_extras(driver)
 
 
 def _obter_filtro_por_campo(filtros, *campos_identificadores):

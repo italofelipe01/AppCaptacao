@@ -234,3 +234,19 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   visível. Os testes que conferiam mensagem foram atualizados, e o que conferia a ausência do
   sucesso passou a conferir o texto novo, para não passar sempre. Registros de log antigos mantêm
   o texto da época. Valor sem nome na tabela aparece cru.
+
+## D22 — Fechar a janela do relatório só depois do download (2026-10-16)
+
+- **Contexto:** numa operação real, o Extrato cliente histórico (empresa 242, centro de custo
+  1002) parou no primeiro arquivo. De manhã, o mesmo filtro tinha entregado o arquivo em 7 s.
+  Os executores davam ENTER, esperavam 5 s fixos e fechavam a janela `please_wait_frame.jsp`
+  antes de esperar o arquivo. Desta vez o Sienge demorou mais que isso, a janela foi fechada com o
+  pedido ainda pendente, e o download nunca começou. A automação ficou 600 s esperando, sem nada
+  no log, e o relatório inteiro seria dado como não baixado.
+- **Decisão:** os 15 executores que exportavam assim esperam o arquivo (`renomear_download`) e só
+  então fecham a janela, como o Quadro espelho já fazia. Quando o download falha, a janela fica
+  aberta até `_executar_relatorio_no_driver` fechá-la, antes do próximo relatório.
+- **Consequência:** `tests/automacao/test_executores.py` falha se algum executor fechar a janela
+  antes de esperar o arquivo. O teste confere a ordem no código de todos os executores e executa
+  o Extrato com dublês. A espera fixa depois do ENTER continua, mas deixou de decidir se o
+  download dá certo.

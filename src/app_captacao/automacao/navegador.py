@@ -414,6 +414,9 @@ def fechar_janelas_extras(driver):
 
     Nunca toca em janela interna do Edge (edge://, devtools://...) e nunca usa a
     "janela atual" como referencia: depois de uma falha ela pode ser um dialogo.
+
+    Chamar so depois de o download chegar (renomear_download): a janela "please_wait_frame" do
+    Sienge e quem pede o arquivo, e fechada antes da resposta o download nunca comeca.
     """
     principal = janela_principal(driver)
     urls = _urls_das_janelas(driver)

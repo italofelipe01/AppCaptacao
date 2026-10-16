@@ -20,6 +20,9 @@ configurado para baixar ali sem perguntar.
    verificações seguidas (padrão 3, a cada 0,75 s).
 5. Limite total: `SELENIUM_DOWNLOAD_WAIT_TIMEOUT_SECONDS` (padrão 600 s). Sem arquivo novo, o
    relatório falha na etapa `download`.
+6. A janela que o relatório abre (`please_wait_frame.jsp`) só é fechada depois que o arquivo
+   chega (D22). É ela que pede o arquivo ao Sienge: fechada antes da resposta, o download nunca
+   começa. Se o download falhar, a janela é fechada antes do próximo relatório.
 
 ## Nome do arquivo
 

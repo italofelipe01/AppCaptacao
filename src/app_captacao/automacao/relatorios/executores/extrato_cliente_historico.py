@@ -126,8 +126,8 @@ def executar(driver, wait, relatorio_config, contexto):
         inicio_download = marcar_inicio_download()
         ActionChains(driver).send_keys(Keys.ENTER).perform()
         time.sleep(default_report_wait)
-        _fechar_janelas_extras(driver)  # Fecha popup/janela extra aberta pelo relatório
         renomear_download(relatorio_config, str(empresas[index]), inicio_download)
+        _fechar_janelas_extras(driver)
 
         index += 1
 
