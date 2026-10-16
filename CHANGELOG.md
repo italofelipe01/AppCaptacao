@@ -7,6 +7,36 @@ geradas pelo `python-semantic-release` a partir dos commits (Conventional Commit
 
 <!-- version list -->
 
+## v1.1.0 (2026-10-16)
+
+### Bug Fixes
+
+- **automacao**: Fechar o Edge anexado ao fim da execucao
+  ([`1c684a4`](https://github.com/italofelipe01/AppCaptacao/commit/1c684a473150841c81669f23deaec109986719df))
+
+- **web**: Gerar o CSS de utilitarios a partir dos templates
+  ([`5302060`](https://github.com/italofelipe01/AppCaptacao/commit/5302060a3effb3820412ea1d6e302ab42cf617e9))
+
+- **web**: Menu fixo, andamento no topo e modais pelo teclado
+  ([`1f0df14`](https://github.com/italofelipe01/AppCaptacao/commit/1f0df148bc88e67a855f349bc47ebc06f852a18f))
+
+- **web**: Textos com acento, fieis ao sistema e com contraste legivel
+  ([`20d60a5`](https://github.com/italofelipe01/AppCaptacao/commit/20d60a5ee5bec04a9f2e2084fa93377361497c02))
+
+### Chores
+
+- Silenciar MD012 no changelog gerado
+  ([`c63b79d`](https://github.com/italofelipe01/AppCaptacao/commit/c63b79df4bd4f83d60a197c11e7fdb93f364860f))
+
+- **tools**: Corrigir os avisos de tipo do BaixaPDFs
+  ([`aaf23e1`](https://github.com/italofelipe01/AppCaptacao/commit/aaf23e1291fe38fa8d20bd5bfd7b5dd8d0a7907a))
+
+### Features
+
+- **consolidacao**: Pasta por relatorio e consolidado conferido com o Sienge
+  ([`2acd7b2`](https://github.com/italofelipe01/AppCaptacao/commit/2acd7b254d21e9ec3d7e17b81840e0e1d1030afb))
+
+
 ## v1.0.2 (2026-10-15)
 
 ### Bug Fixes
