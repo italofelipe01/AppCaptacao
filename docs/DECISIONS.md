@@ -135,3 +135,17 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   erro. A tela mostra cada arquivo salvo durante a execução e a pasta no resultado.
 - **Consequência:** `tests/automacao/test_lote_edge_anexado.py` reproduz a operação do teste real
   e falha contra a lógica antiga.
+
+## D17 — Fechar o Edge anexado no fim da execução (2026-10-16)
+
+- **Contexto:** depois de baixar os relatórios, a página do Sienge ficava aberta. Com o Edge
+  anexado pela porta de depuração (D16), `driver.quit()` só desconecta o msedgedriver; quem fechava
+  o navegador era o Selenium, quando o Edge era dele. Confirmado num Edge real: depois do `quit()` a
+  porta de depuração segue aberta.
+- **Decisão:** `navegador.encerrar_driver` manda `Browser.close` pelo DevTools antes do `quit()`,
+  só para drivers anexados ao Edge da automação (perfil exclusivo, nunca o Edge pessoal). Chrome
+  anexado pode ser o perfil pessoal e continua só desconectado. Quando a sessão cai no meio da
+  operação, o driver é só desconectado, porque o mesmo Edge é reanexado. Falha no `Browser.close` vai
+  para o log e não muda o resultado.
+- **Consequência:** a próxima execução abre um Edge novo e refaz o login, com MFA se a Microsoft
+  pedir. Quem preferir manter a sessão entre execuções usa `SELENIUM_KEEP_BROWSER_OPEN=true`.
