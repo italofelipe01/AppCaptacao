@@ -26,7 +26,8 @@ AppCaptacao/
 │   ├── web/                    routes_auth, routes_execucao, routes_usuarios,
 │   │                           routes_acompanhamento, routes_logs, registro, erros, auditoria
 │   └── desktop/                desktop_app.py (janela do .exe), config_installer.py
-├── project/                    FRONTEND: templates/ e static/ (não alterar sem pedido)
+├── project/                    FRONTEND: templates/ e static/ (não alterar sem pedido);
+│                               static/css/tailwind-local.css é gerado (scripts/gerar_css.ps1)
 ├── tests/                      espelha src/: core, catalogo, web, automacao, execucao, ...
 ├── packaging/                  .spec do PyInstaller e ícone
 ├── scripts/                    gerar_executaveis.ps1, criar_atalho.bat/.ps1
@@ -40,6 +41,7 @@ AppCaptacao/
 | --- | --- |
 | Nova variável de ambiente | `core/config/settings.py` (app) ou `automacao/config.py` (Selenium) + `.env.example` |
 | Nova tela ou rota | `web/routes_<tela>.py` + registrar em `app.py`; template em `project/templates/` |
+| Classe de estilo nova ou mudada num template | Rodar `scripts\gerar_css.ps1` (gera `tailwind-local.css`; nunca editar à mão). Estilo próprio do app vai em `project/static/css/app.css`; reset e opacidades extras em `scripts/css/` |
 | Mudar permissão | decorator `access_required(...)` na rota; perfis em `core/security/perfis.py` |
 | SQL de usuário | `core/persistence/usuarios.py` |
 | SQL de catálogo/operação | `catalogo/relatorios.py`, `catalogo/operacoes.py`, `catalogo/operacao_relatorios.py` |
@@ -62,7 +64,7 @@ AppCaptacao/
 | --- | --- |
 | `tests/core/` | configuração, conexão, senha, sessão/usuário, log técnico |
 | `tests/catalogo/` | escolha do executor, filtros obrigatórios e fixos, consulta do catálogo |
-| `tests/web/` | rotas (usuários, acompanhamento, erros) e scripts dos templates |
+| `tests/web/` | rotas (usuários, acompanhamento, erros), scripts dos templates e classes de estilo sem regra no CSS gerado |
 | `tests/automacao/` | execução em sequência, login, downloads, executor do saldo devedor |
 | `tests/execucao/` | job em segundo plano, limite de memória e consolidação no fim |
 | `tests/consolidacao/` | leitura do layout do Sienge, conferência e planilha gerada (planilhas sintéticas) |

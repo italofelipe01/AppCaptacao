@@ -24,3 +24,5 @@ antes do código.
 
 - [consolidacao-relatorios.md](consolidacao-relatorios.md) — pasta por relatório, sem cópia
   repetida, e consolidado conferido com os totais do Sienge.
+- [frontend-css-gerado.md](frontend-css-gerado.md) — CSS gerado a partir dos templates (fatia 1
+  da revisão do frontend).

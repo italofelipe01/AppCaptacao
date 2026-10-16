@@ -32,6 +32,7 @@ Relatórios, filtros, operações e usuários vivem no **SQL Server** (tabelas `
 .\.venv\Scripts\python.exe -m compileall -q src tests run.py
 npx pyright@1.1.414 --pythonpath .venv\Scripts\python.exe    # deve dar 0 erros
 node --check project\static\js\menu.js
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\gerar_css.ps1     # após mudar classes nos templates
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\gerar_executaveis.ps1 -Limpar
 ```
 
@@ -56,7 +57,8 @@ src/app_captacao/
 ├── inicializacao/           checklist do run.py (dependencias.py só usa stdlib)
 ├── web/                     routes_*.py, registro.py (RegistroRotas), erros.py, auditoria.py
 └── desktop/                 desktop_app.py (.exe), config_installer.py (configurador)
-project/                     FRONTEND (templates + static) — não mudar sem pedido explícito
+project/                     FRONTEND (templates + static) — não mudar sem pedido explícito;
+                             static/css/tailwind-local.css é gerado: nunca editar à mão (D19)
 tests/                       espelha src/; tests/fakes.py tem os dublês de banco
 packaging/ scripts/ tools/ docs/
 ```

@@ -168,3 +168,22 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   precisam de um arquivo real antes de ganhar layout. `APP_CONSOLIDAR_RELATORIOS=false` desliga a
   consolidação. `tests/conftest.py` aponta a pasta de downloads para uma pasta temporária: sem
   destino, os testes moveriam arquivos para a pasta real do usuário.
+
+## D19 — CSS de utilitários gerado a partir dos templates (2026-10-16)
+
+- **Contexto:** `tailwind-local.css` era escrito à mão imitando o Tailwind. Das classes usadas nos
+  templates, 21% não existiam nele e o navegador as ignorava sem aviso: login com metade vazia,
+  indicador de andamento com 0×0 px, menu com fundos brancos e textos invisíveis (1:1) no tema
+  escuro, indicadores empilhados. O reset não zerava o fundo de `<button>` (cinza do Edge) e o
+  logo azul-marinho ficava sobre placa escura.
+- **Decisão:** o arquivo é gerado pelo Tailwind v3.4.17 standalone (sem Node; SHA-256 fixado em
+  `scripts/gerar_css.ps1`) a partir dos templates e do JS estático. v3 porque as cores do arquivo
+  antigo eram as da paleta v3 (o v4 recalcula a paleta). Sem o preflight: o reset é o do arquivo
+  antigo mais borda padrão, fundo transparente em botão e `fieldset` sem margem; o preflight zeraria
+  as margens de textos e mudaria o espaçamento de todas as telas. O logo usa `.logo-placa` (fundo
+  branco nos dois temas). Onde o arquivo antigo clareava de propósito (`dark:text-slate-500` com a
+  cor do slate-400), o template passou a usar a classe da cor que já aparecia.
+- **Consequência:** `tests/web/test_css_gerado.py` falha quando uma classe dos templates fica sem
+  regra (lembrar de rodar o script). No escuro, as falhas de contraste medidas caíram de 33 para
+  10. No login, o botão de tema foi para o canto do cartão para o Entrar continuar visível num
+  notebook 1366×768 (o espaçamento que passou a valer o empurrava 62 px para baixo).
