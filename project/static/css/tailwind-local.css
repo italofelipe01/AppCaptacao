@@ -533,6 +533,10 @@ table {
   max-width: 28rem;
 }
 
+.max-w-prose {
+  max-width: 65ch;
+}
+
 .max-w-xl {
   max-width: 36rem;
 }
@@ -970,6 +974,11 @@ table {
   padding-right: 0.25rem;
 }
 
+.px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
@@ -1003,6 +1012,11 @@ table {
 .px-8 {
   padding-left: 2rem;
   padding-right: 2rem;
+}
+
+.py-0\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
 }
 
 .py-1 {
@@ -1190,10 +1204,6 @@ table {
 .text-amber-700 {
   --tw-text-opacity: 1;
   color: rgb(180 83 9 / var(--tw-text-opacity, 1));
-}
-
-.text-cyan-300\/80 {
-  color: rgb(103 232 249 / 0.8);
 }
 
 .text-cyan-700 {
@@ -1625,6 +1635,10 @@ table {
 .dark\:text-cyan-300:is(.dark *) {
   --tw-text-opacity: 1;
   color: rgb(103 232 249 / var(--tw-text-opacity, 1));
+}
+
+.dark\:text-cyan-300\/80:is(.dark *) {
+  color: rgb(103 232 249 / 0.8);
 }
 
 .dark\:text-emerald-300:is(.dark *) {

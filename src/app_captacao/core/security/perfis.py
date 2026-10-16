@@ -8,10 +8,10 @@ ACESSO_EXECUCAO = 3
 
 PERFIS_POR_ACESSO = {
     ACESSO_ADMINISTRADOR: "Administrador",
-    ACESSO_CADASTRO_OPERACAO: "Usuario com cadastro de operacao",
-    ACESSO_EXECUCAO: "Usuario de execucao",
+    ACESSO_CADASTRO_OPERACAO: "Usuário com cadastro de operação",
+    ACESSO_EXECUCAO: "Usuário de execução",
 }
 
 
 def descricao_perfil(access_id: int) -> str:
-    return PERFIS_POR_ACESSO.get(access_id, "Usuario")
+    return PERFIS_POR_ACESSO.get(access_id, "Usuário")

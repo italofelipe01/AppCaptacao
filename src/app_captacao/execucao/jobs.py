@@ -132,7 +132,7 @@ def create_execution_job(tipo: str, relatorios: list[dict], operacao_nome: str =
     with _execution_jobs_lock:
         if any(job.get("estado") in ESTADOS_EM_ANDAMENTO for job in _execution_jobs.values()):
             raise ExecucaoEmAndamentoError(
-                "Ja existe uma execucao em andamento neste computador. Aguarde ela terminar."
+                "Já existe uma execução em andamento neste computador. Aguarde ela terminar."
             )
         _descartar_jobs_antigos()
         _execution_jobs[job_id] = {
@@ -144,7 +144,7 @@ def create_execution_job(tipo: str, relatorios: list[dict], operacao_nome: str =
             "quantidade_relatorios": len(itens),
             "quantidade_baixados": 0,
             "quantidade_nao_baixados": 0,
-            "resumo": f"Preparando {len(itens)} relatorio(s).",
+            "resumo": f"Preparando {len(itens)} relatório(s).",
             "resultado": None,
         }
     session["execution_job_id"] = job_id

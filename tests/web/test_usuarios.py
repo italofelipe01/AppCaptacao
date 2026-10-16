@@ -49,7 +49,7 @@ class UserManagementTests(unittest.TestCase):
 
         self.assertNotIn("CapRecursoAcesso", captured[0])
         self.assertEqual(users[0]["id_acesso"], 2)
-        self.assertEqual(users[0]["perfil"], "Usuario com cadastro de operacao")
+        self.assertEqual(users[0]["perfil"], "Usuário com cadastro de operação")
 
     def test_user_page_renders_responsive_modals(self):
         with patch.object(usuarios, "load_user_by_id", return_value=ADMIN_ROW), patch.object(
@@ -125,7 +125,7 @@ class UserManagementTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         with self.client.session_transaction() as session:
             messages = [message for _, message in session.get("_flashes", [])]
-        self.assertTrue(any("obrigatorios" in message for message in messages))
+        self.assertTrue(any("obrigatórios" in message for message in messages))
 
 
 if __name__ == "__main__":

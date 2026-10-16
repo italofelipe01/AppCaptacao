@@ -35,7 +35,7 @@ def _resultado(*itens):
         "falhas": [item for item in itens if item["estado"] != "baixado"],
         "quantidade_baixados": len(sucessos),
         "quantidade_nao_baixados": len(itens) - len(sucessos),
-        "resumo": f"{len(sucessos)} relatorio(s) baixado(s); {len(itens) - len(sucessos)} nao baixado(s).",
+        "resumo": f"{len(sucessos)} relatório(s) baixado(s); {len(itens) - len(sucessos)} não baixado(s).",
     }
 
 
@@ -78,8 +78,8 @@ class ConsolidacaoNoFimDaExecucaoTests(unittest.TestCase):
 
         item = resultado["itens"][0]
         self.assertEqual((item["estado"], item["caminho_final"], item["arquivos"]), ("baixado", arquivos[-1], arquivos))
-        self.assertIn("Consolidado nao gerado: Unidades_242_2026-10-16_1.xlsx: Quantidade de unidades", item["mensagem"])
-        self.assertIn("0 consolidado(s), 1 nao gerado(s)", resultado["resumo"])
+        self.assertIn("Consolidado não gerado: Unidades_242_2026-10-16_1.xlsx: Quantidade de unidades", item["mensagem"])
+        self.assertIn("0 consolidado(s), 1 não gerado(s)", resultado["resumo"])
         self.assertEqual(list(self.pasta.glob("*consolidado*")), [])
 
     def test_relatorio_que_falhou_no_meio_nao_e_consolidado(self):
@@ -108,7 +108,7 @@ class ConsolidacaoNoFimDaExecucaoTests(unittest.TestCase):
             runner._consolidar_relatorios(self.job_id, resultado, [UNIDADES])
         item = resultado["itens"][0]
         self.assertEqual(item["estado"], "baixado")
-        self.assertIn("Consolidado nao gerado: erro inesperado", item["mensagem"])
+        self.assertIn("Consolidado não gerado: erro inesperado", item["mensagem"])
 
     def test_flag_desligada_nao_consolida(self):
         arquivos = self._unidades("1002 - A")

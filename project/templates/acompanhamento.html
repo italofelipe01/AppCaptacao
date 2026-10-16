@@ -1,5 +1,5 @@
 {% extends "layout_base.html" %}
-{% block title %}Acompanhamento{% endblock %}
+{% block title %}Operações{% endblock %}
 
 {% block content %}
 <section class="py-4">
@@ -24,7 +24,7 @@
                         onclick="abrirModalOperacao()"
                         class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
                     >
-                        Nova Operação
+                        Nova operação
                     </button>
                 </div>
             </div>
@@ -44,11 +44,11 @@
 
                 <div class="mb-7 grid gap-4 sm:grid-cols-3">
                     <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-800/60">
-                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Operações ativas</p>
+                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{% if filtro_nome %}Operações encontradas{% else %}Operações ativas{% endif %}</p>
                         <p class="mt-2 text-3xl font-extrabold text-slate-950 dark:text-white">{{ operacoes|length }}</p>
                     </div>
                     <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-800/60">
-                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Relatórios vinculados</p>
+                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Relatórios vinculados</p>
                         <p class="mt-2 text-3xl font-extrabold text-slate-950 dark:text-white">{{ operacoes|sum(attribute='quantidade_relatorios') }}</p>
                     </div>
                     <div class="rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/10">
@@ -61,14 +61,14 @@
                     <div class="grid gap-4 md:grid-cols-[1fr_auto]">
                         <div class="flex flex-col">
                             <label for="nome_operacao" class="text-sm font-medium text-slate-700 dark:text-slate-200">
-                                Nome da operacao
+                                Nome da operação
                             </label>
                             <input
                                 id="nome_operacao"
                                 name="nome_operacao"
                                 type="text"
                                 value="{{ filtro_nome }}"
-                                placeholder="Filtrar por nome da operacao"
+                                placeholder="Parte do nome da operação"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
                             >
                         </div>
@@ -103,12 +103,12 @@
                         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
                             <thead class="bg-slate-50 dark:bg-slate-800/60">
                                 <tr>
-                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Codigo</th>
-                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Nome da operacao</th>
+                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Código</th>
+                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Nome da operação</th>
                                     <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Status</th>
                                     <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Relatórios</th>
                                     <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Criada em</th>
-                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acoes</th>
+                                    <th class="px-4 py-4 2xl:px-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Ações</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
@@ -145,7 +145,7 @@
                                                 >
                                                     Relatórios
                                                 </button>
-                                                <form method="POST" action="{{ url_for('inativar_operacao_route', operacao_id=operacao.id) }}" onsubmit="return confirm('Deseja inativar esta operacao?');">
+                                                <form method="POST" action="{{ url_for('inativar_operacao_route', operacao_id=operacao.id) }}" onsubmit="return confirm('Deseja inativar esta operação?');">
                                                     <button
                                                         type="submit"
                                                         class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
@@ -168,8 +168,8 @@
                                                         <path d="M10 18h4"></path>
                                                     </svg>
                                                 </div>
-                                                <p class="mt-5 text-base font-semibold text-slate-900 dark:text-slate-100">Nenhuma operacao ativa encontrada</p>
-                                                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">As operacoes inativadas nao aparecem mais nesta grade.</p>
+                                                <p class="mt-5 text-base font-semibold text-slate-900 dark:text-slate-100">Nenhuma operação ativa encontrada</p>
+                                                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Operações inativadas não aparecem nesta lista.</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -189,8 +189,8 @@
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300">Cadastro</p>
-                    <h2 id="modal-operacao-titulo" class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Nova operacao</h2>
-                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Informe o nome e escolha os relatorios na ordem em que devem ser executados.</p>
+                    <h2 id="modal-operacao-titulo" class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Nova operação</h2>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Informe o nome e escolha os relatórios na ordem em que devem ser executados.</p>
                 </div>
                 <button type="button" onclick="fecharModal('modal-operacao')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -202,12 +202,12 @@
         </div>
         <form method="POST" action="{{ url_for('criar_operacao_route') }}" class="app-modal-body space-y-7 px-7 py-7">
             <div class="flex flex-col">
-                <label for="modal-nome-operacao" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operacao</label>
-                <input id="modal-nome-operacao" name="nome_operacao" type="text" placeholder="Digite o nome da operacao" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                <label for="modal-nome-operacao" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operação</label>
+                <input id="modal-nome-operacao" name="nome_operacao" type="text" placeholder="Ex.: Fechamento mensal" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
             </div>
             <fieldset class="space-y-3">
-                <legend class="text-sm font-medium text-slate-700 dark:text-slate-200">Relatorios da operacao</legend>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Selecione ao menos um. Use as setas para definir a sequencia.</p>
+                <legend class="text-sm font-medium text-slate-700 dark:text-slate-200">Relatórios da operação</legend>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Selecione ao menos um. Use as setas para definir a sequência.</p>
                 <div id="nova-operacao-relatorios" class="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
                     {% for relatorio in relatorios_disponiveis %}
                     <div data-relatorio-item class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 dark:border-slate-700 dark:bg-slate-900">
@@ -218,13 +218,13 @@
                         <button type="button" data-mover="baixo" class="rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-slate-700" aria-label="Mover para baixo">↓</button>
                     </div>
                     {% else %}
-                    <p class="px-3 py-5 text-center text-sm text-rose-600">Nenhum relatorio ativo esta disponivel.</p>
+                    <p class="px-3 py-5 text-center text-sm text-rose-600">Nenhum relatório ativo está disponível.</p>
                     {% endfor %}
                 </div>
             </fieldset>
             <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-slate-800">
                 <button type="button" onclick="fecharModal('modal-operacao')" class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Cancelar</button>
-                <button type="submit" class="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">Salvar operacao</button>
+                <button type="submit" class="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">Salvar operação</button>
             </div>
         </form>
     </div>
@@ -235,8 +235,8 @@
         <div class="app-modal-header border-b border-slate-200 px-7 py-6 dark:border-slate-800">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-300">Edicao</p>
-                    <h2 id="modal-edicao-titulo" class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Editar operacao</h2>
+                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-300">Edição</p>
+                    <h2 id="modal-edicao-titulo" class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Editar operação</h2>
                 </div>
                 <button type="button" onclick="fecharModal('modal-edicao')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -250,17 +250,17 @@
             <input type="hidden" id="edicao-operacao-nome-atual" name="operacao_nome_atual" value="{{ modal_operacao_nome }}">
             <div class="grid gap-5 md:grid-cols-2">
                 <div class="flex flex-col">
-                    <label for="edicao-operacao-id" class="text-sm font-medium text-slate-700 dark:text-slate-200">Codigo</label>
+                    <label for="edicao-operacao-id" class="text-sm font-medium text-slate-700 dark:text-slate-200">Código</label>
                     <input id="edicao-operacao-id" type="text" value="{{ modal_operacao_id }}" disabled class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 </div>
                 <div class="flex flex-col">
-                    <label for="edicao-operacao-nome" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operacao</label>
+                    <label for="edicao-operacao-nome" class="text-sm font-medium text-slate-700 dark:text-slate-200">Nome da operação</label>
                     <input id="edicao-operacao-nome" name="nome_operacao" type="text" value="{{ modal_operacao_nome }}" required class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                 </div>
             </div>
             <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end dark:border-slate-800">
                 <button type="button" onclick="fecharModal('modal-edicao')" class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Cancelar</button>
-                <button type="submit" class="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-600">Salvar alteracoes</button>
+                <button type="submit" class="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-600">Salvar alterações</button>
             </div>
         </form>
     </div>
@@ -271,9 +271,9 @@
         <div class="app-modal-header border-b border-slate-200 px-7 py-6 dark:border-slate-800">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300">Relatorios</p>
-                    <h2 id="modal-relatorios-titulo" class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Operacao <span id="relatorios-operacao-nome-view">{{ modal_operacao_nome }}</span></h2>
-                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Ao adicionar um relatorio, os filtros cadastrados para ele sao vinculados automaticamente. Pela linha do relatorio, atualize apenas o valor padrao de cada filtro.</p>
+                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300">Relatórios</p>
+                    <h2 id="modal-relatorios-titulo" class="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-100">Operação <span id="relatorios-operacao-nome-view">{{ modal_operacao_nome }}</span></h2>
+                    <p class="mt-2 max-w-prose text-sm text-slate-500 dark:text-slate-400">Ao adicionar um relatório, os filtros cadastrados para ele entram na operação. Em Editar filtros, ajuste o valor padrão de cada um.</p>
                 </div>
                 <button type="button" onclick="fecharModal('modal-relatorios')" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Fechar modal">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -288,17 +288,17 @@
                 <input type="hidden" id="relatorios-operacao-nome" name="operacao_nome" value="{{ modal_operacao_nome }}">
                 <div class="flex flex-col">
                     {# O rotulo nomeia o botao do combobox; o campo id_relatorio e oculto. #}
-                    <label id="combobox-relatorio-rotulo" for="combobox-relatorio-botao" class="text-sm font-medium text-slate-700 dark:text-slate-200">Adicionar relatorio</label>
+                    <label id="combobox-relatorio-rotulo" for="combobox-relatorio-botao" class="text-sm font-medium text-slate-700 dark:text-slate-200">Adicionar relatório</label>
                     <div id="combobox-relatorio" class="relative mt-2">
                         <input type="hidden" id="id_relatorio" name="id_relatorio">
                         <button type="button" id="combobox-relatorio-botao" data-combobox-trigger aria-expanded="false" aria-controls="combobox-relatorio-lista" aria-labelledby="combobox-relatorio-rotulo combobox-relatorio-valor" class="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
-                            <span id="combobox-relatorio-valor" data-combobox-label class="truncate text-slate-400 dark:text-slate-400">Selecione</span>
+                            <span id="combobox-relatorio-valor" data-combobox-label class="truncate text-slate-500 dark:text-slate-400">Selecione</span>
                             <svg class="ml-3 h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"></path>
                             </svg>
                         </button>
                         <div id="combobox-relatorio-lista" data-combobox-panel class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-soft dark:border-slate-700 dark:bg-slate-900">
-                            <input type="text" data-combobox-search placeholder="Pesquisar relatorio" aria-label="Pesquisar relatorio" autocomplete="off" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
+                            <input type="text" data-combobox-search placeholder="Pesquisar relatório" aria-label="Pesquisar relatório" autocomplete="off" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                             <div data-combobox-options class="mt-3 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-2 dark:border-slate-700 dark:bg-slate-800/60"></div>
                         </div>
                     </div>
@@ -313,8 +313,8 @@
                     <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
                         <thead class="bg-slate-50 dark:bg-slate-800/60">
                             <tr>
-                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Relatorio</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Acao</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Relatório</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="lista-relatorios-operacao" class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900"></tbody>
@@ -411,17 +411,17 @@
         if (tipo === "STRINGINT") {
             return {
                 type: "text",
-                placeholder: "numero,numero,numero",
+                placeholder: "Ex.: 123,456,789",
                 inputmode: "numeric",
                 pattern: "[0-9]+(,[0-9]+)*",
-                title: "Use numeros separados por virgula. Exemplo: 123,456,789",
+                title: "Use números separados por vírgula. Exemplo: 123,456,789",
                 readonly: false,
             };
         }
 
         return {
             type: "text",
-            placeholder: "Digite o valor padrao",
+            placeholder: "Digite o valor padrão",
             inputmode: "",
             pattern: "",
             title: "",
@@ -489,7 +489,7 @@
             button.addEventListener("click", () => {
                 combobox.hiddenInput.value = item.id;
                 combobox.label.textContent = item.nome;
-                combobox.label.classList.remove("text-slate-400", "dark:text-slate-400");
+                combobox.label.classList.remove("text-slate-500", "dark:text-slate-400");
                 combobox.label.classList.add("text-slate-700", "dark:text-slate-100");
                 combobox.search.value = "";
                 renderizarCombobox(combobox, combobox.options);
@@ -504,7 +504,7 @@
         combobox.options = options;
         combobox.hiddenInput.value = "";
         combobox.label.textContent = combobox.placeholder;
-        combobox.label.classList.add("text-slate-400", "dark:text-slate-400");
+        combobox.label.classList.add("text-slate-500", "dark:text-slate-400");
         combobox.label.classList.remove("text-slate-700", "dark:text-slate-100");
         combobox.search.value = "";
         renderizarCombobox(combobox, options);
@@ -570,7 +570,7 @@
             tbody.innerHTML = `
                 <tr>
                     <td colspan="2" class="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                        Nenhum relatorio vinculado para esta operacao.
+                        Nenhum relatório vinculado a esta operação.
                     </td>
                 </tr>
             `;
@@ -594,16 +594,16 @@
                             aria-expanded="false"
                             aria-controls="${filtrosRowId}"
                         >
-                            Adicionar filtro
+                            Editar filtros
                         </button>
-                        <form method="POST" action="/acompanhamento/operacoes/${modalState.operacaoId}/relatorios/remover" onsubmit="return confirm('Excluir o vinculo do relatorio &quot;${relatorioNomeAttr}&quot; desta operacao?');">
+                        <form method="POST" action="/acompanhamento/operacoes/${modalState.operacaoId}/relatorios/remover" onsubmit="return confirm('Remover o relatório &quot;${relatorioNomeAttr}&quot; desta operação?');">
                             <input type="hidden" name="operacao_nome" value="${escapeAttr(modalState.operacaoNome)}">
                             <input type="hidden" name="id_relatorio" value="${relatorio.id_relatorio}">
                             <button
                                 type="submit"
                                 class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
                             >
-                                Excluir vinculo
+                                Remover
                             </button>
                         </form>
                     </div>
@@ -628,7 +628,7 @@
                                         ${(() => {
                                             const configCampoValor = obterConfigCampoValor(filtro.tipo_campo_valor, relatorio, filtro);
                                             const ehClick = (filtro.tipo_campo_valor || "").trim().toUpperCase() === "CLICK";
-                                            // O campo leva "Valor padrao" como rotulo e o nome do filtro como descricao.
+                                            // O campo leva "Valor padrão" como rotulo e o nome do filtro como descricao.
                                             const idValor = `valor-${relatorio.id_relatorio}-${filtro.id_filtro}`;
                                             const idNomeFiltro = `nome-filtro-${relatorio.id_relatorio}-${filtro.id_filtro}`;
                                             const classeRotulo = "text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400";
@@ -640,11 +640,11 @@
                                                 <span id="${idNomeFiltro}" class="mt-2 text-sm font-medium text-slate-800 dark:text-slate-100">${escapeHtml(filtro.nome_filtro)}</span>
                                             </div>
                                             <div class="flex flex-col">
-                                                ${ehClick ? `<span class="${classeRotulo}">Valor padrao</span>` : `<label for="${idValor}" class="${classeRotulo}">Valor padrao</label>`}
+                                                ${ehClick ? `<span class="${classeRotulo}">Valor padrão</span>` : `<label for="${idValor}" class="${classeRotulo}">Valor padrão</label>`}
                                                 ${
                                                     ehClick
                                                         ? `<input type="hidden" name="valor" value="">
-                                                           <span class="mt-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Acao automatica de clique. Nenhum valor precisa ser informado.</span>`
+                                                           <span class="mt-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Ação automática de clique. Nenhum valor precisa ser informado.</span>`
                                                         : `<input id="${idValor}" aria-describedby="${idNomeFiltro}" name="valor" ${atributosCampoValor(configCampoValor)} value="${escapeAttr(filtro.valor || "")}" class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700">
                                                            ${ehEmpresaSaldoDevedor(relatorio, filtro) ? `<span class="mt-2 text-xs text-slate-500 dark:text-slate-400">Use código, hífen e razão social completa, exatamente como aparecem no Sienge.</span>` : ""}`
                                                 }
@@ -658,7 +658,7 @@
                                     </div>
                                 </form>
                             `
-                            : `<div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">Este relatorio nao possui filtros ativos cadastrados no catalogo.</div>`
+                            : `<div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">Este relatório não tem filtros ativos cadastrados no catálogo.</div>`
                     }
                 </td>
             `;
@@ -690,7 +690,7 @@
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || "Falha ao carregar relatorios.");
+                throw new Error(data.error || "Não foi possível carregar os relatórios.");
             }
 
             modalState.relatoriosDisponiveis = data.relatorios_disponiveis || [];

@@ -1,5 +1,6 @@
 {% extends "layout_base.html" %}
-{% block title %}Inicio{% endblock %}
+{% import "components/rotulos.html" as rotulos %}
+{% block title %}Executar relatórios{% endblock %}
 
 {% block content %}
 <section class="py-4">
@@ -9,17 +10,17 @@
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.3em] text-cyan-700 dark:text-cyan-300">
-                            <span class="status-pulse"></span> Central de automacao
+                            <span class="status-pulse"></span> Central de automação
                         </p>
                         <h1 class="mt-2 text-3xl font-extrabold text-slate-950 dark:text-slate-100">
-                            Nova execucao
+                            Nova execução
                         </h1>
                         <p class="mt-3 max-w-xl text-sm text-slate-500 dark:text-slate-400">Execute um relatório isolado ou uma sequência cadastrada. Cada arquivo será validado até o destino final.</p>
                     </div>
 
                     <div class="rounded-2xl border border-cyan-200/70 bg-cyan-50/70 px-4 py-3 text-sm text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-200">
-                        <span class="block text-xs font-bold uppercase tracking-[0.18em]">Sessão protegida</span>
-                        <span class="mt-1 block text-xs opacity-80">Reutilizada somente enquanto válida</span>
+                        <span class="block text-xs font-bold uppercase tracking-[0.18em]">Login a cada execução</span>
+                        <span class="mt-1 block text-xs">O Edge abre, entra no Sienge e fecha no fim.</span>
                     </div>
                 </div>
             </div>
@@ -42,7 +43,7 @@
                 <div class="rounded-[28px] border border-cyan-200 bg-cyan-50/70 p-5 dark:border-cyan-500/30 dark:bg-cyan-500/10">
                     <div class="flex items-center gap-3">
                         <span class="h-3 w-3 animate-pulse rounded-full bg-cyan-500" aria-hidden="true"></span>
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Execucao em andamento</h2>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Execução em andamento</h2>
                     </div>
                     {# So o resumo e anunciado: a lista e refeita a cada consulta e seria lida inteira de novo. #}
                     <p id="execucao-resumo" class="mt-2 text-sm text-slate-600 dark:text-slate-300" aria-live="polite">{{ execution_job.resumo if execution_job else 'Preparando execução.' }}</p>
@@ -50,7 +51,7 @@
                         {% if execution_job %}
                             {% for item in execution_job.itens %}
                             <div class="rounded-xl border border-cyan-100 bg-white/80 px-4 py-3 text-sm dark:border-cyan-500/20 dark:bg-slate-900/70">
-                                <span class="font-semibold">{{ item.estado|replace('_', ' ')|capitalize }}:</span> {{ item.relatorio_nome }}{% if item.operacao_nome %} <span class="text-slate-500">({{ item.operacao_nome }})</span>{% endif %}
+                                <span class="font-semibold">{{ rotulos.estados_execucao.get(item.estado, item.estado) }}:</span> {{ item.relatorio_nome }}{% if item.operacao_nome %} <span class="text-slate-500 dark:text-slate-400">({{ item.operacao_nome }})</span>{% endif %}
                             </div>
                             {% endfor %}
                         {% endif %}
@@ -62,12 +63,12 @@
             <section id="resultado-execucao" class="border-b border-slate-200 px-8 py-8 dark:border-slate-800" aria-labelledby="resultado-execucao-titulo">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div class="min-w-0">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Resultado da execucao</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Resultado da execução</p>
                         <h2 id="resultado-execucao-titulo" class="mt-2 text-xl font-bold text-slate-950 [overflow-wrap:anywhere] dark:text-slate-100">{{ resultado_execucao.resumo }}</h2>
                     </div>
                     <div class="flex shrink-0 flex-wrap gap-2 text-sm font-semibold">
                         <span class="whitespace-nowrap rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">{{ resultado_execucao.quantidade_baixados }} baixado(s)</span>
-                        <span class="whitespace-nowrap rounded-full bg-rose-50 px-3 py-1 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">{{ resultado_execucao.quantidade_nao_baixados }} nao baixado(s)</span>
+                        <span class="whitespace-nowrap rounded-full bg-rose-50 px-3 py-1 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">{{ resultado_execucao.quantidade_nao_baixados }} não baixado(s)</span>
                     </div>
                 </div>
                 <div class="mt-5 space-y-3">
@@ -76,19 +77,17 @@
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                             <div class="min-w-0">
                                 <h3 class="font-semibold text-slate-900 dark:text-slate-100">{{ item.relatorio_nome }}</h3>
-                                {% if item.operacao_nome %}<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Operacao: {{ item.operacao_nome }}</p>{% endif %}
+                                {% if item.operacao_nome %}<p class="mt-1 text-xs text-slate-600 dark:text-slate-400">Operação: {{ item.operacao_nome }}</p>{% endif %}
                             </div>
-                            <span class="shrink-0 self-start whitespace-nowrap rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide dark:bg-slate-900/60">{{ item.estado|replace('_', ' ') }}</span>
+                            <span class="shrink-0 self-start whitespace-nowrap rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide dark:bg-slate-900/60">{{ rotulos.estados_execucao.get(item.estado, item.estado) }}</span>
                         </div>
-                        {% if item.mensagem %}<p class="mt-3 text-sm text-slate-700 [overflow-wrap:anywhere] dark:text-slate-200">{% if item.etapa %}{{ item.etapa|capitalize }}: {% endif %}{{ item.mensagem }}</p>{% endif %}
+                        {% if item.mensagem %}<p class="mt-3 text-sm text-slate-700 [overflow-wrap:anywhere] dark:text-slate-200">{% if item.etapa %}{{ rotulos.etapas.get(item.etapa, item.etapa|capitalize) }}: {% endif %}{{ item.mensagem }}</p>{% endif %}
                         {% if item.caminho_final %}<p class="mt-3 break-all rounded-xl bg-white/70 px-3 py-2 text-xs text-slate-600 dark:bg-slate-950/40 dark:text-slate-300">Arquivo final: {{ item.caminho_final }}</p>{% endif %}
                     </article>
                     {% endfor %}
                 </div>
-                <details class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800/60">
-                    <summary class="cursor-pointer font-semibold text-slate-700 dark:text-slate-200">Diagnostico detalhado</summary>
-                    <p class="mt-2 text-slate-500 dark:text-slate-400">Consulte a tela de Logs para eventos completos e rastreamento tecnico.</p>
-                </details>
+                {# A tela de Logs nao serve aqui: o perfil 3 nao a acessa e a gravacao no banco esta desligada (APP_SAVE_LOGS). #}
+                <p class="mt-5 text-sm text-slate-600 dark:text-slate-400">Detalhes técnicos de cada etapa ficam no log deste computador: <code class="break-all rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-200">%LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log</code></p>
             </section>
             {% endif %}
 
@@ -96,14 +95,14 @@
                 <section class="tech-section space-y-5 rounded-[28px] border border-slate-200/80 p-6 dark:border-slate-700/80">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">01 · Acesso</p><h2 class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">Credenciais da execução</h2></div>
-                        <span class="shrink-0 whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                        <span class="shrink-0 whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                             Não armazenadas
                         </span>
                     </div>
 
                     <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                         <div class="flex flex-col">
-                            <label for="execucao-email" class="text-sm font-medium text-slate-700 dark:text-slate-200">Email</label>
+                            <label for="execucao-email" class="text-sm font-medium text-slate-700 dark:text-slate-200">E-mail do Sienge</label>
                             <input
                                 type="email"
                                 id="execucao-email"
@@ -115,18 +114,18 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <label for="execucao-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha</label>
+                            <label for="execucao-senha" class="text-sm font-medium text-slate-700 dark:text-slate-200">Senha do Sienge</label>
                             <input
                                 type="password"
                                 id="execucao-senha"
                                 name="senha"
                                 required
                                 autocomplete="off"
-                                placeholder="Informe a senha para esta execucao"
+                                placeholder="Informe a senha para esta execução"
                                 class="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700"
                             >
                             <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                A senha nao fica salva no navegador nem retornada pela interface.
+                                O AppCaptação não grava a senha: ela vale só para esta execução.
                             </p>
                         </div>
 
@@ -143,7 +142,7 @@
                         </div>
 
                         <div id="campo-data-periodo" class="hidden flex-col md:col-span-2">
-                            <label for="data_periodo" class="text-sm font-medium text-slate-700 dark:text-slate-200">Data do periodo</label>
+                            <label for="data_periodo" class="text-sm font-medium text-slate-700 dark:text-slate-200">Data do período</label>
                             <input
                                 type="date"
                                 id="data_periodo"
@@ -157,7 +156,7 @@
                 <section class="space-y-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">02 · Escopo</p><h2 class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">O que deseja executar?</h2></div>
-                        <span class="shrink-0 whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                        <span class="shrink-0 whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                             Escolha uma opção
                         </span>
                     </div>
@@ -204,7 +203,7 @@
                         </div>
 
                         <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                            Os relatorios serao executados na ordem definida no cadastro da operacao.
+                            Os relatórios são executados na ordem definida no cadastro da operação.
                         </p>
                     </div>
                 </section>
@@ -214,7 +213,7 @@
                     <div id="completo-content" class="px-1">
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div class="flex flex-col">
-                                <label for="relatorio" class="text-sm font-medium text-slate-700 dark:text-slate-200">Relatorio</label>
+                                <label for="relatorio" class="text-sm font-medium text-slate-700 dark:text-slate-200">Relatório</label>
                                 <select
                                     name="relatorio"
                                     id="relatorio"
@@ -245,7 +244,7 @@
                         type="submit"
                         class="tech-primary-button w-full rounded-2xl bg-slate-950 px-5 py-4 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-slate-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
                     >
-                        Executar automacao
+                        Executar automação
                     </button>
                 </div>
             </form>
@@ -280,16 +279,6 @@
         });
     }
 
-    function toggleAccordion(contentId, toggleId) {
-        const content = document.getElementById(contentId);
-        const toggle = document.getElementById(toggleId);
-        const icon = toggle.querySelector("span:last-child");
-        const aberto = !content.classList.contains("hidden");
-
-        content.classList.toggle("hidden", aberto);
-        icon.textContent = aberto ? "+" : "-";
-    }
-
     document.addEventListener("DOMContentLoaded", () => {
         const modo = document.getElementById("modo");
         const relatorio = document.getElementById("relatorio");
@@ -300,21 +289,6 @@
             filtrosDinamicos.innerHTML = "";
             filtrosStatus.textContent = "";
             filtrosStatus.classList.add("hidden");
-        }
-
-        function formatarDetalheFiltro(filtro) {
-            const detalhes = [];
-            if (filtro.tipo_campo) {
-                detalhes.push(`Tipo ${filtro.tipo_campo}`);
-            }
-            if (filtro.tipo_campo_valor) {
-                detalhes.push(`Valor ${filtro.tipo_campo_valor}`);
-            }
-            detalhes.push(`Iframe ${filtro.iframe_index}`);
-            if (filtro.acao) {
-                detalhes.push(`Acao ${filtro.acao}`);
-            }
-            return detalhes.join(" | ");
         }
 
         function ehEmpresaSaldoDevedor(relatorio, filtro) {
@@ -352,15 +326,15 @@
 
             if (tipoCampoValor === "STRINGINT") {
                 input.type = "text";
-                input.placeholder = "numero,numero,numero";
+                input.placeholder = "Ex.: 123,456,789";
                 input.inputMode = "numeric";
                 input.pattern = "[0-9]+(,[0-9]+)*";
-                input.title = "Use numeros separados por virgula. Exemplo: 123,456,789";
+                input.title = "Use números separados por vírgula. Exemplo: 123,456,789";
                 return;
             }
 
             input.type = "text";
-            input.placeholder = filtro.campo_identificador || "Informe o valor";
+            input.placeholder = "Informe o valor";
         }
 
         function criarCampoFiltro(filtro, relatorio) {
@@ -387,16 +361,16 @@
             const ajuda = document.createElement("p");
             ajuda.className = "mt-2 text-xs text-slate-500 dark:text-slate-400";
             ajuda.textContent = tipoCampoValor === "CLICK"
-                ? "Acao automatica; nenhum valor precisa ser informado."
+                ? "Ação automática: nenhum valor precisa ser informado."
                 : (ehEmpresaSaldoDevedor(relatorio, filtro)
                     ? "Digite o código, o hífen e a razão social completa, exatamente como aparecem no Sienge."
-                    : (filtro.opcional ? "Preenchimento opcional." : "Preenchimento obrigatorio."));
+                    : (filtro.opcional ? "Preenchimento opcional." : "Preenchimento obrigatório."));
 
             container.appendChild(label);
             if (tipoCampoValor === "CLICK") {
                 const aviso = document.createElement("div");
                 aviso.className = "mt-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
-                aviso.textContent = "Acao automatica de clique. Nenhum valor precisa ser informado.";
+                aviso.textContent = "Ação automática de clique. Nenhum valor precisa ser informado.";
                 container.appendChild(input);
                 container.appendChild(aviso);
             } else {
@@ -413,7 +387,7 @@
                 return;
             }
 
-            filtrosStatus.textContent = "Carregando filtros do relatorio...";
+            filtrosStatus.textContent = "Carregando os filtros do relatório…";
             filtrosStatus.classList.remove("hidden");
 
             try {
@@ -421,16 +395,16 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || "Nao foi possivel carregar os filtros.");
+                    throw new Error(data.error || "Não foi possível carregar os filtros.");
                 }
 
                 const filtros = data.filtros || [];
                 if (!filtros.length) {
-                    filtrosStatus.textContent = "Este relatorio nao possui filtros ativos cadastrados.";
+                    filtrosStatus.textContent = "Este relatório não tem filtros ativos cadastrados.";
                     return;
                 }
 
-                filtrosStatus.textContent = `${filtros.length} filtro(s) carregado(s) a partir do cadastro do relatorio.`;
+                filtrosStatus.textContent = `${filtros.length} filtro(s) carregado(s) do cadastro do relatório.`;
                 filtros.forEach((filtro) => {
                     filtrosDinamicos.appendChild(criarCampoFiltro(filtro, data.relatorio));
                 });
@@ -510,7 +484,7 @@
             itens.forEach((item, indice) => {
                 const linha = document.createElement("div");
                 linha.className = "rounded-xl border border-cyan-100 bg-white/80 px-4 py-3 text-sm dark:border-cyan-500/20 dark:bg-slate-900/70";
-                linha.textContent = `${indice === 0 ? "Em execucao" : "Pendente"}: ${item.nome}${operacaoNome ? ` (${operacaoNome})` : ""}`;
+                linha.textContent = `${indice === 0 ? "Em execução" : "Pendente"}: ${item.nome}${operacaoNome ? ` (${operacaoNome})` : ""}`;
                 pendentes.appendChild(linha);
             });
             andamento.classList.remove("hidden");

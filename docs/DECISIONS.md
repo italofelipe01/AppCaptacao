@@ -211,3 +211,26 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   células das duas tabelas usam 16 px de respiro lateral abaixo de 1536 px, e "Adicionar
   relatorios" virou "Relatórios". O leitor de CSS do teste de classes passou a decodificar escape
   hexadecimal (`.\32xl\:px-6`).
+
+## D21 — Textos com acento e valores gravados pelo nome (2026-10-16)
+
+- **Contexto:** as telas e as mensagens das rotas misturavam texto acentuado com "execucao",
+  "relatorio" e "Usuario ou senha invalidos". Parte do texto contradizia o sistema: "sessão
+  protegida, reutilizada", "conta corporativa", Logs "assim que o banco for conectado". Áreas,
+  eventos, status e estados apareciam pelo código gravado. Na medição, 28 textos ficavam abaixo da
+  WCAG AA no claro e 10 no escuro, entre eles o "EBM" do menu, com 1,36:1.
+- **Decisão:**
+  - **Acentos:** o texto exibido usa português com acentos. Isso vale para os templates, os
+    `flash` das rotas, os detalhes da auditoria, os `ValueError` de regra de negócio que vão para
+    a tela, os resumos do job e o rótulo dos perfis.
+  - **Códigos:** códigos gravados viram nome por `project/templates/components/rotulos.html`,
+    importado nas telas. Os valores enviados ao backend e gravados no banco não mudam.
+  - **Nome do app:** é "AppCaptação" no menu, no login e no título das abas.
+  - **Logs vazios:** a tela recebe `logs_gravados` (`APP_SAVE_LOGS`) para dizer por que a lista
+    está vazia.
+  - **Mensagens dos executores:** ficaram de fora. Elas descrevem a tela do Sienge e mudam
+    junto com os seletores.
+- **Consequência:** `tests/web/test_textos_frontend.py` procura palavras sem acento no texto
+  visível. Os testes que conferiam mensagem foram atualizados, e o que conferia a ausência do
+  sucesso passou a conferir o texto novo, para não passar sempre. Registros de log antigos mantêm
+  o texto da época. Valor sem nome na tabela aparece cru.

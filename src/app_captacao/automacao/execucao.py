@@ -217,7 +217,7 @@ def _resultado_final(tipo_execucao, itens, resumo=""):
     sucessos = [item for item in itens if item.get("estado") == "baixado"]
     falhas = [item for item in itens if item.get("estado") != "baixado"]
     if not resumo:
-        resumo = f"{len(sucessos)} relatorio(s) baixado(s); {len(falhas)} nao baixado(s)."
+        resumo = f"{len(sucessos)} relatório(s) baixado(s); {len(falhas)} não baixado(s)."
         pastas = _pastas_dos_arquivos(arquivo for item in itens for arquivo in item.get("arquivos", []))
         if pastas:
             resumo += f" Arquivos em: {'; '.join(pastas)}."

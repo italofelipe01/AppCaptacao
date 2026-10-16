@@ -116,7 +116,7 @@ def criar_operacao(nome_operacao: str, relatorios_ids: list[int], usuario_id: in
     """Cria a operacao e vincula os relatorios na ordem recebida, em uma unica transacao."""
     with closing(sql.db_connection()) as connection:
         if operation_name_exists(connection, nome_operacao):
-            raise ValueError("Ja existe uma operacao ativa com este nome.")
+            raise ValueError("Já existe uma operação ativa com este nome.")
         operacao_id = sql.get_next_id(connection, OPERACAO_TABLE, "IdCapRecursoOperacoes")
         colunas = ["IdCapRecursoOperacoes", "NomeOperacao", "IdAtivo", "DataCriacao"]
         valores = ["?", "?", "1", "GETDATE()"]
@@ -138,7 +138,7 @@ def criar_operacao(nome_operacao: str, relatorios_ids: list[int], usuario_id: in
 def renomear_operacao(operacao_id: int, nome_operacao: str) -> None:
     with closing(sql.db_connection()) as connection:
         if operation_name_exists(connection, nome_operacao, exclude_id=operacao_id):
-            raise ValueError("Ja existe uma operacao ativa com este nome.")
+            raise ValueError("Já existe uma operação ativa com este nome.")
         connection.cursor().execute(
             f"UPDATE {OPERACAO_TABLE} SET NomeOperacao = ? WHERE IdCapRecursoOperacoes = ?",
             (nome_operacao, operacao_id),

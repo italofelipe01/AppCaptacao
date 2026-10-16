@@ -28,3 +28,5 @@ antes do código.
   da revisão do frontend).
 - [frontend-estrutura-acessibilidade.md](frontend-estrutura-acessibilidade.md) — menu fixo,
   andamento no topo, tabelas sem esconder ações, rótulos, senhas e modais pelo teclado (fatia 2).
+- [frontend-textos.md](frontend-textos.md) — acentos, textos fiéis ao sistema, valores pelo nome e
+  contraste dos textos (fatia 3).

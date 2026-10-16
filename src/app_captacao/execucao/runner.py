@@ -36,7 +36,7 @@ def run_execution_job(
         "tipo_execucao": tipo,
         "nome_operacao": operacao_nome,
         "nome_relatorio": relatorios[0].get("nome", "") if tipo == "relatorio" and relatorios else "",
-        "observacao": "Execucao em segundo plano concluida.",
+        "observacao": "Execução em segundo plano concluída.",
     }
     try:
         jobs.update_execution_job(job_id, estado="em_execucao", resumo="Execucao em andamento.")
@@ -141,10 +141,10 @@ def _consolidar_relatorios(job_id: str, resultado: dict, relatorios: list[dict])
             ).strip()
         else:
             nao_gerados += 1
-            item["mensagem"] = f"{mensagem} Consolidado nao gerado: {consolidado.motivo}.".strip()
+            item["mensagem"] = f"{mensagem} Consolidado não gerado: {consolidado.motivo}.".strip()
 
     if pendentes:
-        resumo = f"{gerados} consolidado(s)" + (f", {nao_gerados} nao gerado(s)" if nao_gerados else "")
+        resumo = f"{gerados} consolidado(s)" + (f", {nao_gerados} não gerado(s)" if nao_gerados else "")
         resultado["resumo"] = f"{resultado.get('resumo', '')} {resumo}.".strip()
 
 
@@ -182,5 +182,5 @@ def _resultado_apos_falha(job_id: str, relatorios: list[dict], operacao_nome: st
         "quantidade_relatorios": len(itens),
         "quantidade_baixados": len(sucessos),
         "quantidade_nao_baixados": len(falhas),
-        "resumo": f"{len(sucessos)} relatorio(s) baixado(s); {len(falhas)} nao baixado(s).",
+        "resumo": f"{len(sucessos)} relatório(s) baixado(s); {len(falhas)} não baixado(s).",
     }

@@ -37,7 +37,7 @@ def login():
             auditoria.log_config("login_falha", "Tentativa de login sem preencher login ou senha.", payload_login)
         except Exception:
             pass
-        flash("Informe login e senha para entrar.", "error")
+        flash("Informe o usuário e a senha para entrar.", "error")
         return redirect(url_for("index"))
 
     raw_user = None
@@ -68,24 +68,24 @@ def login():
             auditoria.log_config("login_falha", "Erro ao validar login no banco de dados.", payload_login)
         except Exception:
             pass
-        flash("Nao foi possivel validar o login no banco de dados.", "error")
+        flash("Não foi possível validar o login no banco de dados.", "error")
         return redirect(url_for("index"))
 
     user = usuarios_repo.serialize_user(raw_user)
     if not raw_user or not user or not user["ativo"]:
         try:
-            auditoria.log_config("login_falha", "Usuario inexistente ou inativo.", payload_login)
+            auditoria.log_config("login_falha", "Usuário inexistente ou inativo.", payload_login)
         except Exception:
             pass
-        flash("Usuario ou senha invalidos.", "error")
+        flash("Usuário ou senha inválidos.", "error")
         return redirect(url_for("index"))
 
     if not auth.verify_password(senha, normalize_text(raw_user.get("senha"))):
         try:
-            auditoria.log_config("login_falha", "Senha invalida.", payload_login)
+            auditoria.log_config("login_falha", "Senha inválida.", payload_login)
         except Exception:
             pass
-        flash("Usuario ou senha invalidos.", "error")
+        flash("Usuário ou senha inválidos.", "error")
         return redirect(url_for("index"))
 
     session.clear()
@@ -99,7 +99,7 @@ def login():
         auditoria.log_config("login", "Login realizado com sucesso.", payload_login)
     except Exception:
         pass
-    flash(f"Login realizado com sucesso. Bem-vindo, {user['login']}.", "success")
+    flash(f"Olá, {user['login']}.", "success")
     return redirect(url_for("main"))
 
 
@@ -107,7 +107,7 @@ def login():
 def sair():
     try:
         if session.get("user_login"):
-            auditoria.log_config("logout", f"Logout do usuario {session.get('user_login')}.")
+            auditoria.log_config("logout", f"Logout do usuário {session.get('user_login')}.")
     except Exception:
         pass
     jobs.clear_execution_preferences_for_current_session()
@@ -126,7 +126,7 @@ def perfil():
 @login_required
 def atualizar_minha_senha():
     if g.current_user.get("_bootstrap"):
-        flash("Nao e possivel alterar a senha do usuario bootstrap por aqui.", "error")
+        flash("Não é possível alterar aqui a senha do usuário de bootstrap.", "error")
         return redirect(url_for("perfil"))
 
     senha_atual = str(request.form.get("senha_atual") or "")
@@ -135,18 +135,18 @@ def atualizar_minha_senha():
 
     raw_user = sql.safe_db_call(lambda: usuarios_repo.load_user_by_login(g.current_user["login"]), None)
     if not raw_user or not auth.verify_password(senha_atual, normalize_text(raw_user.get("senha"))):
-        flash("Senha atual invalida.", "error")
+        flash("Senha atual incorreta.", "error")
         return redirect(url_for("perfil"))
     if not nova_senha or nova_senha != confirmar:
-        flash("A nova senha e a confirmacao precisam coincidir.", "error")
+        flash("A nova senha e a confirmação precisam ser iguais.", "error")
         return redirect(url_for("perfil"))
 
     try:
         usuarios_repo.atualizar_senha(g.current_user["id"], nova_senha)
     except Exception:
         logger.exception("Falha ao atualizar a senha do usuario %s.", g.current_user["login"])
-        flash("Nao foi possivel atualizar a senha no banco. Tente novamente.", "error")
+        flash("Não foi possível atualizar a senha no banco. Tente novamente.", "error")
         return redirect(url_for("perfil"))
-    auditoria.log_config("senha_atualizacao", "Usuario atualizou a propria senha.")
-    flash("Senha atualizada com sucesso.", "success")
+    auditoria.log_config("senha_atualizacao", "Usuário trocou a própria senha.")
+    flash("Senha atualizada.", "success")
     return redirect(url_for("perfil"))

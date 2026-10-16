@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppCaptação</title>
+    <title>Entrar | AppCaptação</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-local.css', v='20261016-2') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='20261016-2') }}">
     <script>
@@ -31,14 +31,14 @@
         <div class="login-shell-grid tech-panel relative grid w-full max-w-5xl overflow-hidden rounded-[36px] border border-white/60 bg-white/88 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-slate-800 dark:bg-slate-900/85 dark:shadow-black/30">
             <section class="tech-hero hidden min-h-[650px] flex-col justify-between border-r border-slate-200 p-12 dark:border-slate-800 lg:flex">
                 <div>
-                    <div class="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300"><span class="status-pulse"></span> Automation control center</div>
+                    <div class="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300"><span class="status-pulse"></span> Automação de relatórios</div>
                     <h1 class="mt-10 max-w-md text-5xl font-extrabold leading-tight text-slate-950 dark:text-white">Relatórios Sienge, do início ao destino.</h1>
-                    <p class="mt-6 max-w-md text-base leading-7 text-slate-500 dark:text-slate-400">Operações sequenciais, sessão protegida e rastreamento individual de cada arquivo.</p>
+                    <p class="mt-6 max-w-md text-base leading-7 text-slate-500 dark:text-slate-400">Operações em sequência, login no Sienge a cada execução e cada arquivo conferido até a pasta de destino.</p>
                 </div>
                 <div class="grid grid-cols-3 gap-3">
-                    <div class="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"><span class="text-xs font-bold uppercase tracking-wider text-slate-400">01</span><p class="mt-2 text-sm font-semibold">Autenticar</p></div>
-                    <div class="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"><span class="text-xs font-bold uppercase tracking-wider text-slate-400">02</span><p class="mt-2 text-sm font-semibold">Executar</p></div>
-                    <div class="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"><span class="text-xs font-bold uppercase tracking-wider text-slate-400">03</span><p class="mt-2 text-sm font-semibold">Confirmar</p></div>
+                    <div class="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"><span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">01</span><p class="mt-2 text-sm font-semibold">Autenticar</p></div>
+                    <div class="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"><span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">02</span><p class="mt-2 text-sm font-semibold">Executar</p></div>
+                    <div class="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"><span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">03</span><p class="mt-2 text-sm font-semibold">Confirmar</p></div>
                 </div>
             </section>
             <div class="relative w-full p-8 sm:p-12">
@@ -53,7 +53,7 @@
                     <img src="{{ url_for('static', filename='img/ebm.png') }}" class="logo-placa mb-8 h-16 w-auto opacity-90" alt="Logo EBM">
                     <p class="text-xs font-bold uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">Acesso seguro</p>
                     <h2 class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-slate-100">Bem-vindo ao AppCaptação</h2>
-                    <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">Entre com sua conta corporativa para continuar.</p>
+                    <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">Entre com o seu usuário e a senha do AppCaptação.</p>
                 </div>
                 {% with mensagens = get_flashed_messages(with_categories=true) %}
                     {% if mensagens %}<div class="mb-6 space-y-3">

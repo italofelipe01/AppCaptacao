@@ -1,4 +1,5 @@
 {% extends "layout_base.html" %}
+{% import "components/rotulos.html" as rotulos %}
 {% block title %}Perfil{% endblock %}
 
 {% block content %}
@@ -35,31 +36,31 @@
                 {% if perfil_usuario %}
                 <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                     <div class="rounded-[28px] border border-slate-200 bg-slate-50/80 p-6 dark:border-slate-700 dark:bg-slate-800/60">
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Dados do usuario</h2>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Dados do usuário</h2>
                         <div class="mt-6 grid gap-5 md:grid-cols-2">
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-400">Login</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Login</p>
                                 <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.login }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-400">Email</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">E-mail</p>
                                 {# Quebra onde precisar: inteiro, o e-mail saia do cartao em 1024 px. #}
                                 <p class="mt-2 text-sm font-semibold text-slate-900 [overflow-wrap:anywhere] dark:text-slate-100">{{ perfil_usuario.email }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-400">Area</p>
-                                <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.area }}</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Área</p>
+                                <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ rotulos.areas.get(perfil_usuario.area, perfil_usuario.area) }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-400">Acesso</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Acesso</p>
                                 <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.perfil }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-400">Status</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Status</p>
                                 <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.status }}</p>
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-400">Criado em</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Criado em</p>
                                 <p class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ perfil_usuario.data_criacao }}</p>
                             </div>
                         </div>

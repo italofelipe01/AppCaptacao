@@ -162,7 +162,7 @@ nele, sem iniciar uma segunda cópia.
 | `[ERRO ] ... timeout` no banco | Rede/VPN desligada ou `DB_HOST` errado |
 | Relatório **não baixado** na etapa `download` | O Sienge não gerou o arquivo a tempo; tente de novo ou aumente `SELENIUM_DOWNLOAD_WAIT_TIMEOUT_SECONDS` |
 | Etapa `copia` | O destino precisa ser pasta sincronizada ou caminho de rede |
-| "Consolidado nao gerado" | Um total do Sienge não bateu ou o layout mudou; os arquivos de cada empresa estão na pasta do relatório |
+| "Consolidado não gerado" | Um total do Sienge não bateu ou o layout mudou; os arquivos de cada empresa estão na pasta do relatório |
 | Todos **ignorados** na etapa `autenticacao` | Login no Sienge não concluiu: confira a senha e aprove o MFA a tempo |
 
 Detalhes técnicos de cada falha ficam no log:

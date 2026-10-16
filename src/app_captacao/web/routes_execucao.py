@@ -68,7 +68,7 @@ def processar():
     modo = normalize_text(request.form.get("modo"))
 
     if not email or not senha:
-        flash("Informe email e senha para a execucao.", "error")
+        flash("Informe o e-mail e a senha do Sienge.", "error")
         return redirect(url_for("main"))
 
     jobs.set_execution_preferences_for_current_session(email, sharepoint_link)
@@ -79,7 +79,7 @@ def processar():
 
     current_job = jobs.get_current_execution_job()
     if current_job and current_job.get("estado") in jobs.ESTADOS_EM_ANDAMENTO:
-        flash("Ja existe uma execucao em andamento para esta sessao.", "error")
+        flash("Já existe uma execução em andamento nesta sessão.", "error")
         return redirect(url_for("main"))
     jobs.clear_execution_result_for_current_session()
 
@@ -88,12 +88,12 @@ def processar():
             relatorio_id = parse_int(request.form.get("relatorio"))
             payload = relatorios_repo.montar_payload_execucao(relatorio_id, request.form)
             if not payload:
-                flash("Relatorio nao encontrado.", "error")
+                flash("Relatório não encontrado.", "error")
                 return redirect(url_for("main"))
 
             missing = regras.filtros_obrigatorios_sem_valor(payload)
             if missing:
-                flash(f"Preencha os filtros obrigatorios: {', '.join(missing)}.", "error")
+                flash(f"Preencha os filtros obrigatórios: {', '.join(missing)}.", "error")
                 return redirect(url_for("main"))
 
             payload["sharepoint_link"] = sharepoint_link
@@ -104,18 +104,18 @@ def processar():
                 daemon=True,
                 name=f"appcaptacao-{job_id[:8]}",
             ).start()
-            flash("Execucao iniciada. Acompanhe o status de cada etapa abaixo.", "success")
+            flash("Execução iniciada. Acompanhe cada relatório abaixo.", "success")
             return redirect(url_for("main"))
 
         if modo == "parceiros":
             operacao_id = parse_int(request.form.get("operacao"))
             operacao = operacoes_repo.buscar_operacao_ativa(operacao_id)
             if not operacao:
-                flash("Selecione uma operacao ativa.", "error")
+                flash("Selecione uma operação ativa.", "error")
                 return redirect(url_for("main"))
             relatorios = sql.safe_db_call(lambda: vinculos_repo.load_relatorio_operacao_payload(operacao_id), [])
             if not relatorios:
-                flash("Nenhum relatorio ativo vinculado a esta operacao.", "error")
+                flash("Nenhum relatório ativo nesta operação.", "error")
                 return redirect(url_for("main"))
 
             for relatorio in relatorios:
@@ -124,9 +124,9 @@ def processar():
                 missing = regras.filtros_obrigatorios_sem_valor(relatorio)
                 if missing:
                     flash(
-                        f"Operacao '{operacao.get('nome', '')}' (ID {operacao_id}): "
-                        f"relatorio '{relatorio.get('nome', '')}' possui filtros obrigatorios sem valor: "
-                        f"{', '.join(missing)}. Salve os filtros desta operacao em Acompanhamento.",
+                        f"Operação '{operacao.get('nome', '')}' (ID {operacao_id}): "
+                        f"o relatório '{relatorio.get('nome', '')}' tem filtros obrigatórios sem valor: "
+                        f"{', '.join(missing)}. Salve os filtros desta operação na tela Operações.",
                         "error",
                     )
                     return redirect(url_for("main"))
@@ -139,10 +139,10 @@ def processar():
                 daemon=True,
                 name=f"appcaptacao-{job_id[:8]}",
             ).start()
-            flash("Operacao iniciada. Os relatorios serao atualizados individualmente.", "success")
+            flash("Operação iniciada. Acompanhe cada relatório abaixo.", "success")
             return redirect(url_for("main"))
 
-        flash("Selecione um modo de execucao valido.", "error")
+        flash("Escolha entre relatório avulso e operação cadastrada.", "error")
     except jobs.ExecucaoEmAndamentoError as exc:
         # Outra sessao (ou aba) ja esta usando o Edge e a pasta de downloads deste computador.
         flash(str(exc), "error")
@@ -154,7 +154,7 @@ def processar():
                 "tipo_execucao": modo or "desconhecido",
                 "nome_operacao": request.form.get("operacao", ""),
                 "nome_relatorio": request.form.get("relatorio", ""),
-                "observacao": "Falha durante a execucao.",
+                "observacao": "Falha durante a execução.",
             },
             None,
             {
@@ -162,7 +162,7 @@ def processar():
                 "traceback": traceback.format_exc(),
             },
         )
-        flash(f"Falha ao executar a automacao: {mensagem_para_usuario(exc, 'Falha ao iniciar a execucao.')}", "error")
+        flash(f"Não foi possível iniciar a automação: {mensagem_para_usuario(exc, 'Falha ao iniciar a execução.')}", "error")
 
     return redirect(url_for("main"))
 
@@ -173,7 +173,7 @@ def relatorio_filtros_dados(relatorio_id: int):
     try:
         relatorio = relatorios_repo.buscar_relatorio_com_filtros(relatorio_id)
         if not relatorio:
-            return jsonify({"error": "Relatorio nao encontrado."}), 404
+            return jsonify({"error": "Relatório não encontrado."}), 404
 
         filtros = []
         for filtro in relatorio.get("filtros", []):
@@ -195,4 +195,4 @@ def relatorio_filtros_dados(relatorio_id: int):
         )
     except Exception:
         logger.exception("Falha ao carregar os filtros do relatorio %s.", relatorio_id)
-        return jsonify({"error": "Nao foi possivel carregar os filtros."}), 500
+        return jsonify({"error": "Não foi possível carregar os filtros."}), 500

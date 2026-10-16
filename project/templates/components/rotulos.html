@@ -1,0 +1,48 @@
+{#- Nome exibido para os valores gravados no banco. Uso: {% import "components/rotulos.html" as rotulos %}
+    e rotulos.areas.get(valor, valor). So o texto muda: os valores enviados ao backend continuam os mesmos. -#}
+{%- set areas = {
+    "performance": "Performance",
+    "financeiro": "Financeiro",
+    "captacao": "Captação",
+    "tesouraria": "Tesouraria",
+    "controladoria": "Controladoria",
+    "ti": "TI",
+} -%}
+{#- Eventos gravados por web/auditoria.log_config; a ordem e a do filtro da tela de Logs. -#}
+{%- set eventos = {
+    "login": "Login",
+    "logout": "Logout",
+    "login_falha": "Falha de login",
+    "senha_atualizacao": "Troca de senha",
+    "usuario_criacao": "Criação de usuário",
+    "usuario_edicao": "Edição de usuário",
+    "usuario_inativacao": "Inativação de usuário",
+    "operacao_criacao": "Criação de operação",
+    "operacao_edicao": "Edição de operação",
+    "operacao_inativacao": "Inativação de operação",
+    "operacao_relatorio_vinculo": "Relatório adicionado à operação",
+    "operacao_relatorio_desvinculo": "Relatório removido da operação",
+    "operacao_filtros_atualizacao": "Atualização de filtros",
+} -%}
+{%- set status_log = {
+    "aguardando": "Aguardando",
+    "processando": "Processando",
+    "sucesso": "Sucesso",
+    "erro": "Erro",
+} -%}
+{%- set tipos_execucao = {"operacao": "Operação", "relatorio": "Relatório"} -%}
+{%- set estados_execucao = {
+    "pendente": "Pendente",
+    "em_execucao": "Em execução",
+    "baixado": "Baixado",
+    "nao_baixado": "Não baixado",
+    "ignorado": "Ignorado",
+} -%}
+{%- set etapas = {
+    "autenticacao": "Autenticação",
+    "preenchimento_modal": "Preenchimento dos filtros",
+    "execucao": "Execução",
+    "download": "Download",
+    "renomeacao": "Renomeação",
+    "copia": "Cópia",
+} -%}

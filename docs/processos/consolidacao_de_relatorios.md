@@ -72,7 +72,7 @@ Valor baixa na 18, enquanto os dados ficam na 15 e na 21.
 ## Na tela
 
 O relatório continua `baixado`. A mensagem ganha "Consolidado: <arquivo>, N linha(s), conferido
-com os totais do Sienge" ou "Consolidado nao gerado: <motivo>", e o consolidado vira o "Arquivo
+com os totais do Sienge" ou "Consolidado não gerado: <motivo>", e o consolidado vira o "Arquivo
 final". Durante a consolidação, o resumo mostra "Consolidando <relatório> (i/n)". O resumo final
 diz quantos foram gerados.
 

@@ -30,7 +30,7 @@ class ErrosWebTests(unittest.TestCase):
     def test_id_de_relatorio_invalido_no_formulario_nao_vira_erro_500(self):
         response = self.client.post("/acompanhamento/operacoes/5/relatorios", data={"id_relatorio": "abc"})
         self.assertEqual(response.status_code, 302)
-        self.assertIn("Selecione um relatorio.", self._flashes())
+        self.assertIn("Selecione um relatório.", self._flashes())
 
     def test_json_de_filtros_nao_expoe_excecao_do_banco(self):
         with patch.object(relatorios, "buscar_relatorio_com_filtros", side_effect=RuntimeError("SELECT Senha FROM dbo.Tabela")):
@@ -44,13 +44,13 @@ class ErrosWebTests(unittest.TestCase):
         ):
             self.client.post("/acompanhamento/operacoes", data={"nome_operacao": "X", "id_relatorio": "1"})
         mensagens = " ".join(self._flashes())
-        self.assertIn("Nao foi possivel criar a operacao", mensagens)
+        self.assertIn("Não foi possível criar a operação", mensagens)
         self.assertNotIn("Login failed", mensagens)
 
     def test_regra_de_negocio_continua_visivel_ao_usuario(self):
-        with patch.object(operacoes, "criar_operacao", side_effect=ValueError("Ja existe uma operacao ativa com este nome.")):
+        with patch.object(operacoes, "criar_operacao", side_effect=ValueError("Já existe uma operação ativa com este nome.")):
             self.client.post("/acompanhamento/operacoes", data={"nome_operacao": "X", "id_relatorio": "1"})
-        self.assertIn("Nao foi possivel criar a operacao: Ja existe uma operacao ativa com este nome.", self._flashes())
+        self.assertIn("Não foi possível criar a operação: Já existe uma operação ativa com este nome.", self._flashes())
 
     def test_falha_ao_gravar_senha_nao_e_anunciada_como_sucesso(self):
         row = {**ADMIN_ROW, "senha": generate_password_hash("atual")}
@@ -62,8 +62,8 @@ class ErrosWebTests(unittest.TestCase):
                 data={"senha_atual": "atual", "nova_senha": "nova-senha", "confirmar_senha": "nova-senha"},
             )
         mensagens = self._flashes()
-        self.assertNotIn("Senha atualizada com sucesso.", mensagens)
-        self.assertTrue(any("Nao foi possivel atualizar a senha" in m for m in mensagens))
+        self.assertNotIn("Senha atualizada.", mensagens)
+        self.assertTrue(any("Não foi possível atualizar a senha" in m for m in mensagens))
 
 
 if __name__ == "__main__":

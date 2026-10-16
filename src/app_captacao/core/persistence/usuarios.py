@@ -142,8 +142,8 @@ def criar_usuario(login_usuario: str, email: str, area: str, id_acesso: int, sen
     with closing(sql.db_connection()) as connection:
         duplicate_field = user_duplicate_field(connection, login_usuario, email)
         if duplicate_field:
-            label = "login" if duplicate_field == "login" else "email"
-            raise ValueError(f"Ja existe um usuario com este {label}.")
+            label = "login" if duplicate_field == "login" else "e-mail"
+            raise ValueError(f"Já existe um usuário com este {label}.")
 
         cursor = connection.cursor()
         senha_hash = generate_password_hash(senha, method="scrypt")
@@ -187,7 +187,7 @@ def atualizar_usuario(
             exclude_id=id_login,
         )
         if duplicate_field == "email":
-            raise ValueError("Ja existe outro usuario com este email.")
+            raise ValueError("Já existe outro usuário com este e-mail.")
 
         assignments = ["Email = ?", "Area = ?", "IdAcesso = ?"]
         params: list[object] = [email, area, id_acesso]
@@ -207,7 +207,7 @@ def atualizar_usuario(
             tuple(params),
         )
         if cursor.rowcount == 0:
-            raise ValueError("Usuario nao encontrado.")
+            raise ValueError("Usuário não encontrado.")
         connection.commit()
 
 
@@ -228,7 +228,7 @@ def inativar_usuario(id_login: int, alterado_por: int) -> None:
             tuple(params),
         )
         if cursor.rowcount == 0:
-            raise ValueError("Usuario nao encontrado ou ja inativo.")
+            raise ValueError("Usuário não encontrado ou já inativo.")
         connection.commit()
 
 

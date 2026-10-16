@@ -9,7 +9,8 @@
     --app-border: rgba(148, 163, 184, 0.26);
     --app-field-bg: #ffffff;
     --app-field-text: #0f172a;
-    --app-field-placeholder: #94a3b8;
+    /* slate-500: o slate-400 dava 2,6:1 sobre o campo branco. */
+    --app-field-placeholder: #64748b;
 }
 
 html.dark {
@@ -22,7 +23,8 @@ html.dark {
     --app-border: rgba(71, 85, 105, 0.6);
     --app-field-bg: #111827;
     --app-field-text: #f8fafc;
-    --app-field-placeholder: #64748b;
+    /* slate-400: o slate-500 dava 3,7:1 sobre o campo escuro. */
+    --app-field-placeholder: #94a3b8;
 }
 
 html,
@@ -337,6 +339,12 @@ html.dark .mode-card.is-active {
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.08em;
+}
+
+/* No escuro o ciano 700 do selo ficava com 2,8:1. */
+html.dark .mode-icon {
+    color: #67e8f9;
+    background: rgba(34, 211, 238, 0.12);
 }
 
 .tech-primary-button {

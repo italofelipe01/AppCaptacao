@@ -43,6 +43,7 @@ AppCaptacao/
 | Nova tela ou rota | `web/routes_<tela>.py` + registrar em `app.py`; template em `project/templates/` |
 | Classe de estilo nova ou mudada num template | Rodar `scripts\gerar_css.ps1` (gera `tailwind-local.css`; nunca editar à mão). Estilo próprio do app vai em `project/static/css/app.css`; reset e opacidades extras em `scripts/css/` |
 | Abrir/fechar modal, foco, Tab e Esc | `project/static/js/modal.js` (um só para todas as telas; o template não redefine `abrirModal`/`fecharModal`) |
+| Nome exibido de área, evento, status, estado ou etapa | `project/templates/components/rotulos.html` (o valor gravado não muda) |
 | Menu lateral (recolher, dicas, menu fixo) | `components/menu.html` (estado inicial), `static/js/menu.js`, `.app-sidebar` em `app.css` |
 | Mudar permissão | decorator `access_required(...)` na rota; perfis em `core/security/perfis.py` |
 | SQL de usuário | `core/persistence/usuarios.py` |
@@ -66,7 +67,7 @@ AppCaptacao/
 | --- | --- |
 | `tests/core/` | configuração, conexão, senha, sessão/usuário, log técnico |
 | `tests/catalogo/` | escolha do executor, filtros obrigatórios e fixos, consulta do catálogo |
-| `tests/web/` | rotas (usuários, acompanhamento, erros), scripts dos templates, classes de estilo sem regra no CSS gerado e estrutura das telas (rótulos, senhas, ordem da execução, modais) |
+| `tests/web/` | rotas (usuários, acompanhamento, erros), scripts dos templates, classes de estilo sem regra no CSS gerado e estrutura e textos das telas (rótulos, senhas, ordem da execução, modais, acentos); telas renderizadas em `paginas.py` |
 | `tests/automacao/` | execução em sequência, login, downloads, executor do saldo devedor |
 | `tests/execucao/` | job em segundo plano, limite de memória e consolidação no fim |
 | `tests/consolidacao/` | leitura do layout do Sienge, conferência e planilha gerada (planilhas sintéticas) |

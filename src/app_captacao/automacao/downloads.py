@@ -63,7 +63,7 @@ def renomear_download_relatorio(relatorio_config, empresa_id="", inicio_download
         )
         raise erros.DownloadProcessingError(
             "download",
-            f"Nenhum arquivo novo foi concluido em '{DOWNLOAD_DIR}'.",
+            f"Nenhum arquivo novo foi concluído em '{DOWNLOAD_DIR}'.",
         )
 
     nome_relatorio = sanitizar_nome_arquivo(relatorio_config.get("nome") or "relatorio")
