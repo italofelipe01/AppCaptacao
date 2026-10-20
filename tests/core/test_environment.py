@@ -103,6 +103,16 @@ class EnvironmentLoadingTests(unittest.TestCase):
             self.assertEqual(os.environ["APP_CAPTACAO_TESTE_RECARGA"], "segundo")
             self.assertEqual(environment.variaveis_herdadas_ignoradas(), [])
 
+    def test_chave_vazia_no_arquivo_nao_apaga_variavel_definida(self):
+        # 2026-10-20: SELENIUM_DOWNLOAD_DIR= no .env apagava o desvio dos downloads definido no processo.
+        with patch.object(environment, "_AMBIENTE_HERDADO", {"APP_CAPTACAO_TESTE_VAZIO": "C:\\pasta"}), patch.dict(
+            os.environ, {"APP_CAPTACAO_TESTE_VAZIO": "C:\\pasta"}
+        ):
+            environment._variaveis_herdadas_ignoradas.clear()
+            environment._aplicar_configuracao({"APP_CAPTACAO_TESTE_VAZIO": ""})
+            self.assertEqual(os.environ["APP_CAPTACAO_TESTE_VAZIO"], "C:\\pasta")
+            self.assertEqual(environment.variaveis_herdadas_ignoradas(), [])
+
     def test_development_prefers_root_env_and_never_reads_legacy_folder(self):
         with patch.object(environment, "is_frozen_runtime", return_value=False):
             candidatos = environment.get_config_path_candidates()

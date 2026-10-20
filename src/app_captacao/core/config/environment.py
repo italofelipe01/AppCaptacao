@@ -327,6 +327,9 @@ def _aplicar_configuracao(valores: dict[str, str | None]) -> None:
         if valor is None:
             continue
         herdado = _AMBIENTE_HERDADO.get(chave)
+        if not valor.strip() and herdado:
+            # Chave vazia no arquivo e "use o padrao", nao "apague o que foi definido".
+            continue
         if herdado is not None and herdado != valor and chave not in _variaveis_herdadas_ignoradas:
             _variaveis_herdadas_ignoradas.append(chave)
         os.environ[chave] = valor
