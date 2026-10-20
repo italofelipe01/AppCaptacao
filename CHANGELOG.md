@@ -7,6 +7,14 @@ geradas pelo `python-semantic-release` a partir dos commits (Conventional Commit
 
 <!-- version list -->
 
+## v1.2.2 (2026-10-20)
+
+### Bug Fixes
+
+- **config**: Chave vazia no arquivo nao apaga variavel ja definida
+  ([`c97c9fc`](https://github.com/italofelipe01/AppCaptacao/commit/c97c9fc75c85756e200e61514098f4fc5be0c6fb))
+
+
 ## v1.2.1 (2026-10-20)
 
 ### Bug Fixes
