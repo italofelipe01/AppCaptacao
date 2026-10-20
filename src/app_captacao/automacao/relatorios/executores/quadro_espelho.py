@@ -17,7 +17,6 @@ from app_captacao.automacao.relatorios.executores.extrato_saldo_devedor_presente
     _ir_para_proxima_pagina,
     _log_etapa,
     _log_filtros_recebidos,
-    _montar_identificadores,
     _montar_sufixo_exportacao,
     _normalizar_texto,
     _obter_filtro_por_campo,
@@ -25,7 +24,6 @@ from app_captacao.automacao.relatorios.executores.extrato_saldo_devedor_presente
     _obter_identificador_principal,
     _obter_total_registros,
     _obter_valor_iteracao,
-    _preencher_input_manual,
     _registrar_arquivo_final,
     _selecionar_formato_excel_na_modal,
     _selecionar_tamanho_pagina,
@@ -42,10 +40,7 @@ CAMPO_EMPRESA = "filter.empresa.cdEmpresaView"
 IDENTIFICADORES_EMPRESA = ("filter.empresa.cdEmpresaView", "cdEmpresaView")
 CAMPO_EMPREENDIMENTO = "filter.empreend.cdEmpreendView"
 IDENTIFICADORES_EMPREENDIMENTO = ("filter.empreend.cdEmpreendView", "cdEmpreendView")
-CAMPO_DATA_INICIO = "filter.dtInicio"
-CAMPO_DATA_FIM = "filter.dtFim"
-IDENTIFICADORES_DATA_INICIO = ("filter.dtInicio", "dtInicio")
-IDENTIFICADORES_DATA_FIM = ("filter.dtFim", "dtFim")
+# A tela do Quadro espelho (inclusive a aba Lista) nao tem campo de data: conferido em 2026-10-20.
 
 
 def executar(driver, wait, relatorio_config, contexto):
@@ -66,8 +61,6 @@ def executar(driver, wait, relatorio_config, contexto):
     grupo_empresa = _obter_filtro_por_campo(filtros, CAMPO_GRUPO_EMPRESA, *IDENTIFICADORES_GRUPO_EMPRESA)
     empresa = _obter_filtro_por_campo(filtros, CAMPO_EMPRESA, *IDENTIFICADORES_EMPRESA)
     empreendimento = _obter_filtro_por_campo(filtros, CAMPO_EMPREENDIMENTO, *IDENTIFICADORES_EMPREENDIMENTO)
-    data_inicio = _obter_filtro_por_campo(filtros, CAMPO_DATA_INICIO, *IDENTIFICADORES_DATA_INICIO)
-    data_fim = _obter_filtro_por_campo(filtros, CAMPO_DATA_FIM, *IDENTIFICADORES_DATA_FIM)
 
     if not grupo_empresa:
         grupo_empresa = _obter_filtro_por_nome(filtros, "grupo")
@@ -81,16 +74,12 @@ def executar(driver, wait, relatorio_config, contexto):
     empreendimentos = _extrair_valores(empreendimento)
 
     total = _calcular_total_iteracoes(grupos_empresa, empresas, empreendimentos)
-    valor_data_inicio = normalizar_valor(data_inicio) if data_inicio else ""
-    valor_data_fim = normalizar_valor(data_fim) if data_fim else ""
 
     logger.info(
-        "Executor quadro_espelho iniciando | grupos=%s | empresas=%s | empreendimento=%s | data_inicio=%s | data_fim=%s | iteracoes=%s",
+        "Executor quadro_espelho iniciando | grupos=%s | empresas=%s | empreendimento=%s | iteracoes=%s",
         grupos_empresa or [""],
         empresas or [""],
         empreendimentos or [""],
-        valor_data_inicio,
-        valor_data_fim,
         total,
     )
 
@@ -115,8 +104,6 @@ def executar(driver, wait, relatorio_config, contexto):
             valor_empresa,
             empreendimento,
             valor_empreendimento,
-            data_inicio,
-            data_fim,
             logger,
             iteracao,
             capture_debug_snapshot,
@@ -210,8 +197,6 @@ def _preparar_filtros_relatorio(
     valor_empresa,
     filtro_empreendimento,
     valor_empreendimento,
-    filtro_data_inicio,
-    filtro_data_fim,
     logger,
     iteracao,
     capture_debug_snapshot,
@@ -241,28 +226,6 @@ def _preparar_filtros_relatorio(
             logger,
         )
         capture_debug_snapshot(f"quadro_espelho_empresa_iteracao_{iteracao}")
-
-    if filtro_data_inicio:
-        valor_data_inicio = normalizar_valor(filtro_data_inicio)
-        _preencher_input_manual(
-            driver,
-            wait,
-            _montar_identificadores(filtro_data_inicio, *IDENTIFICADORES_DATA_INICIO),
-            valor_data_inicio,
-            logger,
-        )
-        capture_debug_snapshot(f"quadro_espelho_data_inicio_iteracao_{iteracao}")
-
-    if filtro_data_fim:
-        valor_data_fim = normalizar_valor(filtro_data_fim)
-        _preencher_input_manual(
-            driver,
-            wait,
-            _montar_identificadores(filtro_data_fim, *IDENTIFICADORES_DATA_FIM),
-            valor_data_fim,
-            logger,
-        )
-        capture_debug_snapshot(f"quadro_espelho_data_fim_iteracao_{iteracao}")
 
     if filtro_empreendimento and valor_empreendimento:
         _log_etapa(logger, iteracao, "empreendimento", f"preenchendo empreendimento com {valor_empreendimento}")

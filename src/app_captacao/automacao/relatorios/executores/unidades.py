@@ -1,4 +1,5 @@
 import time
+import unicodedata
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
@@ -11,9 +12,10 @@ from app_captacao.automacao.navegador import fechar_janelas_extras as _fechar_ja
 
 SELECAO_CAMPO = "filter.selecao"
 SELECAO_VALOR = "por Empreendimento"
-TIPO_RELATORIO_CAMPO = "filter.tpRelatorio"
-TIPO_RELATORIO_VALOR = "Consolidado"
 GRUPO_EMPRESA_CAMPO = "filter.grupoEmpresa.grupoEmpresaPK.cdGrupoEmpresa"
+# "Posição em*" da tela (page/811). Vazio, o Sienge usa a data do dia.
+POSICAO_EM_CAMPO = "filter.dtHistorica"
+POSICAO_EM_NOME = "posicao em"
 
 
 def executar(driver, wait, relatorio_config, contexto):
@@ -25,8 +27,7 @@ def executar(driver, wait, relatorio_config, contexto):
 
     filtros = relatorio_config.get("filtros", []) or []
 
-    dt_inicio = _obter_filtro_por_campo(filtros, "filter.dtInicioStr")
-    dt_fim = _obter_filtro_por_campo(filtros, "filter.dtFimStr")
+    # A tela (page/811) nao tem periodo nem "Tipo de relatorio": so os campos abaixo existem.
     grupo_empresa = _obter_filtro_por_campo(
         filtros,
         GRUPO_EMPRESA_CAMPO,
@@ -39,10 +40,17 @@ def executar(driver, wait, relatorio_config, contexto):
         "cdEmpreendView",
         "filter.empreend.cdEmpreendView",
     )
+    # O catalogo pode identificar o filtro pelo campo ou so pelo nome "Posição em".
+    posicao_em = _obter_filtro_por_campo(filtros, POSICAO_EM_CAMPO, "dtHistorica") or _obter_filtro_por_nome(
+        filtros, POSICAO_EM_NOME
+    )
+    # O campo da tela e sempre data: valor ISO da tela do app vira dd/mm/aaaa mesmo sem TipoCampoValor DATE.
+    valor_posicao_em = normalizar_valor({**posicao_em, "tipo_campo_valor": "DATE"}).strip() if posicao_em else ""
+    if not valor_posicao_em:
+        logger.info("Executor unidades sem valor para Posicao em; o Sienge usa a data padrao da tela.")
 
     logger.info("Executor unidades aplicando selects padrao do backend.")
     _selecionar_select(driver, wait, SELECAO_CAMPO, SELECAO_VALOR, logger)
-    _selecionar_select(driver, wait, TIPO_RELATORIO_CAMPO, TIPO_RELATORIO_VALOR, logger, obrigatorio=False)
     _aguardar_campos_dependentes(
         driver,
         wait,
@@ -57,24 +65,6 @@ def executar(driver, wait, relatorio_config, contexto):
         logger,
     )
 
-    if dt_inicio:
-        _preencher_campo(
-            driver,
-            wait,
-            _identificadores_data(dt_inicio, "filter.dtInicioStr"),
-            normalizar_valor(dt_inicio),
-            logger,
-        )
-
-    if dt_fim:
-        _preencher_campo(
-            driver,
-            wait,
-            _identificadores_data(dt_fim, "filter.dtFimStr"),
-            normalizar_valor(dt_fim),
-            logger,
-        )
-
     grupos_empresa = _extrair_valores(grupo_empresa)
     empresas = _extrair_valores(empresa)
     empreendimentos = _extrair_valores(empreendimento)
@@ -83,6 +73,10 @@ def executar(driver, wait, relatorio_config, contexto):
     logger.info("Executor unidades iniciando com %s iteracao(oes).", total)
 
     for index in range(total):
+        # Antes dos lookups: o ENTER continua saindo do campo de empreendimento.
+        if valor_posicao_em:
+            _preencher_campo(driver, wait, [POSICAO_EM_CAMPO], valor_posicao_em, logger)
+
         if grupo_empresa:
             _preencher_campo(
                 driver,
@@ -118,6 +112,9 @@ def executar(driver, wait, relatorio_config, contexto):
                 logger,
             )
 
+        if valor_posicao_em:
+            _confirmar_valor_na_tela(driver, wait, POSICAO_EM_CAMPO, valor_posicao_em, "Posicao em")
+
         logger.info("Executor unidades disparando ENTER na iteracao %s/%s.", index + 1, total)
         inicio_download = marcar_inicio_download()
         ActionChains(driver).send_keys(Keys.ENTER).perform()
@@ -144,8 +141,12 @@ def _obter_filtro_por_campo(filtros, *campos_identificadores):
     return None
 
 
-def _identificadores_data(filtro, campo_padrao):
-    return _montar_identificadores(filtro, campo_padrao)
+def _obter_filtro_por_nome(filtros, trecho_nome):
+    trecho = _sem_acento(trecho_nome)
+    for filtro in filtros:
+        if trecho and trecho in _sem_acento(filtro.get("nome") or filtro.get("nome_filtro")):
+            return filtro
+    return None
 
 
 def _identificadores_lookup(filtro, campo_curto, campo_completo):
@@ -166,16 +167,8 @@ def _montar_identificadores(filtro, *fallbacks):
     return identificadores
 
 
-def _selecionar_select(driver, wait, identificador, valor, logger, obrigatorio=True):
-    try:
-        elemento = _localizar_no_primeiro_iframe(driver, wait, identificador)
-    except (NoSuchElementException, TimeoutException):
-        if obrigatorio:
-            raise
-        logger.info("Select opcional %s nao encontrado; seguindo fluxo.", identificador)
-        driver.switch_to.default_content()
-        return
-
+def _selecionar_select(driver, wait, identificador, valor, logger):
+    elemento = _localizar_no_primeiro_iframe(driver, wait, identificador)
     select = Select(elemento)
 
     try:
@@ -273,6 +266,20 @@ def _preencher_campo(driver, wait, identificadores, valor, logger):
         driver.switch_to.default_content()
 
 
+def _confirmar_valor_na_tela(driver, wait, identificador, valor_esperado, rotulo):
+    """Sem o valor na tela o Sienge gera o relatorio com o padrao dele: melhor falhar do que baixar errado."""
+    try:
+        valor_na_tela = str(_localizar_no_primeiro_iframe(driver, wait, identificador).get_attribute("value") or "")
+    finally:
+        driver.switch_to.default_content()
+
+    if valor_na_tela.strip() != valor_esperado:
+        raise ValueError(
+            f"O campo {rotulo} do relatorio de unidades ficou com '{valor_na_tela.strip()}' "
+            f"na tela do Sienge, e nao com '{valor_esperado}'."
+        )
+
+
 def _localizar_primeiro_disponivel(driver, wait, identificadores):
     ultimo_erro = None
     for identificador in identificadores:
@@ -341,3 +348,8 @@ def _obter_valor_iteracao(valores, index):
 
 def _normalizar_texto(valor):
     return str(valor or "").strip().lower()
+
+
+def _sem_acento(valor):
+    texto = unicodedata.normalize("NFKD", _normalizar_texto(valor))
+    return " ".join("".join(caractere for caractere in texto if not unicodedata.combining(caractere)).split())

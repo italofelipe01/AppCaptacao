@@ -30,3 +30,7 @@ SAVE_LOGS = os.getenv("APP_SAVE_LOGS", "false").strip().lower() == "true"
 
 # Consolidado por relatorio no fim da execucao (docs/specs/consolidacao-relatorios.md).
 CONSOLIDAR_RELATORIOS = os.getenv("APP_CONSOLIDAR_RELATORIOS", "true").strip().lower() == "true"
+
+# Filtro do cadastro sem campo na tela do Sienge (docs/specs/filtros-validados-no-sienge.md):
+# false avisa na mensagem do relatorio e executa; true recusa antes de abrir o Sienge.
+RECUSAR_FILTROS_SEM_CAMPO = os.getenv("APP_RECUSAR_FILTROS_SEM_CAMPO", "false").strip().lower() == "true"

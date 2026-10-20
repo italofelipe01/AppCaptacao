@@ -14,6 +14,7 @@ from app_captacao.catalogo import operacao_relatorios as vinculos_repo
 from app_captacao.catalogo import operacoes as operacoes_repo
 from app_captacao.catalogo import regras
 from app_captacao.catalogo import relatorios as relatorios_repo
+from app_captacao.core.config import settings
 from app_captacao.core.database import sql
 from app_captacao.core.persistence import logs as logs_repo
 from app_captacao.core.security.auth import login_required
@@ -95,6 +96,10 @@ def processar():
             if missing:
                 flash(f"Preencha os filtros obrigatórios: {', '.join(missing)}.", "error")
                 return redirect(url_for("main"))
+            recusa = _recusa_de_filtros_sem_campo(payload)
+            if recusa:
+                flash(f"O relatório '{payload.get('nome', '')}' {recusa}", "error")
+                return redirect(url_for("main"))
 
             payload["sharepoint_link"] = sharepoint_link
             job_id = jobs.create_execution_job("relatorio", [payload])
@@ -127,6 +132,14 @@ def processar():
                         f"Operação '{operacao.get('nome', '')}' (ID {operacao_id}): "
                         f"o relatório '{relatorio.get('nome', '')}' tem filtros obrigatórios sem valor: "
                         f"{', '.join(missing)}. Salve os filtros desta operação na tela Operações.",
+                        "error",
+                    )
+                    return redirect(url_for("main"))
+                recusa = _recusa_de_filtros_sem_campo(relatorio)
+                if recusa:
+                    flash(
+                        f"Operação '{operacao.get('nome', '')}' (ID {operacao_id}): "
+                        f"o relatório '{relatorio.get('nome', '')}' {recusa}",
                         "error",
                     )
                     return redirect(url_for("main"))
@@ -165,6 +178,22 @@ def processar():
         flash(f"Não foi possível iniciar a automação: {mensagem_para_usuario(exc, 'Falha ao iniciar a execução.')}", "error")
 
     return redirect(url_for("main"))
+
+
+def _recusa_de_filtros_sem_campo(relatorio: dict) -> str:
+    """Mensagem de recusa quando APP_RECUSAR_FILTROS_SEM_CAMPO esta ligado; vazio deixa executar.
+
+    Desligado, o relatorio executa e a mensagem dele lista o filtro nao aplicado (automacao).
+    """
+    if not settings.RECUSAR_FILTROS_SEM_CAMPO:
+        return ""
+    nao_aplicados = regras.filtros_sem_campo_no_sienge(relatorio)
+    if not nao_aplicados:
+        return ""
+    return (
+        f"tem filtro(s) sem campo correspondente na tela do Sienge: {', '.join(nao_aplicados)}. "
+        "Corrija o cadastro do filtro ou o executor antes de executar."
+    )
 
 
 @rotas.get("/relatorios/<int:relatorio_id>/filtros-dados")

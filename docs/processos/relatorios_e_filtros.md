@@ -69,17 +69,45 @@ Cada executor é um módulo em
 com `executar(driver, wait, relatorio_config, contexto)`. O `contexto` entrega o logger e as
 funções de campo e download da automação.
 
-## Filtros opcionais por executor
+## Campos do Sienge por executor
 
-| Executor | Campo opcional |
-| --- | --- |
-| `titulos_quitados`, `titulos_distratados`, `relatorio_reparcelamento`, `contas_a_receber` | Empreendimento/centro de custo (`centrocusto.cdempreendview`, `entity.empreend.cdempreendview`, `cdempreendview`) |
-| `preco_total_vendas`, `unidades` | Empreendimento (`filter.empreend.cdempreendview`, `cdempreendview`) |
+[catalogo/campos_sienge.py](../../src/app_captacao/catalogo/campos_sienge.py) declara, para cada
+executor, os campos da tela do Sienge que ele preenche: rótulo, id/name, tipo, se a tela exige
+(asterisco), o valor padrão da tela e quais identificadores e trechos de nome do cadastro o
+executor aceita para cada campo. As telas foram lidas no Sienge em 2026-10-20
+([auditoria](../auditoria-filtros-sienge.md)); a regra está em
+[specs/filtros-validados-no-sienge.md](../specs/filtros-validados-no-sienge.md) e na D23.
+
+- **Declaração = código.** `tests/catalogo/test_campos_sienge.py` lê cada executor e falha se ele
+  procurar um filtro que não está declarado (ou o contrário), ou se a regra de busca for outra.
+- **Filtro sem campo nunca passa calado.** Filtro do cadastro que nenhum campo do executor recebe
+  (`regras.filtros_sem_campo_no_sienge`) aparece na mensagem do relatório ("Não aplicado(s) no
+  Sienge, sem campo na tela: ...") e no log técnico. Com `APP_RECUSAR_FILTROS_SEM_CAMPO=true`, a
+  tela principal e a automação recusam a execução (etapa `configuracao`). Ações de clique não são
+  parâmetros e ficam de fora.
+- **Obrigatoriedade vem do Sienge.** Filtro opcional no app só quando a tela não exige o campo (ou
+  traz um padrão, como "Posição em", que vem com a data do dia) **e** o executor deixa o campo
+  como está quando o filtro vem vazio (`aceita_vazio`). Hoje são opcionais: centro de custo de
+  Títulos quitados/distratados, Reparcelamento e Contas a receber; empreendimento do Preço total de
+  vendas; "Posição em" do Unidades e do Extrato cliente histórico; e os filtros de valor fixo.
+- **Auditoria.** `tools/auditar_filtros_sienge.py --email <conta>` abre cada tela no Edge da
+  automação (só leitura), cruza com as declarações e, com banco, com o cadastro, e regrava
+  [docs/auditoria-filtros-sienge.md](../auditoria-filtros-sienge.md). Rode quando um relatório
+  quebrar ou antes de ligar `APP_RECUSAR_FILTROS_SEM_CAMPO`.
 
 No relatório **Unidades**, o filtro `filter.selecao` é fixo em "por Empreendimento" e preenchido
 automaticamente. A regra vale para o executor `unidades` (não para quem tem "unidades" no nome) e
 fica em `FILTROS_FIXOS_POR_EXECUTOR`, em `catalogo/regras.py`: a tela de execução, a de
 Acompanhamento e o payload da operação usam a mesma tabela.
+
+O filtro **"Posição em"** do Unidades vai para o campo `filter.dtHistorica` da tela (page/811). O
+executor reconhece o filtro pelo campo identificador (`filter.dtHistorica`/`dtHistorica`) ou pelo
+nome "Posição em", converte a data para `dd/mm/aaaa`, preenche a cada iteração e confere o valor
+na tela antes do ENTER: se o Sienge não ficou com a data pedida, o relatório falha em vez de baixar
+com a data errada. Sem valor, o Sienge usa a data do dia. O **Extrato cliente histórico** tem o
+mesmo campo ("Posição em*", `name="dtHistorico"`) e o mesmo tratamento. No Unidades, o
+**Empreendimento** é obrigatório: sem ele o Sienge recusa com "O campo 'Empreendimento' deve ser
+preenchido.".
 
 ## Cadastro de operações (tela Acompanhamento)
 
@@ -95,5 +123,9 @@ Acompanhamento e o payload da operação usam a mesma tabela.
 2. Criar `automacao/relatorios/executores/<nome>.py` com `executar(...)`. Depois de exportar,
    esperar o arquivo (`renomear_download`) e só então `fechar_janelas_extras` (D22).
 3. Registrar em `automacao/relatorios/registro.py` e mapear ID/URL/nome em `catalogo/regras.py`.
-4. Se algum filtro for opcional, incluir em `eh_filtro_opcional_relatorio`.
-5. Testar o roteamento (executor escolhido) e o preenchimento com dublês, sem rede.
+4. Declarar a tela em `catalogo/campos_sienge.py`: os campos que o executor preenche, lidos na
+   tela do Sienge (obrigatório, padrão, `aceita_vazio` para o filtro que pode ficar vazio). O
+   teste de consistência falha até a declaração bater com o código.
+5. Rodar `tools/auditar_filtros_sienge.py` e conferir a tela nova em
+   `docs/auditoria-filtros-sienge.md`.
+6. Testar o roteamento (executor escolhido) e o preenchimento com dublês, sem rede.

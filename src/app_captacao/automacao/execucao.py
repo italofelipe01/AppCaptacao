@@ -24,6 +24,7 @@ from app_captacao.automacao.config import (
     POST_LOGIN_WAIT,
 )
 from app_captacao.catalogo import regras
+from app_captacao.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -298,6 +299,9 @@ def _montar_item_resultado(
     arquivos = [str(item) for item in (arquivos or []) if str(item or "").strip()]
     if estado == "baixado" and not mensagem and arquivos:
         mensagem = _descrever_arquivos(arquivos)
+    nao_aplicados = relatorio_config.get("_filtros_nao_aplicados") or []
+    if nao_aplicados:
+        mensagem = f"{mensagem} Não aplicado(s) no Sienge, sem campo na tela: {', '.join(nao_aplicados)}.".strip()
     return {
         "indice": indice,
         "total": total,
@@ -343,6 +347,7 @@ def _executar_relatorio_no_driver(driver, wait, relatorio_config, on_report_even
             f"id={relatorio_config.get('id')} | "
             f"nome={relatorio_config.get('nome', '')}"
         )
+    _conferir_filtros_aplicados(relatorio_config)
 
     navegador.fechar_janelas_extras(driver)
 
@@ -370,6 +375,24 @@ def _executar_relatorio_no_driver(driver, wait, relatorio_config, on_report_even
             "O executor terminou, mas nenhum arquivo novo foi confirmado no destino.",
         )
     return arquivos
+
+
+def _conferir_filtros_aplicados(relatorio_config):
+    """Filtro sem campo na tela do Sienge nunca e aplicado: recusa ou fica registrado na mensagem."""
+    nao_aplicados = regras.filtros_sem_campo_no_sienge(relatorio_config)
+    if nao_aplicados and settings.RECUSAR_FILTROS_SEM_CAMPO:
+        raise erros.DownloadProcessingError(
+            "configuracao",
+            "Filtro(s) sem campo correspondente na tela do Sienge: "
+            f"{', '.join(nao_aplicados)}. O relatório não foi executado.",
+        )
+    relatorio_config["_filtros_nao_aplicados"] = nao_aplicados
+    if nao_aplicados:
+        logger.warning(
+            "Relatorio '%s': filtro(s) sem campo na tela do Sienge, nao aplicado(s): %s",
+            relatorio_config.get("nome", ""),
+            nao_aplicados,
+        )
 
 
 def _executar_relatorio_dedicado(driver, wait, relatorio_config, executor_relatorio):

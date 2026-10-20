@@ -13,11 +13,16 @@ Autor: Sistema de Automação de Relatórios
 Data: 2026
 """
 import time
+import unicodedata
 
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from app_captacao.automacao.navegador import fechar_janelas_extras as _fechar_janelas_extras
+
+# "Posição em*" da tela (page/3012): so tem name. Vazio, o Sienge usa a data do dia.
+CAMPO_POSICAO_EM = "dtHistorico"
+POSICAO_EM_NOME = "posicao em"
 
 
 def executar(driver, wait, relatorio_config, contexto):
@@ -57,6 +62,10 @@ def executar(driver, wait, relatorio_config, contexto):
     dt_correcao = _obter_filtro_por_campo(filtros, "filter.dtCorrecao")
     empresa = _obter_filtro_por_campo(filtros, "filter.empresa.cdEmpresaView")
     empreendimento = _obter_filtro_por_campo(filtros, "filter.empreend.cdEmpreendView")
+    # O catalogo pode identificar o filtro pelo campo ou so pelo nome "Posição em".
+    posicao_em = _obter_filtro_por_campo(filtros, CAMPO_POSICAO_EM) or _obter_filtro_por_nome(filtros, POSICAO_EM_NOME)
+    # O campo da tela e sempre data: valor ISO da tela do app vira dd/mm/aaaa mesmo sem TipoCampoValor DATE.
+    valor_posicao_em = normalizar_valor({**posicao_em, "tipo_campo_valor": "DATE"}).strip() if posicao_em else ""
 
     # Preenchimento dos campos de data de vencimento
     # O campo de data de correção utiliza estratégia diferente (By.NAME)
@@ -75,6 +84,10 @@ def executar(driver, wait, relatorio_config, contexto):
             By.NAME,  # Diferente dos outros campos, usa name ao invés de ID
             logger,
         )
+
+    if valor_posicao_em:
+        _preencher_campo_legado(driver, wait, CAMPO_POSICAO_EM, valor_posicao_em, By.NAME, logger)
+        _confirmar_valor_legado(driver, wait, CAMPO_POSICAO_EM, valor_posicao_em, By.NAME, "Posicao em")
 
     # Extração dos valores de empresa e empreendimento para iteração
     # O relatório suporta múltiplas empresas e empreendimentos, processados em
@@ -167,6 +180,19 @@ def _obter_filtro_por_campo(filtros, campo_identificador):
     return None
 
 
+def _obter_filtro_por_nome(filtros, trecho_nome):
+    trecho = _sem_acento(trecho_nome)
+    for filtro in filtros:
+        if trecho and trecho in _sem_acento(filtro.get("nome") or filtro.get("nome_filtro")):
+            return filtro
+    return None
+
+
+def _sem_acento(valor):
+    texto = unicodedata.normalize("NFKD", str(valor or "").strip().lower())
+    return " ".join("".join(caractere for caractere in texto if not unicodedata.combining(caractere)).split())
+
+
 def _extrair_valores(filtro):
     """
     Extrai os valores de um filtro, convertendo para lista de strings.
@@ -229,3 +255,19 @@ def _preencher_campo_legado(driver, wait, identificador, valor, by, logger):
     finally:
         driver.switch_to.default_content()  # Retorna ao contexto principal
         time.sleep(1)
+
+
+def _confirmar_valor_legado(driver, wait, identificador, valor_esperado, by, rotulo):
+    """Sem o valor na tela o Sienge gera o extrato com o padrao dele: melhor falhar do que baixar errado."""
+    iframe = wait.until(lambda current_driver: current_driver.find_element(By.TAG_NAME, "iframe"))
+    driver.switch_to.frame(iframe)
+    try:
+        valor_na_tela = str(driver.find_element(by, identificador).get_attribute("value") or "").strip()
+    finally:
+        driver.switch_to.default_content()
+
+    if valor_na_tela != valor_esperado:
+        raise ValueError(
+            f"O campo {rotulo} do extrato de cliente historico ficou com '{valor_na_tela}' "
+            f"na tela do Sienge, e nao com '{valor_esperado}'."
+        )

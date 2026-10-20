@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from app_captacao.app import app
 from app_captacao.catalogo import relatorios
+from app_captacao.core.config import settings
 from app_captacao.core.persistence import usuarios
 from app_captacao.execucao import jobs
 
@@ -47,6 +48,22 @@ class ProcessarTests(unittest.TestCase):
     def test_destino_valido_inicia_a_execucao(self):
         criar = self._processar(sharepoint_link=r"\\servidor\captacao")
         criar.assert_called_once()
+
+    def test_filtro_sem_campo_no_sienge_e_recusado_quando_a_recusa_esta_ligada(self):
+        payload = {
+            "id": 21,
+            "nome": "Unidades",
+            "url": "https://x/#/common/page/811",
+            "filtros": [{"id": 5, "nome": "Data inicial", "campo_identificador": "filter.dtInicioStr", "acao": "", "valor": "2026-09-01"}],
+        }
+        formulario = {"email": "a@b.com", "senha": "x", "modo": "completo", "relatorio": "21"}
+        for recusar, deve_iniciar in ((True, False), (False, True)):
+            with self.subTest(recusar=recusar), patch.object(settings, "RECUSAR_FILTROS_SEM_CAMPO", recusar), patch.object(
+                relatorios, "montar_payload_execucao", return_value=dict(payload)
+            ), patch.object(jobs, "create_execution_job") as criar, patch("app_captacao.web.routes_execucao.threading.Thread"):
+                self.client.post("/processar", data=formulario)
+            self.assertEqual(criar.called, deve_iniciar)
+        self.assertTrue(any("sem campo correspondente na tela do Sienge: Data inicial" in m for m in self._flashes()))
 
     def test_automacao_de_outra_sessao_rodando_e_avisada_sem_virar_erro(self):
         with patch.object(relatorios, "montar_payload_execucao", return_value=dict(PAYLOAD)), patch.object(

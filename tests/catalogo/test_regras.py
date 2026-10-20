@@ -60,5 +60,45 @@ class FiltrosTests(unittest.TestCase):
         self.assertEqual(regras.filtros_obrigatorios_sem_valor(unidades), [])
 
 
+class FiltrosSemCampoNoSiengeTests(unittest.TestCase):
+    """Filtro do cadastro que o executor nao leva ao Sienge nunca passa calado (filtros-validados-no-sienge.md)."""
+
+    def _relatorio(self, *filtros):
+        return {"nome": "Unidades", "filtros": [{"id": i, "acao": "", "valor": "x", **filtro} for i, filtro in enumerate(filtros)]}
+
+    def test_filtro_sem_campo_na_tela_e_listado(self):
+        # A tela page/811 nao tem periodo: o executor nao tem onde aplicar.
+        relatorio = self._relatorio(
+            {"nome": "Empresa", "campo_identificador": "filter.empresa.cdEmpresaView"},
+            {"nome": "Data inicial", "campo_identificador": "filter.dtInicioStr"},
+        )
+        self.assertEqual(regras.filtros_sem_campo_no_sienge(relatorio), ["Data inicial"])
+
+    def test_posicao_em_pelo_nome_e_aplicada(self):
+        relatorio = self._relatorio({"nome": "Posição em", "campo_identificador": "dtPosicaoEm"})
+        self.assertEqual(regras.filtros_sem_campo_no_sienge(relatorio), [])
+
+    def test_acao_de_clique_nao_e_parametro(self):
+        relatorio = self._relatorio({"nome": "Visualizar", "campo_identificador": "btVisualizar", "acao": "click"})
+        self.assertEqual(regras.filtros_sem_campo_no_sienge(relatorio), [])
+
+    def test_valor_diferente_do_fixo_do_executor_e_listado(self):
+        relatorio = {
+            "nome": "Vendas",
+            "id": 3,
+            "filtros": [{"id": 1, "nome": "Tipo", "campo_identificador": "filter.tpRelatorio", "acao": "", "valor": "Simplificado"}],
+        }
+        self.assertEqual(regras.filtros_sem_campo_no_sienge(relatorio), ["Tipo (o executor sempre usa 'Consolidado')"])
+
+    def test_valor_fixo_aplicado_pelo_catalogo_nao_e_listado(self):
+        selecao = {"id": 9, "nome": "Seleção", "campo_identificador": "filter.selecao", "acao": "", "valor": ""}
+        unidades = regras.aplicar_filtros_fixos({"nome": "Unidades", "filtros": [selecao]})
+        self.assertEqual(regras.filtros_sem_campo_no_sienge(unidades), [])
+
+    def test_relatorio_sem_executor_nao_e_avaliado(self):
+        relatorio = {"nome": "Relatorio novo sem cadastro", "filtros": [{"nome": "X", "campo_identificador": "x", "acao": ""}]}
+        self.assertEqual(regras.filtros_sem_campo_no_sienge(relatorio), [])
+
+
 if __name__ == "__main__":
     unittest.main()

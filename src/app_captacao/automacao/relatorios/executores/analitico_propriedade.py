@@ -27,6 +27,7 @@ def executar(driver, wait, relatorio_config, contexto):
 
     filtros = relatorio_config.get("filtros", []) or []
 
+    dt_correcao_ate = _obter_filtro_por_campo(filtros, CAMPO_DT_CORRECAO_ATE)
     empresa = _obter_filtro_por_campo(filtros, CAMPO_EMPRESA, "cdEmpresaView")
     periodo_inicio = _obter_filtro_por_campo(filtros, CAMPO_PERIODO_INICIO)
     periodo_fim = _obter_filtro_por_campo(filtros, CAMPO_PERIODO_FIM)
@@ -35,6 +36,16 @@ def executar(driver, wait, relatorio_config, contexto):
     logger.info("Executor analitico_propriedade aplicando agrupar antes de qualquer filtro.")
     _selecionar_select(driver, wait, CAMPO_AGRUPAR, VALOR_AGRUPAR, logger)
     _marcar_radio(driver, wait, CAMPO_TIPO_ANALISE, logger)
+
+    # "Correção até*" existe na tela (page/473) como no sintetico; antes o filtro era descartado.
+    if dt_correcao_ate:
+        _preencher_campo(
+            driver,
+            wait,
+            _montar_identificadores(dt_correcao_ate, CAMPO_DT_CORRECAO_ATE),
+            normalizar_valor(dt_correcao_ate),
+            logger,
+        )
 
     empresas = _extrair_valores(empresa)
     centros_custo = _extrair_valores(centro_custo)

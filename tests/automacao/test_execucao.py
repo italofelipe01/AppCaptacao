@@ -237,5 +237,46 @@ class EncerramentoDoEdgeTests(unittest.TestCase):
         self.assertFalse(driver.closed)
 
 
+class FiltroSemCampoNoSiengeTests(unittest.TestCase):
+    """Filtro do cadastro sem campo na tela nunca e aplicado: avisa ou recusa, nunca passa calado."""
+
+    def _relatorio(self):
+        return {
+            "id": 21,
+            "nome": "Unidades",
+            "url": "https://ebm.sienge.com.br/sienge/8/index.html#/common/page/811",
+            "filtros": [
+                {"id": 1, "nome": "Empresa", "campo_identificador": "filter.empresa.cdEmpresaView", "acao": "", "valor": "242"},
+                {"id": 2, "nome": "Data inicial", "campo_identificador": "filter.dtInicioStr", "acao": "", "valor": "2026-09-01"},
+            ],
+        }
+
+    def test_desligado_o_relatorio_roda_e_a_mensagem_lista_o_filtro(self):
+        relatorio = self._relatorio()
+        with patch.object(execucao.settings, "RECUSAR_FILTROS_SEM_CAMPO", False):
+            execucao._conferir_filtros_aplicados(relatorio)
+        item = execucao._montar_item_resultado(relatorio, "baixado", arquivos=[r"C:\x\Unidades\u.xlsx"])
+        self.assertEqual(item["estado"], "baixado")
+        self.assertIn("Não aplicado(s) no Sienge, sem campo na tela: Data inicial.", item["mensagem"])
+
+    def test_ligado_recusa_antes_de_abrir_o_relatorio(self):
+        aberturas = []
+        with patch.object(execucao.settings, "RECUSAR_FILTROS_SEM_CAMPO", True), patch.object(
+            navegador, "fechar_janelas_extras", lambda _driver: aberturas.append("janelas")
+        ):
+            with self.assertRaises(erros.DownloadProcessingError) as erro:
+                execucao._executar_relatorio_no_driver(_FakeDriver(), None, self._relatorio())
+        self.assertEqual(erro.exception.etapa, "configuracao")
+        self.assertIn("Data inicial", str(erro.exception))
+        self.assertEqual(aberturas, [])
+
+    def test_ligado_sem_filtro_sobrando_nao_recusa(self):
+        relatorio = self._relatorio()
+        relatorio["filtros"].pop()
+        with patch.object(execucao.settings, "RECUSAR_FILTROS_SEM_CAMPO", True):
+            execucao._conferir_filtros_aplicados(relatorio)
+        self.assertEqual(relatorio["_filtros_nao_aplicados"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

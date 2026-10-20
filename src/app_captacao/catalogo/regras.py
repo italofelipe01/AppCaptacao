@@ -1,4 +1,5 @@
-"""Regras do catalogo: qual executor atende cada relatorio e quais filtros exigem valor.
+"""Regras do catalogo: qual executor atende cada relatorio, quais filtros exigem valor e quais
+nao chegam ao Sienge (pela declaracao de campos_sienge.py).
 
 A resolucao do executor segue esta ordem: trecho da URL, ID do relatorio e, por
 fim, nome normalizado (sem acento e sem diferenca de maiusculas). Relatorio sem
@@ -10,6 +11,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
+from app_captacao.catalogo import campos_sienge
 from app_captacao.core.shared.texto import normalize_text
 
 # Acoes de filtro que exigem um valor digitado; as demais sao cliques/envios.
@@ -206,29 +208,46 @@ def aplicar_filtros_fixos(relatorio: dict) -> dict:
     return relatorio
 
 
+def campos_dos_filtros(
+    relatorio: dict, filtro: dict | None = None
+) -> tuple[list[dict], list[campos_sienge.CampoSienge | None]]:
+    """Filtros do relatorio e o campo da tela que recebe cada um (campos_sienge.associar)."""
+    filtros = list(relatorio.get("filtros") or [])
+    if filtro is not None and not any(item is filtro for item in filtros):
+        filtros.append(filtro)
+    return filtros, campos_sienge.associar(executor_do_relatorio(relatorio), filtros)
+
+
+def campo_sienge_do_filtro(relatorio: dict, filtro: dict) -> campos_sienge.CampoSienge | None:
+    filtros, campos = campos_dos_filtros(relatorio, filtro)
+    return next(campo for item, campo in zip(filtros, campos) if item is filtro)
+
+
 def eh_filtro_opcional_relatorio(relatorio, filtro):
-    executor = executor_do_relatorio(relatorio)
-    campo = str(filtro.get("campo_identificador") or "").strip().lower()
+    """Opcional so quando o Sienge nao exige valor (ou traz um padrao) e o executor aceita vazio."""
+    campo = campo_sienge_do_filtro(relatorio, filtro)
+    return bool(campo and campo.opcional_no_app)
 
-    if executor in {
-        "titulos_quitados",
-        "titulos_distratados",
-        "relatorio_reparcelamento",
-        "contas_a_receber",
-    }:
-        return campo in {
-            "centrocusto.cdempreendview",
-            "entity.empreend.cdempreendview",
-            "cdempreendview",
-        }
 
-    if executor == "preco_total_vendas":
-        return campo in {"filter.empreend.cdempreendview", "cdempreendview"}
+def filtros_sem_campo_no_sienge(relatorio: dict) -> list[str]:
+    """Filtros do cadastro que o executor nao leva ao Sienge (docs/specs/filtros-validados-no-sienge.md).
 
-    if executor == "unidades":
-        return campo in {"filter.empreend.cdempreendview", "cdempreendview"}
-
-    return False
+    Sem campo correspondente na tela, ou com valor diferente do fixo que o executor sempre usa.
+    Acoes de clique nao sao parametros e ficam de fora.
+    """
+    if not executor_do_relatorio(relatorio):
+        return []
+    nao_aplicados = []
+    filtros, campos = campos_dos_filtros(relatorio)
+    for filtro, campo in zip(filtros, campos):
+        nome = normalize_text(filtro.get("nome") or filtro.get("nome_filtro")) or f"Filtro {filtro.get('id')}"
+        valor = normalize_text(filtro.get("valor"))
+        if campo is None:
+            if acao_exige_valor(filtro.get("acao")) and not filtro.get("automatico"):
+                nao_aplicados.append(nome)
+        elif campo.valor_fixo and valor and campos_sienge.normalizar(valor) != campos_sienge.normalizar(campo.valor_fixo):
+            nao_aplicados.append(f"{nome} (o executor sempre usa '{campo.valor_fixo}')")
+    return nao_aplicados
 
 
 def normalizar_acao(acao):
