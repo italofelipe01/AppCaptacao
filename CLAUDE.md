@@ -28,7 +28,7 @@ Relatórios, filtros, operações e usuários vivem no **SQL Server** (tabelas `
 .\.venv\Scripts\python.exe run.py                            # checklist e app
 .\.venv\Scripts\python.exe run.py --somente-verificar        # só o checklist
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pytest                         # ~190 testes, sem rede/banco
+.\.venv\Scripts\python.exe -m pytest                         # ~250 testes, sem rede/banco
 .\.venv\Scripts\python.exe -m compileall -q src tests run.py
 npx pyright@1.1.414 --pythonpath .venv\Scripts\python.exe    # deve dar 0 erros
 node --check project\static\js\menu.js; node --check project\static\js\modal.js
@@ -48,7 +48,8 @@ src/app_captacao/
 │   ├── persistence/         usuarios.py, logs.py
 │   └── shared/              texto.py, arquivos.py (nome/pasta), navegador_local.py, log_tecnico.py
 ├── catalogo/                relatorios.py, regras.py (executor por ID/URL/nome), operacoes.py,
-│                            operacao_relatorios.py — SQL e regras do catálogo
+│                            operacao_relatorios.py — SQL e regras do catálogo; campos_sienge.py
+│                            (campos da tela por executor), parametros.py (aba Parâmetros)
 ├── automacao/               config, navegador, login, sessao, campos, downloads, erros, execucao
 │   └── relatorios/          registro.py + executores/<relatorio>.py (17)
 ├── consolidacao/            layouts.py (7 relatórios), leitura.py, consolidador.py — consolidado
@@ -99,7 +100,11 @@ restaurada** (D6). Edge sem fallback para Chrome (D5).
 Executor resolvido em `catalogo/regras.py`: trecho da URL (terminando a rota) → ID do relatório →
 nome sem acento (chave mais longa vence). Sem executor = erro de configuração, nunca clique
 genérico. Particularidade de tela vai no executor do relatório; filtro de valor fixo vai em
-`FILTROS_FIXOS_POR_EXECUTOR`.
+`FILTROS_FIXOS_POR_EXECUTOR`. Os campos da tela que cada executor preenche ficam declarados em
+`catalogo/campos_sienge.py` (D23): mudou a busca de filtros de um executor, mude a declaração —
+`tests/catalogo/test_campos_sienge.py` cobra. Filtro sem campo no Sienge vira aviso na mensagem
+(ou recusa, com `APP_RECUSAR_FILTROS_SEM_CAMPO=true`); `tools/auditar_filtros_sienge.py` confere
+as telas.
 
 ### Downloads
 
@@ -113,7 +118,8 @@ destino.
 
 No fim da execução, `execucao.runner` chama `consolidacao.consolidar` para cada relatório
 `baixado` com layout em `consolidacao/layouts.py`: tabela plana (filtros do Sienge viram colunas)
-e abas Origem e Conferência, em `<Relatório>_consolidado_<data>.xlsx` na pasta do relatório. Cada
+e abas Parâmetros (filtros usados, D24), Origem e Conferência, em
+`<Relatório>_consolidado_<data>.xlsx` na pasta do relatório. Cada
 arquivo é conferido com os totais impressos pelo Sienge (R$ 0,005 por linha; contagem exata);
 divergência não gera consolidado e não muda o estado. `APP_CONSOLIDAR_RELATORIOS=false` desliga.
 

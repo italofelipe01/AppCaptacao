@@ -7,6 +7,7 @@ numeros diferentes dos que o Sienge imprimiu.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -32,6 +33,9 @@ logger = logging.getLogger(__name__)
 # Cada valor exportado vem arredondado em 2 casas; o total do Sienge e calculado antes disso.
 ARREDONDAMENTO_POR_LINHA = 0.005
 TOLERANCIA_MINIMA = 0.01
+
+# Aba Parametros (docs/specs/parametros-no-consolidado.md), logo depois de Dados.
+COLUNAS_PARAMETROS = ("Filtro", "Campo no Sienge", "Valor usado", "Observação")
 
 
 @dataclass(frozen=True)
@@ -153,7 +157,13 @@ def _aba(livro, titulo: str, colunas: list[str], larguras: dict[int, float] | No
     return aba
 
 
-def _gravar(destino: Path, colunas: list[str], lidos: list[ArquivoLido], conferencias: list[ResultadoConferencia]):
+def _gravar(
+    destino: Path,
+    colunas: list[str],
+    lidos: list[ArquivoLido],
+    conferencias: list[ResultadoConferencia],
+    parametros: Sequence[Sequence[str]] | None = None,
+):
     livro = Workbook(write_only=True)
     total_linhas = sum(len(lido.linhas) for lido in lidos)
 
@@ -162,6 +172,11 @@ def _gravar(destino: Path, colunas: list[str], lidos: list[ArquivoLido], confere
     for lido in lidos:
         for linha in lido.linhas:
             dados.append([_celula(dados, linha.get(coluna)) for coluna in colunas])
+
+    if parametros is not None:
+        aba_parametros = _aba(livro, "Parâmetros", list(COLUNAS_PARAMETROS), {1: 35, 2: 35, 3: 40, 4: 70})
+        for linha in parametros:
+            aba_parametros.append(list(linha))
 
     origem = _aba(livro, "Origem", ["Arquivo", "Empresa", "Empreendimento / Centro de custo", "Linhas de dados"], {1: 55, 2: 45, 3: 50})
     for lido in lidos:
@@ -188,8 +203,18 @@ def _gravar(destino: Path, colunas: list[str], lidos: list[ArquivoLido], confere
     livro.save(destino)
 
 
-def consolidar(executor: str, nome_relatorio: str, arquivos, data: date | None = None) -> ResultadoConsolidacao:
-    """Le, confere e grava o consolidado na pasta do primeiro arquivo."""
+def consolidar(
+    executor: str,
+    nome_relatorio: str,
+    arquivos,
+    data: date | None = None,
+    parametros: Sequence[Sequence[str]] | None = None,
+) -> ResultadoConsolidacao:
+    """Le, confere e grava o consolidado na pasta do primeiro arquivo.
+
+    `parametros` sao as linhas da aba Parametros (Filtro, Campo no Sienge, Valor usado, Observacao),
+    ja em texto: a consolidacao nao conhece o catalogo.
+    """
     layout = LAYOUTS.get(executor)
     caminhos = [Path(arquivo) for arquivo in arquivos if str(arquivo or "").strip()]
     if layout is None:
@@ -216,7 +241,7 @@ def consolidar(executor: str, nome_relatorio: str, arquivos, data: date | None =
     nome_base = f"{sanitizar_nome_arquivo(nome_relatorio)}_consolidado_{(data or date.today()):%Y-%m-%d}"
     destino = montar_caminho_unico(caminhos[0].parent, nome_base, ".xlsx")
     try:
-        _gravar(destino, colunas, lidos, conferencias)
+        _gravar(destino, colunas, lidos, conferencias, parametros)
     except Exception:
         destino.unlink(missing_ok=True)
         raise

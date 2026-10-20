@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 
 from app_captacao import automacao, consolidacao
-from app_captacao.catalogo import regras
+from app_captacao.catalogo import parametros, regras
 from app_captacao.core.config import settings
 from app_captacao.core.persistence import logs as logs_repo
 from app_captacao.execucao import jobs
@@ -115,14 +115,14 @@ def _consolidar_relatorios(job_id: str, resultado: dict, relatorios: list[dict])
         relatorio = por_id.get(str(item.get("relatorio_id")), {"nome": item.get("relatorio_nome", "")})
         executor = regras.executor_do_relatorio(relatorio)
         if consolidacao.suporta(executor):
-            pendentes.append((item, executor))
+            pendentes.append((item, executor, relatorio))
 
     gerados = nao_gerados = 0
-    for indice, (item, executor) in enumerate(pendentes, start=1):
+    for indice, (item, executor, relatorio) in enumerate(pendentes, start=1):
         nome = item.get("relatorio_nome", "")
         jobs.update_execution_job(job_id, resumo=f"Consolidando {nome} ({indice}/{len(pendentes)}).")
         try:
-            consolidado = consolidacao.consolidar(executor, nome, item["arquivos"])
+            consolidado = consolidacao.consolidar(executor, nome, item["arquivos"], parametros=_parametros(relatorio))
         except Exception:
             logger.exception("Falha inesperada ao consolidar o relatorio %s.", nome)
             consolidado = consolidacao.ResultadoConsolidacao(False, motivo=MOTIVO_ERRO_NA_CONSOLIDACAO)
@@ -146,6 +146,14 @@ def _consolidar_relatorios(job_id: str, resultado: dict, relatorios: list[dict])
     if pendentes:
         resumo = f"{gerados} consolidado(s)" + (f", {nao_gerados} não gerado(s)" if nao_gerados else "")
         resultado["resumo"] = f"{resultado.get('resumo', '')} {resumo}.".strip()
+
+
+def _parametros(relatorio: dict) -> list[tuple[str, str, str, str]]:
+    """Linhas da aba Parametros: os filtros desta execucao e o campo do Sienge que recebeu cada um."""
+    return [
+        (linha.filtro, linha.campo_no_sienge, linha.valor, linha.observacao)
+        for linha in parametros.linhas_de_parametros(relatorio)
+    ]
 
 
 def _resultado_apos_falha(job_id: str, relatorios: list[dict], operacao_nome: str) -> dict:

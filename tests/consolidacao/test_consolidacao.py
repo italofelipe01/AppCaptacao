@@ -174,6 +174,25 @@ class PlanilhaGeradaTests(_ComPasta):
         self.assertEqual(celula.value.date(), date(2026, 10, 16))
         self.assertEqual(celula.number_format, "dd/mm/yyyy")
 
+    def test_parametros_ficam_na_aba_logo_depois_de_dados(self):
+        parametros = [
+            ("Empresa", "Empresa", "242, 101", ""),
+            ("Posição em", "Posição em", "30/09/2026", ""),
+        ]
+        resultado = consolidacao.consolidar(
+            "unidades", "Unidades", [sienge.unidades(self.pasta / "u.xlsx")], HOJE, parametros=parametros
+        )
+        abas = _abas(Path(resultado.caminho))
+        self.assertEqual(list(abas), ["Dados", "Parâmetros", "Origem", "Conferência"])
+        self.assertEqual(abas["Parâmetros"][0], ("Filtro", "Campo no Sienge", "Valor usado", "Observação"))
+        self.assertEqual([linha[:3] for linha in abas["Parâmetros"][1:]], [p[:3] for p in parametros])
+
+    def test_conferencia_que_falha_nao_grava_nem_a_aba_de_parametros(self):
+        arquivo = sienge.unidades(self.pasta / "u.xlsx", total_unidades=99)
+        resultado = consolidacao.consolidar("unidades", "Unidades", [arquivo], HOJE, parametros=[("A", "B", "C", "")])
+        self.assertFalse(resultado.gerado)
+        self.assertEqual(list(self.pasta.glob("*_consolidado_*")), [])
+
     def test_consolidado_existente_nao_e_sobrescrito(self):
         arquivo = sienge.unidades(self.pasta / "u.xlsx")
         primeiro = consolidacao.consolidar("unidades", "Unidades", [arquivo], HOJE)

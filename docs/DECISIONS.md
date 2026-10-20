@@ -250,3 +250,36 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   antes de esperar o arquivo. O teste confere a ordem no código de todos os executores e executa
   o Extrato com dublês. A espera fixa depois do ENTER continua, mas deixou de decidir se o
   download dá certo.
+
+## D23 — Filtro do cadastro nunca é descartado em silêncio (2026-10-20)
+
+- **Contexto:** o "Posição em" do Unidades estava cadastrado e chegava ao executor, que o
+  ignorava: os arquivos de 16/10 saíram com a data do dia. Os 17 executores procuram uma lista
+  fixa de filtros e descartam o resto, e nada amarrava o filtro do app ao campo da tela do Sienge.
+  A leitura das 16 telas achou mais casos: "Posição em" do Extrato cliente histórico e "Correção
+  até" do Analítico de apropriações ignorados; Unidades e Quadro espelho procurando campos que a
+  tela não tem; Empreendimento do Unidades opcional no app, mas exigido pelo Sienge.
+- **Decisão:** `catalogo/campos_sienge.py` declara, por executor, os campos da tela (rótulo, id,
+  tipo, obrigatório, padrão) e como cada um reconhece o filtro. Os executores continuam com a
+  busca deles (reescrever 17 executores arriscaria o que funciona), e
+  `tests/catalogo/test_campos_sienge.py` exige que declaração e código procurem exatamente os
+  mesmos identificadores e nomes, com a mesma regra de busca. Filtro sem campo vira aviso na
+  mensagem do relatório e no log; com `APP_RECUSAR_FILTROS_SEM_CAMPO=true`, a execução é recusada
+  antes de abrir o Sienge. Filtro só é opcional quando a tela não o exige (ou traz padrão) e o
+  executor aceita vazio sem apagar o padrão.
+- **Consequência:** a recusa começa desligada porque o cadastro não pôde ser lido (banco fora do
+  ar): ligar antes de auditar pararia operações com filtro hoje ignorado. A auditoria
+  (`tools/auditar_filtros_sienge.py`) lê as telas e, com banco, o cadastro, e grava
+  `docs/auditoria-filtros-sienge.md`. Campo novo num executor exige a declaração no mesmo commit.
+
+## D24 — Aba Parâmetros no consolidado (2026-10-20)
+
+- **Contexto:** quem recebe o consolidado não tem acesso ao app e não sabia com quais filtros a
+  extração foi feita; a aba Dados só tem os campos que o Sienge imprime no cabeçalho, que variam
+  por relatório.
+- **Decisão:** o consolidado ganha a aba **Parâmetros**, logo depois de Dados, com Filtro, Campo no
+  Sienge, Valor usado e Observação, montada dos filtros que a automação recebeu naquela execução.
+  As linhas saem de `catalogo/parametros.py` (onde está a declaração dos campos) e chegam à
+  consolidação já em texto, mantendo a fronteira 7.
+- **Consequência:** filtro não aplicado aparece marcado na aba em vez de sumir. A aba é gravada
+  junto com o consolidado: se a conferência falha, nada é gravado, como antes.

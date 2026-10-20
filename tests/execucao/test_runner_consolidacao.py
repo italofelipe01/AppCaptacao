@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from openpyxl import load_workbook
+
 from app_captacao import automacao, consolidacao
 from app_captacao.app import app
 from app_captacao.core.config import settings
@@ -70,6 +72,26 @@ class ConsolidacaoNoFimDaExecucaoTests(unittest.TestCase):
         self.assertEqual(item["arquivos"][-1], item["caminho_final"])
         self.assertIn("6 linha(s), conferido com os totais do Sienge", item["mensagem"])
         self.assertTrue(resultado["resumo"].endswith("1 consolidado(s)."))
+
+    def test_consolidado_traz_os_filtros_usados_na_aba_parametros(self):
+        relatorio = {
+            **UNIDADES,
+            "filtros": [
+                {"id": 1, "nome": "Empresa", "campo_identificador": "filter.empresa.cdEmpresaView", "acao": "", "valor": "242"},
+                {"id": 2, "nome": "Posição em", "campo_identificador": "x", "acao": "", "valor": "2026-09-30",
+                 "tipo_campo_valor": "DATE"},
+            ],
+        }
+        resultado = _resultado(_item("baixado", self._unidades("1002 - A")))
+        runner._consolidar_relatorios(self.job_id, resultado, [relatorio])
+
+        livro = load_workbook(resultado["itens"][0]["caminho_final"], read_only=True)
+        linhas = list(livro["Parâmetros"].iter_rows(min_row=2, values_only=True))
+        livro.close()
+        self.assertEqual(
+            [linha[:3] for linha in linhas],
+            [("Empresa", "Empresa", "242"), ("Posição em", "Posição em", "30/09/2026")],
+        )
 
     def test_conferencia_que_falha_nao_muda_o_estado_nem_o_arquivo_final(self):
         arquivos = self._unidades("1002 - A", total_unidades=99)

@@ -17,8 +17,10 @@ AppCaptacao/
 │   │   ├── security/           auth.py, perfis.py, sessao_usuario.py, network_auth.py (não ligado)
 │   │   ├── persistence/        usuarios.py, logs.py
 │   │   └── shared/             texto.py, arquivos.py (nome/pasta), navegador_local.py, log_tecnico.py
-│   ├── catalogo/               relatorios.py, regras.py, operacoes.py, operacao_relatorios.py
-│   ├── automacao/              config, navegador, login, sessao, campos, downloads, erros, execucao
+│   ├── catalogo/               relatorios.py, regras.py, operacoes.py, operacao_relatorios.py,
+│   │                           campos_sienge.py (campos da tela por executor), parametros.py (aba Parâmetros)
+│   ├── automacao/              config, navegador, login, sessao, campos, downloads, erros, execucao,
+│   │                           auditoria_filtros (filtros x tela do Sienge, só leitura)
 │   │   └── relatorios/         registro.py + executores/<relatorio>.py (17 executores)
 │   ├── consolidacao/           layouts.py (7 relatórios), leitura.py, consolidador.py (conferência + planilha)
 │   ├── execucao/               jobs.py (estado), runner.py (thread + consolidação no fim)
@@ -32,6 +34,7 @@ AppCaptacao/
 ├── packaging/                  .spec do PyInstaller e ícone
 ├── scripts/                    gerar_executaveis.ps1, criar_atalho.bat/.ps1
 ├── tools/baixa_pdfs/           ferramenta independente (não faz parte do app)
+├── tools/auditar_filtros_sienge.py  atalho da auditoria de filtros (gera docs/auditoria-filtros-sienge.md)
 └── docs/                       contrato, arquitetura, processos, decisões, specs
 ```
 
@@ -49,8 +52,12 @@ AppCaptacao/
 | SQL de usuário | `core/persistence/usuarios.py` |
 | SQL de catálogo/operação | `catalogo/relatorios.py`, `catalogo/operacoes.py`, `catalogo/operacao_relatorios.py` |
 | Qual executor atende um relatório | `catalogo/regras.py` |
-| Filtro opcional/obrigatório | `catalogo/regras.py` (`eh_filtro_opcional_relatorio`, `acao_exige_valor`) |
-| Novo relatório do Sienge | `automacao/relatorios/executores/<nome>.py` + `registro.py` + `regras.py` ([guia](processos/relatorios_e_filtros.md#como-adicionar-um-relatório-novo)) |
+| Filtro opcional/obrigatório | `catalogo/campos_sienge.py` (obrigatório e padrão da tela, `aceita_vazio` do executor); `regras.eh_filtro_opcional_relatorio` aplica |
+| Executor passa a ler (ou deixa de ler) um filtro | O executor **e** `catalogo/campos_sienge.py`: `tests/catalogo/test_campos_sienge.py` falha se os dois divergirem |
+| Filtro do cadastro sem campo no Sienge (aviso ou recusa) | `regras.filtros_sem_campo_no_sienge`; recusa com `APP_RECUSAR_FILTROS_SEM_CAMPO` |
+| Conferir os filtros contra a tela do Sienge | `tools/auditar_filtros_sienge.py` → `automacao/auditoria_filtros.py` |
+| Aba Parâmetros do consolidado | `catalogo/parametros.py` (linhas) e `consolidacao/consolidador.py` (aba) |
+| Novo relatório do Sienge | `automacao/relatorios/executores/<nome>.py` + `registro.py` + `regras.py` + `campos_sienge.py` ([guia](processos/relatorios_e_filtros.md#como-adicionar-um-relatório-novo)) |
 | Seletores do login Sienge/Microsoft | `automacao/login.py` |
 | Abertura do Edge/Chrome | `automacao/navegador.py` |
 | Detecção, nome ou cópia de download | `automacao/downloads.py` (regras de nome em `core/shared/arquivos.py`) |
@@ -66,9 +73,9 @@ AppCaptacao/
 | Pasta | Cobre |
 | --- | --- |
 | `tests/core/` | configuração, conexão, senha, sessão/usuário, log técnico |
-| `tests/catalogo/` | escolha do executor, filtros obrigatórios e fixos, consulta do catálogo |
+| `tests/catalogo/` | escolha do executor, filtros obrigatórios e fixos, consulta do catálogo, declaração dos campos do Sienge igual ao código dos executores, linhas da aba Parâmetros |
 | `tests/web/` | rotas (usuários, acompanhamento, erros), scripts dos templates, classes de estilo sem regra no CSS gerado e estrutura e textos das telas (rótulos, senhas, ordem da execução, modais, acentos); telas renderizadas em `paginas.py` |
-| `tests/automacao/` | execução em sequência, login, downloads, executor do saldo devedor |
+| `tests/automacao/` | execução em sequência, login, downloads, executores (saldo devedor, unidades, extrato, analítico), filtro sem campo no Sienge, auditoria |
 | `tests/execucao/` | job em segundo plano, limite de memória e consolidação no fim |
 | `tests/consolidacao/` | leitura do layout do Sienge, conferência e planilha gerada (planilhas sintéticas) |
 | `tests/inicializacao/` | checklist e leitura do requirements |

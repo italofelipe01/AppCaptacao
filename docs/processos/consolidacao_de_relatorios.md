@@ -18,11 +18,12 @@ Automação CAP\
     └── Unidades_consolidado_2026-10-16.xlsx
 ```
 
-O consolidado tem três abas:
+O consolidado tem quatro abas:
 
 | Aba | Conteúdo |
 | --- | --- |
 | Dados | Uma tabela plana: `Arquivo de origem`, os campos do bloco de filtros do Sienge (Empresa, Empreendimento, Período...) como colunas e as colunas do relatório. Datas viram data do Excel. |
+| Parâmetros | Os filtros que a automação recebeu nesta execução, para quem recebe o arquivo saber como a extração foi feita: Filtro (nome no cadastro), Campo no Sienge (rótulo da tela), Valor usado (datas em `dd/mm/aaaa`, listas separadas por vírgula) e Observação ("Preenchido automaticamente", "Não informado: o Sienge usa o padrão da tela", "NÃO APLICADO: sem campo correspondente na tela do Sienge"). Ver D24 e [specs/parametros-no-consolidado.md](../specs/parametros-no-consolidado.md). |
 | Origem | Cada arquivo, com empresa, empreendimento/centro de custo e quantidade de linhas. |
 | Conferência | Cada total conferido: valor extraído, valor impresso pelo Sienge e situação. |
 

@@ -10,7 +10,8 @@ web/            rotas Flask: validam a requisição e orquestram
         │
         ├── core/security    login do app, perfis, usuário da sessão
         ├── core/persistence usuários e logs (SQL)
-        ├── catalogo/        relatórios, filtros, operações, roteamento de executor (SQL + regras)
+        ├── catalogo/        relatórios, filtros, operações, roteamento de executor (SQL + regras),
+        │                    campos da tela do Sienge por executor (campos_sienge.py)
         └── execucao/        job em memória + thread de execução
                  │
                  ├──────────────────────────┐
@@ -38,7 +39,8 @@ core/database   conexão SQL Server (pyodbc, fallback pymssql)
 6. Endpoints mantêm o nome da função (sem Blueprint): `url_for` e `request.endpoint` nos
    templates dependem disso ([web/registro.py](../src/app_captacao/web/registro.py)).
 7. `consolidacao/` só importa de `core/`: recebe o executor e os caminhos dos arquivos, nunca o
-   driver, o catálogo ou o job.
+   driver, o catálogo ou o job. A aba Parâmetros chega pronta, em texto: quem monta as linhas é
+   `catalogo/parametros.py`, chamado pelo `execucao/runner.py`.
 
 ## Fluxo de uma requisição
 
