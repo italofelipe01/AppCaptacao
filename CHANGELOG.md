@@ -7,6 +7,17 @@ geradas pelo `python-semantic-release` a partir dos commits (Conventional Commit
 
 <!-- version list -->
 
+## v1.2.0 (2026-10-20)
+
+### Features
+
+- **automacao**: Conferir os filtros do app contra a tela do Sienge
+  ([`b0c89ba`](https://github.com/italofelipe01/AppCaptacao/commit/b0c89bac2deb0799d79ac172d2c8f99a766a73b3))
+
+- **consolidacao**: Registrar os filtros usados na aba Parametros do consolidado
+  ([`28d617b`](https://github.com/italofelipe01/AppCaptacao/commit/28d617b1e3b42f41088e9943fe4602845415e147))
+
+
 ## v1.1.1 (2026-10-16)
 
 ### Bug Fixes
