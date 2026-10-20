@@ -7,6 +7,14 @@ geradas pelo `python-semantic-release` a partir dos commits (Conventional Commit
 
 <!-- version list -->
 
+## v1.2.1 (2026-10-20)
+
+### Bug Fixes
+
+- **config**: Usar a configuracao do app mesmo com variaveis de outro projeto no Windows
+  ([`6316ba7`](https://github.com/italofelipe01/AppCaptacao/commit/6316ba7f9f5d0d34454ee935a56e121cb8d50b97))
+
+
 ## v1.2.0 (2026-10-20)
 
 ### Features
