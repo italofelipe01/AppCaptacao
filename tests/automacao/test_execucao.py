@@ -237,6 +237,48 @@ class EncerramentoDoEdgeTests(unittest.TestCase):
         self.assertFalse(driver.closed)
 
 
+class TransicaoEntreTelasTests(unittest.TestCase):
+    """Esperas fixas sairam do caminho login -> tela do relatorio (medido em 2026-10-20)."""
+
+    def test_entre_relatorios_nao_ha_pausa_fixa_e_apos_o_login_ela_e_curta(self):
+        pausas = []
+        with patch.object(navegador, "criar_driver", return_value=_FakeDriver()), patch.object(
+            login, "fazer_login"
+        ), patch.object(execucao, "_executar_relatorio_no_driver", return_value=[r"C:\x\a.xlsx"]), patch.object(
+            downloads, "aguardar_pasta_download_estabilizar", return_value=True
+        ), patch.object(execucao.time, "sleep", side_effect=pausas.append):
+            execucao.executar_relatorios_em_sequencia("user", "password", [{"id": 1, "nome": "A"}, {"id": 2, "nome": "B"}])
+        self.assertEqual(pausas, [execucao.POST_LOGIN_WAIT])
+        self.assertLessEqual(execucao.POST_LOGIN_WAIT, 2)
+
+    def _abrir(self, executor_nome):
+        aberturas = []
+
+        class _DriverQueNavega(_FakeDriver):
+            def get(self, url):
+                aberturas.append(("get", url))
+
+        relatorio = {"id": 1, "nome": executor_nome, "url": "https://x/sienge/8/index.html#/common/page/1", "filtros": []}
+        with patch.object(execucao.regras, "executor_do_relatorio", return_value=executor_nome), patch.object(
+            navegador, "fechar_janelas_extras"
+        ), patch.object(navegador, "abrir_relatorio", side_effect=lambda _d, url: aberturas.append(("pronta", url))), patch.object(
+            navegador, "aguardar_carregamento_da_pagina"
+        ), patch.object(execucao, "_executar_relatorio_dedicado"), patch.object(execucao.time, "sleep") as pausa:
+            with self.assertRaises(erros.DownloadProcessingError):  # sem arquivo: so a abertura importa aqui
+                execucao._executar_relatorio_no_driver(_DriverQueNavega(), None, relatorio)
+        return aberturas, pausa
+
+    def test_tela_antiga_espera_o_formulario_e_nao_uma_pausa_fixa(self):
+        aberturas, pausa = self._abrir("unidades")
+        self.assertEqual([tipo for tipo, _ in aberturas], ["pronta"])
+        pausa.assert_not_called()
+
+    def test_tela_nova_mui_mantem_o_carregamento_de_antes(self):
+        aberturas, pausa = self._abrir("quadro_espelho")
+        self.assertEqual([tipo for tipo, _ in aberturas], ["get"])
+        pausa.assert_called_once_with(6)
+
+
 class FiltroSemCampoNoSiengeTests(unittest.TestCase):
     """Filtro do cadastro sem campo na tela nunca e aplicado: avisa ou recusa, nunca passa calado."""
 

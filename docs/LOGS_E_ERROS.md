@@ -8,6 +8,7 @@
 | Relatório `nao_baixado` | Campo **etapa** na tela + log técnico |
 | Login do Sienge falha | Log técnico (passo a passo do SSO) |
 | Erro "inesperado" na tela | Log técnico: o detalhe técnico nunca vai para a tela |
+| Execução lenta numa máquina | Log técnico: "Tela do relatorio pronta em N s" mostra quanto cada tela levou; "A tela do relatorio nao ficou pronta" indica Sienge lento ou fora do ar (o limite é `SELENIUM_REPORT_READY_TIMEOUT_SECONDS`, ver D26) |
 
 ## Log técnico (arquivo)
 

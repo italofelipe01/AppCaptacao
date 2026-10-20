@@ -35,8 +35,13 @@ DOWNLOAD_QUIET_PERIOD_SECONDS = float(os.getenv("SELENIUM_DOWNLOAD_QUIET_PERIOD_
 # Temporario (.crdownload, .tmp...) parado ha mais que isto e download abandonado, nao em andamento.
 DOWNLOAD_TEMP_STALE_SECONDS = int(os.getenv("SELENIUM_DOWNLOAD_STALE_TEMP_SECONDS", "300"))
 
-# Tempo de espera após login (segundos)
-POST_LOGIN_WAIT = int(os.getenv("SELENIUM_POST_LOGIN_WAIT_SECONDS", "8"))
+# Folga depois do login (segundos). O login ja confirma a sessao estavel e a tela do relatorio
+# espera o proprio formulario: medido em 2026-10-20, o relatorio fica pronto 0,5 s apos o login.
+POST_LOGIN_WAIT = int(os.getenv("SELENIUM_POST_LOGIN_WAIT_SECONDS", "2"))
+
+# Limite para o formulario do relatorio ficar pronto depois de abrir a tela (segundos). Numa
+# maquina rapida leva menos de 1 s; maquina lenta espera o que precisar ate este limite.
+REPORT_READY_TIMEOUT = int(os.getenv("SELENIUM_REPORT_READY_TIMEOUT_SECONDS", "60"))
 
 # Tempo para concluir o desafio MFA/token da Microsoft (segundos)
 MICROSOFT_MFA_WAIT = int(os.getenv("SELENIUM_MICROSOFT_MFA_WAIT_SECONDS", "60"))

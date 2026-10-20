@@ -23,7 +23,7 @@ from app_captacao.automacao.config import (
     KEEP_BROWSER_OPEN,
     POST_LOGIN_WAIT,
 )
-from app_captacao.catalogo import regras
+from app_captacao.catalogo import campos_sienge, regras
 from app_captacao.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -161,9 +161,8 @@ def executar_relatorios_em_sequencia(email, senha, relatorios_config, on_report_
                     },
                 )
             if indice < total:
+                # A pasta estavel ja garante o fim dos downloads; a proxima tela espera o proprio formulario.
                 _aguardar_pasta_entre_relatorios(relatorio_config)
-                logger.info("Aguardando %s segundos antes de iniciar o proximo relatorio.", DEFAULT_REPORT_WAIT)
-                time.sleep(DEFAULT_REPORT_WAIT)
     finally:
         if driver and not KEEP_BROWSER_OPEN:
             _encerrar_driver(driver)
@@ -356,11 +355,16 @@ def _executar_relatorio_no_driver(driver, wait, relatorio_config, on_report_even
         relatorio_config.get("nome", ""),
         relatorio_url,
     )
-    driver.get(relatorio_url)
-    navegador.aguardar_carregamento_da_pagina(driver, wait)
-
-    if executor_relatorio != "extrato_saldo_devedor_presente":
-        time.sleep(6)
+    tela = campos_sienge.TELAS.get(executor_relatorio)
+    if tela is not None and tela.tipo_tela == campos_sienge.TELA_LEGADA:
+        # Espera o formulario do relatorio, nao uma pausa fixa: maquina lenta espera o que precisar.
+        navegador.abrir_relatorio(driver, relatorio_url)
+    else:
+        # Telas novas (MUI): os executores delas esperam os proprios componentes.
+        driver.get(relatorio_url)
+        navegador.aguardar_carregamento_da_pagina(driver, wait)
+        if executor_relatorio != "extrato_saldo_devedor_presente":
+            time.sleep(6)
 
     relatorio_config["_ao_registrar_arquivo"] = _aviso_de_arquivo_salvo(relatorio_config, on_report_event)
     try:

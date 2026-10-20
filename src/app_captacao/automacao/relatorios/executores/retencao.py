@@ -4,6 +4,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from app_captacao.automacao.navegador import fechar_janelas_extras as _fechar_janelas_extras
+from app_captacao.automacao.navegador import iframe_do_relatorio as _iframe_do_relatorio
 
 
 def executar(driver, wait, relatorio_config, contexto):
@@ -85,7 +86,7 @@ def _extrair_valores(filtro):
 
 
 def _preencher_campo_legado(driver, wait, identificador, valor, by, logger):
-    iframe = wait.until(lambda current_driver: current_driver.find_element(By.TAG_NAME, "iframe"))
+    iframe = _iframe_do_relatorio(driver, wait)
     driver.switch_to.frame(iframe)
 
     logger.info(

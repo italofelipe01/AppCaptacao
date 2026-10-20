@@ -35,6 +35,10 @@ class _EdgeDaOperacao(_EdgeAnexado):
     def get(self, url):
         self.janelas[self.atual] = url
 
+    def refresh(self):
+        # O Sienge reabre a ultima tela visitada: o primeiro relatorio pode ja estar na URL atual.
+        self.recarregamentos = getattr(self, "recarregamentos", 0) + 1
+
     def execute_script(self, _script, *args):
         return "complete"
 

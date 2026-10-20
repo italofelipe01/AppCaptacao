@@ -33,12 +33,22 @@ opcionalmente, a pasta de destino (`sharepoint_link`).
    terminam como `ignorado` na etapa `autenticacao`, tanto no relatório avulso quanto na operação.
 5. **Para cada relatório**, na mesma sessão autenticada
    ([automacao/execucao.py](../../src/app_captacao/automacao/execucao.py)):
-   1. abre a `UrlRelatorio` cadastrada;
-   2. escolhe o executor dedicado (ver [relatorios_e_filtros.md](relatorios_e_filtros.md));
+   1. abre a `UrlRelatorio` cadastrada. Nas telas antigas (iframe `iFramePage`),
+      `navegador.abrir_relatorio` espera o formulário do relatório ficar pronto (iframe novo,
+      documento completo e campos na tela), até `SELENIUM_REPORT_READY_TIMEOUT_SECONDS` (60), e
+      só então conta 6 s de folga para os scripts da tela (D26). As URLs só mudam depois do `#`: trocar de
+      relatório não recarrega a página, e o iframe da tela anterior é marcado antes para nunca ser
+      confundido com o novo. Mesma URL da tela atual (o Sienge reabre a última tela visitada):
+      recarrega. As duas telas novas (MUI: Saldo devedor e Quadro espelho) seguem como antes;
+   2. escolhe o executor dedicado (ver [relatorios_e_filtros.md](relatorios_e_filtros.md)). Os
+      executores das telas antigas entram sempre no iframe do relatório (`iframe_do_relatorio`),
+      nunca no de um widget da página (novidades, chat);
    3. o executor preenche os filtros, gera e exporta o relatório;
    4. o download é monitorado, renomeado e copiado (ver [downloads_e_destino.md](downloads_e_destino.md));
    5. o item vira `baixado` só com arquivo confirmado no destino; senão `nao_baixado`, com a etapa da falha.
-6. **Entre relatórios**: espera a pasta de downloads estabilizar. Se ela não estabilizar após uma
+6. **Entre relatórios**: espera a pasta de downloads estabilizar, sem pausa fixa depois (a próxima
+   tela espera o próprio formulário). Depois do login, a folga é de 2 s
+   (`SELENIUM_POST_LOGIN_WAIT_SECONDS`). Se a pasta não estabilizar após uma
    falha, os relatórios restantes viram `ignorado` para não associar o arquivo errado. Depois de
    uma falha, a automação volta para a aba do Sienge; se a sessão do Selenium caiu, reconecta ao
    Edge e refaz o login antes do próximo relatório (até 2 vezes; depois disso os restantes viram

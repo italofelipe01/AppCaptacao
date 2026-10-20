@@ -19,6 +19,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from app_captacao.automacao.navegador import fechar_janelas_extras as _fechar_janelas_extras
+from app_captacao.automacao.navegador import iframe_do_relatorio as _iframe_do_relatorio
 
 # "Posição em*" da tela (page/3012): so tem name. Vazio, o Sienge usa a data do dia.
 CAMPO_POSICAO_EM = "dtHistorico"
@@ -235,7 +236,7 @@ def _preencher_campo_legado(driver, wait, identificador, valor, by, logger):
     """
     # Localiza o primeiro iframe da página e entra nele:
     # muitos sistemas legados renderizam formulários dentro de iframes
-    iframe = wait.until(lambda current_driver: current_driver.find_element(By.TAG_NAME, "iframe"))
+    iframe = _iframe_do_relatorio(driver, wait)
     driver.switch_to.frame(iframe)
 
     logger.info(
@@ -259,7 +260,7 @@ def _preencher_campo_legado(driver, wait, identificador, valor, by, logger):
 
 def _confirmar_valor_legado(driver, wait, identificador, valor_esperado, by, rotulo):
     """Sem o valor na tela o Sienge gera o extrato com o padrao dele: melhor falhar do que baixar errado."""
-    iframe = wait.until(lambda current_driver: current_driver.find_element(By.TAG_NAME, "iframe"))
+    iframe = _iframe_do_relatorio(driver, wait)
     driver.switch_to.frame(iframe)
     try:
         valor_na_tela = str(driver.find_element(by, identificador).get_attribute("value") or "").strip()

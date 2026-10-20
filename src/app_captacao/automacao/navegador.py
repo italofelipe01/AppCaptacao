@@ -18,6 +18,7 @@ from urllib.parse import urlsplit
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
 from app_captacao.automacao.config import (
@@ -36,6 +37,7 @@ from app_captacao.automacao.config import (
     EDGE_USER_DATA_DIR,
     KEEP_BROWSER_OPEN,
     LOGIN_URL,
+    REPORT_READY_TIMEOUT,
     SELENIUM_BROWSER,
 )
 
@@ -397,6 +399,80 @@ def criar_driver():
         "Navegador Selenium nao suportado. Configure SELENIUM_BROWSER como "
         f"'edge' ou 'chrome'; valor recebido: {browser!r}."
     )
+
+
+# Iframe do formulario nas telas antigas do Sienge. A pagina tambem tem iframes de widgets
+# (novidades, chat): numa maquina lenta eles aparecem antes, e entrar neles fazia cada campo
+# esperar o timeout inteiro antes de tentar de novo.
+IFRAME_DO_RELATORIO = "iFramePage"
+_MARCA_IFRAME_ANTERIOR = "data-appcaptacao-tela-anterior"
+# Folga para os scripts de carga da tela antiga, que seguem rodando depois de o documento
+# completar (selects dependentes, listas carregadas por AJAX). Com 1 s, o Analitico de
+# apropriacoes nao gerou o arquivo em duas execucoes de 2026-10-20; com os 6 s de antes, gerou.
+PAUSA_APOS_TELA_PRONTA = 6.0
+# Sem iFramePage depois disto (tela fora do padrao), vale o primeiro iframe, como antes.
+_TOLERANCIA_SEM_IFRAME_DO_RELATORIO = 3.0
+
+_FORMULARIO_PRONTO_JS = r"""
+const quadro = document.getElementById(arguments[0]);
+if (!quadro || quadro.hasAttribute(arguments[1])) return false;
+let doc = null;
+try { doc = quadro.contentDocument; } catch (e) { return false; }
+return !!doc && doc.readyState === 'complete'
+  && doc.querySelectorAll('input:not([type=hidden]), select, textarea').length > 0;
+"""
+
+
+def iframe_do_relatorio(driver, wait):
+    """O iframe do formulario do relatorio (iFramePage), nunca o de um widget da pagina."""
+    inicio = time.monotonic()
+
+    def localizar(current_driver):
+        quadros = current_driver.find_elements(By.ID, IFRAME_DO_RELATORIO)
+        if quadros:
+            return quadros[0]
+        if time.monotonic() - inicio >= _TOLERANCIA_SEM_IFRAME_DO_RELATORIO:
+            todos = current_driver.find_elements(By.TAG_NAME, "iframe")
+            if todos:
+                return todos[0]
+        return False
+
+    return wait.until(localizar)
+
+
+def abrir_relatorio(driver, url, timeout: float = REPORT_READY_TIMEOUT) -> bool:
+    """Abre a tela antiga de um relatorio e espera o formulario dele ficar pronto.
+
+    As URLs do Sienge so mudam depois do '#': trocar de relatorio nao recarrega a pagina, o Sienge
+    troca o iframe do formulario. O iframe da tela anterior e marcado antes de navegar, para nunca
+    ser confundido com o novo. A folga de 6 s so comeca a contar com o formulario na tela: numa
+    maquina lenta, a pausa fixa de antes podia acabar antes de a tela existir. Mesma URL da tela
+    atual: recarrega, para o formulario vir limpo.
+    """
+    driver.switch_to.default_content()
+    driver.execute_script(
+        "const quadro = document.getElementById(arguments[0]); if (quadro) quadro.setAttribute(arguments[1], '1');",
+        IFRAME_DO_RELATORIO,
+        _MARCA_IFRAME_ANTERIOR,
+    )
+    if str(driver.current_url or "").strip() == str(url or "").strip():
+        driver.refresh()
+    else:
+        driver.get(url)
+    inicio = time.monotonic()
+    try:
+        WebDriverWait(driver, timeout, poll_frequency=0.2).until(
+            lambda current_driver: current_driver.execute_script(
+                _FORMULARIO_PRONTO_JS, IFRAME_DO_RELATORIO, _MARCA_IFRAME_ANTERIOR
+            )
+        )
+        pronta = True
+        logger.info("Tela do relatorio pronta em %.1f s.", time.monotonic() - inicio)
+    except TimeoutException:
+        pronta = False
+        logger.warning("A tela do relatorio nao ficou pronta em %s s; o executor segue mesmo assim.", timeout)
+    time.sleep(PAUSA_APOS_TELA_PRONTA)
+    return pronta
 
 
 def aguardar_carregamento_da_pagina(driver, wait, timeout=DEFAULT_TIMEOUT):

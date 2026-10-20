@@ -298,3 +298,28 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
 - **Consequência:** o app não depende mais do ambiente da máquina, e o outro projeto continua com
   as variáveis dele. Para mudar uma configuração do AppCaptação, altera-se o arquivo; variável do
   Windows só vale para chave que o arquivo não define.
+
+## D26 — Esperar a tela do relatório, não uma pausa fixa (2026-10-20)
+
+- **Contexto:** em outras máquinas, a passagem da tela inicial do Sienge para a tela do relatório
+  e o tempo até o primeiro filtro demoravam bastante. O `.env` não tinha nenhuma chave de tempo:
+  todas as máquinas usavam as mesmas pausas fixas do código (8 s depois do login, 6 s depois de
+  abrir cada relatório, 5 s entre relatórios). Medido no Sienge: as URLs só mudam depois do `#`,
+  a troca de relatório não recarrega a página e o formulário fica pronto em 0,4–0,6 s. A página
+  tem, além do iframe do relatório (`iFramePage`), iframes de widgets (novidades, chat), e os
+  executores entravam no primeiro iframe que aparecesse: numa máquina lenta, um widget podia
+  aparecer antes, e cada campo esperava o timeout inteiro (20 s por id e 20 s por nome).
+- **Decisão:** `navegador.abrir_relatorio` marca o iframe da tela anterior, navega, espera o
+  formulário novo existir (até `SELENIUM_REPORT_READY_TIMEOUT_SECONDS`) e só então conta a folga de
+  6 s que já existia. Os executores das telas antigas entram em `iframe_do_relatorio` (o
+  `iFramePage`; sem ele, o primeiro iframe após 3 s, como antes). A folga depois do login caiu de
+  8 s para 2 s e a pausa de 5 s entre relatórios saiu: o relatório seguinte já espera a própria
+  tela mais os 6 s. As esperas depois do ENTER (D22) e as telas MUI não mudaram.
+- **Tentativa recusada:** a folga de 1 s depois da tela pronta. Medido no Sienge, o documento
+  completa em 0,4–0,6 s, mas a tela antiga segue carregando (AJAX) depois disso: com 1 s, o
+  Analítico de apropriações não gerou o arquivo em duas execuções de 2026-10-20; com 6 s, gerou.
+- **Consequência:** máquina lenta passa a esperar a tela de verdade antes da folga e não perde mais
+  40 s por campo dentro do iframe de um widget. Máquina rápida ganha cerca de 6 s no login e 5 s
+  por relatório. Se a tela não ficar pronta, o log diz "A tela do relatorio nao ficou pronta" e o
+  executor segue como antes. Duas automações no mesmo Edge (outra janela do app ou um script) se
+  atrapalham: a trava de "uma por vez" só vale dentro do processo do app.

@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from app_captacao.automacao.navegador import fechar_janelas_extras as _fechar_janelas_extras
+from app_captacao.automacao.navegador import iframe_do_relatorio as _iframe_do_relatorio
 
 
 CAMPO_EMPRESA = "empresa.cdEmpresaView"
@@ -155,8 +156,8 @@ def _localizar_primeiro_disponivel(driver, wait, identificadores):
 
 def _localizar_no_primeiro_iframe(driver, wait, identificador):
     driver.switch_to.default_content()
-    wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
-    frames = driver.find_elements(By.TAG_NAME, "iframe")
+    relatorio = _iframe_do_relatorio(driver, wait)
+    frames = [relatorio, *(frame for frame in driver.find_elements(By.TAG_NAME, "iframe") if frame != relatorio)]
     ultimo_erro = None
 
     for indice, iframe in enumerate(frames):

@@ -87,7 +87,12 @@ packaging/ scripts/ tools/ docs/
 job → thread `execucao.runner` → `automacao.executar_relatorio(s)`. Estados por relatório:
 `pendente`, `em_execucao`, `baixado`, `nao_baixado` (com `etapa`), `ignorado`. Uma automação por
 vez no processo (o Edge e a pasta de downloads são do computador): `jobs.create_execution_job`
-recusa com `ExecucaoEmAndamentoError`. A tela faz polling em `/execucoes/atual`.
+recusa com `ExecucaoEmAndamentoError`. A tela faz polling em `/execucoes/atual`. A tela de cada
+relatório (antiga, iframe `iFramePage`) é aberta por `navegador.abrir_relatorio`, que espera o
+formulário aparecer e só então conta a folga de 6 s (com 1 s o Analítico não gerou o arquivo);
+executores entram em `iframe_do_relatorio`, nunca no primeiro iframe da página (widgets) — D26.
+Duas automações no mesmo Edge (outra janela do app ou um script de teste) se atrapalham e derrubam
+a sessão do Sienge: não rode testes ao vivo enquanto o usuário executa o app.
 
 ### Login no Sienge
 
