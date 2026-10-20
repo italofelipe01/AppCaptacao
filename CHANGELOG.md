@@ -7,6 +7,14 @@ geradas pelo `python-semantic-release` a partir dos commits (Conventional Commit
 
 <!-- version list -->
 
+## v1.2.3 (2026-10-20)
+
+### Performance Improvements
+
+- **automacao**: Esperar a tela do relatorio e entrar sempre no iframe do formulario
+  ([`ee8d9c3`](https://github.com/italofelipe01/AppCaptacao/commit/ee8d9c329e0f60af658e22be5eb891a113aa4950))
+
+
 ## v1.2.2 (2026-10-20)
 
 ### Bug Fixes
