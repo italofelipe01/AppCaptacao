@@ -46,7 +46,8 @@ A tela **Logs** lê essas tabelas e exporta em JSON. Com a gravação pausada, a
 | Bibliotecas faltando | ERRO | Abrir pelo `Iniciar AppCaptacao.bat` (instala no `.venv`) |
 | Nenhum arquivo de configuração | ERRO | Copiar `.env.example` para `.env` |
 | Variáveis obrigatórias vazias | ERRO | Preencher `DB_HOST`, `DB_DATABASE`, `DB_USER`, `DB_PASSWORD` |
-| Banco de dados: `Login failed` | ERRO | Usuário/senha SQL incorretos ou expirados |
+| Banco de dados: `Login failed` | ERRO | Usuário/senha SQL incorretos ou expirados. Não é o usuário do app (`CapRecursoUsuario`): é a conta SQL de `DB_USER` |
+| Variáveis do Windows: ignoradas | AVISO | Há `DB_USER`, `DB_PASSWORD`... no ambiente do Windows (de outro projeto, por exemplo) com outro valor; o app usa o arquivo de configuração (D25). Só nomes são mostrados |
 | Banco de dados: timeout | ERRO | Rede/VPN ou `DB_HOST` |
 | FLASK_SECRET_KEY vazia | AVISO | Gerar uma chave; sem ela todos são deslogados a cada reinício |
 | APP_HOST=0.0.0.0 | AVISO | App acessível pela rede; use `127.0.0.1` se for uso local |

@@ -92,5 +92,6 @@ Em desenvolvimento, o primeiro arquivo encontrado vence:
 3. arquivos em texto puro: `.config\app_captacao.env`, `app_captacao.env`, `.env` ao lado do app.
 
 No executável, texto puro só é lido com `APP_CAPTACAO_ALLOW_PLAINTEXT_ENV=true`.
-`APP_CAPTACAO_CONFIG_DIR` troca a pasta padrão. Variável já definida no Windows nunca é
-sobrescrita pelo arquivo.
+`APP_CAPTACAO_CONFIG_DIR` troca a pasta padrão. O arquivo de configuração vale sobre variável de
+mesmo nome definida no ambiente do Windows (D25): uma `DB_USER` de outro projeto não troca a conta
+do banco do AppCaptação. O checklist avisa quais variáveis do Windows foram ignoradas, só pelo nome.

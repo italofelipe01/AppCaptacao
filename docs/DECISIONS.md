@@ -283,3 +283,18 @@ Decisões arquiteturais e trade-offs aceitos. Formato: contexto, decisão, conse
   consolidação já em texto, mantendo a fronteira 7.
 - **Consequência:** filtro não aplicado aparece marcado na aba em vez de sumir. A aba é gravada
   junto com o consolidado: se a conferência falha, nada é gravado, como antes.
+
+## D25 — Arquivo de configuração vale sobre variável herdada do Windows (2026-10-20)
+
+- **Contexto:** o checklist recusava o banco com `Login failed for user ...` (18456). A conta
+  era de outro projeto: `DB_USER`, `DB_PASSWORD` e `DB_DATABASE` estavam no ambiente do
+  usuário do Windows, e o carregamento (`load_dotenv(override=False)`) nunca sobrescrevia
+  variável já definida. O app misturava o `DB_HOST` do próprio `.env` com usuário, senha e banco
+  do outro projeto; a configuração do AppCaptação, correta, ficava encoberta.
+- **Decisão:** o arquivo de configuração do AppCaptação (`.env` em desenvolvimento, `.env.enc` no
+  executável) vale sobre variável de mesmo nome herdada do Windows. O ambiente herdado é guardado
+  no import de `core/config/environment.py`, antes de qualquer arquivo, e as chaves que o arquivo
+  substituiu com outro valor aparecem no checklist como aviso, só pelo nome.
+- **Consequência:** o app não depende mais do ambiente da máquina, e o outro projeto continua com
+  as variáveis dele. Para mudar uma configuração do AppCaptação, altera-se o arquivo; variável do
+  Windows só vale para chave que o arquivo não define.

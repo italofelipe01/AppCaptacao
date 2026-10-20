@@ -18,7 +18,8 @@ Relatórios, filtros, operações e usuários vivem no **SQL Server** (tabelas `
   openpyxl, CustomTkinter (janelas do `.exe`), pywin32, python-dotenv. PyInstaller para os executáveis.
 - Só Windows: configuração cifrada com DPAPI e janelas desktop.
 - Configuração por variáveis de ambiente. `.env.example` é a lista canônica; leitura só em
-  `core/config/settings.py` e `automacao/config.py`, que carregam o `.env` antes.
+  `core/config/settings.py` e `automacao/config.py`, que carregam o `.env` antes. O arquivo vale
+  sobre variável de mesmo nome herdada do Windows (D25); o checklist avisa quais foram ignoradas.
 - Shell primário: PowerShell. Ambiente do projeto: `.venv` (criado pelo `Iniciar AppCaptacao.bat`).
 
 ## Comandos
@@ -166,6 +167,9 @@ aceite) → aprovação explícita → design listando módulos → implementaç
   versionado, log ou resposta.
 - O `FLASK_SECRET_KEY` real esteve fixo no código e no manual da primeira versão (D1): deve ser trocado.
 - `APP_HOST=0.0.0.0` expõe o app na rede; o checklist avisa.
+- O ambiente do Windows pode ter `DB_USER`/`DB_PASSWORD`/`DB_DATABASE` de outros projetos. Desde
+  D25 o arquivo de configuração vence; teste que dependa de `os.environ` não conta com o ambiente
+  de quem roda (use `patch.dict` e dublês).
 - Logs no banco estão pausados (`APP_SAVE_LOGS=false`); diagnóstico pelo log técnico em
   `%LOCALAPPDATA%\AppCaptacao\logs\appcaptacao.log`.
 - Os executores dependem de seletores do Sienge (MUI): mudança de layout quebra o relatório afetado.

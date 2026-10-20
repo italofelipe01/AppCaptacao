@@ -41,6 +41,18 @@ def verificar_configuracao() -> list[Resultado]:
 
     resultados = [Resultado("Configuracao", OK, f"Carregada de {caminho}")]
 
+    ignoradas = environment.variaveis_herdadas_ignoradas()
+    if ignoradas:
+        resultados.append(
+            Resultado(
+                "Variaveis do Windows",
+                AVISO,
+                f"Ignoradas, vale o arquivo de configuracao: {', '.join(ignoradas)}.",
+                "Elas existem no ambiente do Windows com outro valor (de outro projeto, por exemplo). "
+                "Para mudar o AppCaptacao, altere o arquivo de configuracao.",
+            )
+        )
+
     from app_captacao.core.database.connection import nome_do_banco
 
     faltando = [nome for nome in ("DB_HOST",) if not os.getenv(nome, "").strip()]

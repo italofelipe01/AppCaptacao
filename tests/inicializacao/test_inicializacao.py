@@ -77,9 +77,22 @@ class VerificacoesTests(unittest.TestCase):
         env = {"DB_HOST": "srv", "DB_DATABASE": "db", "DB_USER": "", "DB_PASSWORD": "", "DB_EXTRA_PARAMS": "Trusted_Connection=yes", "FLASK_SECRET_KEY": "x", "APP_HOST": "127.0.0.1"}
         with patch.dict(os.environ, env), patch(
             "app_captacao.core.config.environment.initialize_environment", return_value=Path("teste.env")
-        ):
+        ), patch("app_captacao.core.config.environment.variaveis_herdadas_ignoradas", return_value=[]):
             resultados = verificacoes.verificar_configuracao()
         self.assertEqual([r.status for r in resultados], [OK])
+
+    def test_variavel_do_windows_ignorada_e_avisada_so_pelo_nome(self):
+        env = {"DB_HOST": "srv", "DB_DATABASE": "db", "DB_USER": "app", "DB_PASSWORD": "segredo", "DB_EXTRA_PARAMS": "", "FLASK_SECRET_KEY": "x", "APP_HOST": "127.0.0.1"}
+        with patch.dict(os.environ, env), patch(
+            "app_captacao.core.config.environment.initialize_environment", return_value=Path("teste.env")
+        ), patch(
+            "app_captacao.core.config.environment.variaveis_herdadas_ignoradas", return_value=["DB_USER", "DB_PASSWORD"]
+        ):
+            resultados = {r.nome: r for r in verificacoes.verificar_configuracao()}
+        aviso = resultados["Variaveis do Windows"]
+        self.assertEqual(aviso.status, AVISO)
+        self.assertIn("DB_USER, DB_PASSWORD", aviso.mensagem)
+        self.assertNotIn("segredo", aviso.mensagem + aviso.dica)
 
     def test_falha_no_banco_vira_erro_sem_expor_a_senha(self):
         with patch.dict(os.environ, {"DB_HOST": "srv", "DB_PASSWORD": "segredo"}), patch(

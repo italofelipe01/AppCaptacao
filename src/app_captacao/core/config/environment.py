@@ -1,7 +1,8 @@
 """Localizacao e carregamento da configuracao (.env) do AppCaptacao.
 
 Em desenvolvimento o .env fica na raiz do repositorio; no executavel a
-configuracao fica criptografada (DPAPI) no perfil do usuario.
+configuracao fica criptografada (DPAPI) no perfil do usuario. O arquivo vale
+sobre variavel de mesmo nome herdada do Windows (D25).
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 from app_captacao.core.config.dpapi import (
     decrypt_bytes_for_current_user,
@@ -33,6 +34,10 @@ APP_STATE_DIRNAME = "state"
 FILE_ATTRIBUTE_HIDDEN = 0x02
 FILE_ATTRIBUTE_NORMAL = 0x80
 INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF
+
+# Ambiente herdado do Windows antes de qualquer arquivo ser carregado: e com ele que se sabe
+# qual variavel de fora (de outro projeto, por exemplo) o arquivo do app deixou de lado.
+_AMBIENTE_HERDADO = dict(os.environ)
 
 
 def get_runtime_base_dir() -> Path:
@@ -270,18 +275,22 @@ def get_config_path_candidates() -> list[Path]:
 
 _environment_loaded = False
 _loaded_config_path: Path | None = None
+_variaveis_herdadas_ignoradas: list[str] = []
 
 
 def initialize_environment(force: bool = False) -> Path | None:
     """Carrega a primeira configuracao encontrada; chamadas seguintes reutilizam o resultado.
 
-    Variaveis ja definidas no processo nunca sao sobrescritas pelo arquivo.
+    O arquivo vale sobre variavel de mesmo nome herdada do Windows: DB_USER de outro projeto
+    no ambiente do usuario nao pode trocar a conta do banco do AppCaptacao (D25). Os nomes
+    ignorados ficam em variaveis_herdadas_ignoradas(), para o checklist avisar.
     """
     global _environment_loaded, _loaded_config_path
     if _environment_loaded and not force:
         return _loaded_config_path
 
     _loaded_config_path = None
+    _variaveis_herdadas_ignoradas.clear()
     for existing_config_path in get_config_path_candidates():
         if not existing_config_path.exists():
             continue
@@ -300,12 +309,27 @@ def get_loaded_config_path() -> Path | None:
     return _loaded_config_path
 
 
+def variaveis_herdadas_ignoradas() -> list[str]:
+    """Nomes (nunca valores) das variaveis do Windows que o arquivo de configuracao substituiu."""
+    return list(_variaveis_herdadas_ignoradas)
+
+
 def _load_environment_from_path(path: Path) -> None:
     if path.suffix.lower() == ".enc":
-        decrypted_text = decrypt_env_file(path)
-        load_dotenv(stream=io.StringIO(decrypted_text), override=False)
-        return
-    load_dotenv(path, override=False)
+        valores = dotenv_values(stream=io.StringIO(decrypt_env_file(path)))
+    else:
+        valores = dotenv_values(path)
+    _aplicar_configuracao(valores)
+
+
+def _aplicar_configuracao(valores: dict[str, str | None]) -> None:
+    for chave, valor in valores.items():
+        if valor is None:
+            continue
+        herdado = _AMBIENTE_HERDADO.get(chave)
+        if herdado is not None and herdado != valor and chave not in _variaveis_herdadas_ignoradas:
+            _variaveis_herdadas_ignoradas.append(chave)
+        os.environ[chave] = valor
 
 
 def is_encrypted_env_path(path: Path) -> bool:
